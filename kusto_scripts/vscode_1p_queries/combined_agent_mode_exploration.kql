@@ -1,0 +1,72 @@
+// Agent Mode Exploration Queries
+// Focus: Extracting agent mode conversation data from internal telemetry
+
+// ============================================================
+// QUERY 1: Basic stats for agent mode
+// ============================================================
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name contains "copilot"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| summarize count() by Name
+| order by count_ desc
+| take 20
+
+// ============================================================
+// QUERY 2: Sample agent mode conversations
+// ============================================================
+// AppEvents
+// | where TimeGenerated > ago(2h)
+// | where Name contains "conversation.messageText"
+// | extend mode = tostring(Properties["mode"])
+// | where mode == "agent"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend messageId = tostring(Properties["messageId"])
+// | extend source = tostring(Properties["source"])
+// | extend messageText = tostring(Properties["messageText"])
+// | project TimeGenerated, conversationId, messageId, source, messageText
+// | order by conversationId, TimeGenerated asc
+// | take 100
+
+// ============================================================
+// QUERY 3: Find multi-turn agent conversations (3+ turns)
+// ============================================================
+// AppEvents
+// | where TimeGenerated > ago(2h)
+// | where Name contains "conversation.messageText"
+// | extend mode = tostring(Properties["mode"])
+// | where mode == "agent"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend messageId = tostring(Properties["messageId"])
+// | summarize turnCount = dcount(messageId) by conversationId
+// | where turnCount >= 3
+// | order by turnCount desc
+// | take 50
+
+// ============================================================
+// QUERY 4: Get full conversation for a specific conversationId
+// ============================================================
+// let targetConversation = "YOUR_CONVERSATION_ID_HERE";
+// AppEvents
+// | where TimeGenerated > ago(24h)
+// | where Name contains "conversation.messageText"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | where conversationId == targetConversation
+// | extend messageId = tostring(Properties["messageId"])
+// | extend source = tostring(Properties["source"])
+// | extend messageText = tostring(Properties["messageText"])
+// | project TimeGenerated, messageId, source, messageText
+// | order by TimeGenerated asc
+
+// ============================================================
+// QUERY 5: Check available properties in agent mode events
+// ============================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name contains "copilot"
+// | extend mode = tostring(Properties["mode"])
+// | where mode == "agent"
+// | take 1
+// | project Properties
+

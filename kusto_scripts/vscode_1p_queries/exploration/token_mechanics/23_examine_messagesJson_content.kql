@@ -1,0 +1,41 @@
+// =============================================================================
+// EXAMINE: What's actually IN messagesJson?
+// =============================================================================
+// Is it Conversation Messages (just user/model text)?
+// Or Conversation Trajectories (full LLM context with tools, system, etc)?
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Get a sample messagesJson and parse its structure
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJson = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJson)
+| take 1
+| extend parsed = parse_json(messagesJson)
+| mv-expand message = parsed
+| extend role = tostring(message.role)
+| summarize 
+    roleCount = count(),
+    sampleContent = take_any(tostring(message.content))
+    by role
+| order by roleCount desc
+
+// =============================================================================
+// EXPECTED ROLES:
+// If Conversation Messages only:
+//   - "user"
+//   - "assistant" (or "model")
+//
+// If Conversation Trajectories (full context):
+//   - "system"        ← System prompt!
+//   - "user"
+//   - "assistant"
+//   - "tool"          ← Tool results!
+//   - "function"      ← Function calls?
+// =============================================================================
+

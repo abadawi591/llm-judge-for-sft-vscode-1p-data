@@ -1,0 +1,135 @@
+// =============================================================================
+// INVESTIGATE: Does the token gap vary by model?
+// =============================================================================
+// HYPOTHESIS: Different models have different tokenizers, causing the gap
+// between messagesJson token counts and promptTokens.
+
+let timeStart = ago(1h);
+
+// =============================================================================
+// Query 1: Token ratio by model
+// =============================================================================
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend tokenCount = toint(message.content)
+    | summarize trajectoryTotal = sum(tokenCount) by messageId
+    | where trajectoryTotal > 0;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project messageId, model, promptTokens;
+
+trajectoryEvents
+| join kind=inner outputEvents on messageId
+| where promptTokens > 0 and trajectoryTotal > 0
+| extend tokenRatio = round(100.0 * promptTokens / trajectoryTotal, 1)
+| summarize 
+    count(),
+    avgTrajectory = round(avg(trajectoryTotal), 0),
+    avgPromptTokens = round(avg(promptTokens), 0),
+    avgRatio = round(avg(tokenRatio), 1),
+    minRatio = min(tokenRatio),
+    maxRatio = max(tokenRatio)
+    by model
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Detailed comparison per model
+// =============================================================================
+// Uncomment to run:
+/*
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend tokenCount = toint(message.content)
+    | summarize trajectoryTotal = sum(tokenCount) by messageId
+    | where trajectoryTotal > 0;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project messageId, model, promptTokens;
+
+trajectoryEvents
+| join kind=inner outputEvents on messageId
+| where promptTokens > 0 and trajectoryTotal > 0
+| extend tokenRatio = round(100.0 * promptTokens / trajectoryTotal, 1)
+| project messageId, model, trajectoryTotal, promptTokens, tokenRatio
+| order by model, trajectoryTotal desc
+| take 50
+*/
+
+// =============================================================================
+// Query 3: Check if ratio is consistent within same model
+// =============================================================================
+// If tokenizer mismatch, we'd expect consistent ratio per model
+// Uncomment to run:
+/*
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend tokenCount = toint(message.content)
+    | summarize trajectoryTotal = sum(tokenCount) by messageId
+    | where trajectoryTotal > 0;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project messageId, model, promptTokens;
+
+trajectoryEvents
+| join kind=inner outputEvents on messageId
+| where promptTokens > 0 and trajectoryTotal > 0
+| extend tokenRatio = round(100.0 * promptTokens / trajectoryTotal, 1)
+| summarize 
+    count(),
+    avgRatio = round(avg(tokenRatio), 1),
+    stdevRatio = round(stdev(tokenRatio), 1),  // Low stdev = consistent ratio
+    minRatio = min(tokenRatio),
+    maxRatio = max(tokenRatio)
+    by model
+| extend ratioVariability = stdevRatio  // Lower = more consistent
+| order by count_ desc
+*/
+

@@ -1,0 +1,68 @@
+// =============================================================================
+// numRequests FORMULA VERIFICATION
+// =============================================================================
+// PURPOSE: Verify that numRequests = sum(toolCounts) + 1
+// FINDING: ✅ VERIFIED
+//   - With tools: numRequests = sum(toolCounts) + 1
+//   - Without tools: numRequests = 1 (just the final response)
+// =============================================================================
+
+let timeStart = ago(2h);
+let timeEnd = ago(1h);
+
+// QUERY 1: Turns WITH tool calls - verify formula
+// Expected: sum values in toolCounts + 1 = numRequests
+AppEvents
+| where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| extend toolCounts = tostring(Properties["toolCounts"])
+| extend numRequests = toint(Measurements["numRequests"])
+| where toolCounts != "{}" and toolCounts != ""
+| project toolCounts, numRequests
+| take 20
+// Manual verification: count the numbers in toolCounts, add 1, should equal numRequests
+
+// =============================================================================
+// QUERY 2: Turns with NO tool calls - should all have numRequests = 1
+// =============================================================================
+// let timeStart = ago(2h);
+// let timeEnd = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend toolCounts = tostring(Properties["toolCounts"])
+// | extend numRequests = toint(Measurements["numRequests"])
+// | where toolCounts == "{}" or toolCounts == ""
+// | summarize count() by numRequests
+// | order by numRequests asc
+// EXPECTED: All rows should have numRequests = 1
+
+// =============================================================================
+// QUERY 3: Compare numRequests with tokenEventCount (93.4% match expected)
+// =============================================================================
+// let timeStart = ago(2h);
+// let timeEnd = ago(1h);
+// let toolData = 
+//     AppEvents
+//     | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+//     | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+//     | extend messageId = tostring(Properties["messageId"])
+//     | extend numRequests = toint(Measurements["numRequests"])
+//     | project messageId, numRequests;
+// let tokenData = 
+//     AppEvents
+//     | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+//     | where Name == "GitHub.copilot-chat/engine.messages.length"
+//     | extend message_direction = tostring(Properties["message_direction"])
+//     | where message_direction == "output"
+//     | extend messageId = tostring(Properties["headerRequestId"])
+//     | summarize tokenEventCount = count() by messageId;
+// toolData
+// | join kind=inner tokenData on messageId
+// | extend match = (numRequests == tokenEventCount)
+// | summarize 
+//     totalRows = count(),
+//     matchCount = countif(match),
+//     mismatchCount = countif(not(match))
+// | extend matchRate = round(100.0 * matchCount / totalRows, 2)
+

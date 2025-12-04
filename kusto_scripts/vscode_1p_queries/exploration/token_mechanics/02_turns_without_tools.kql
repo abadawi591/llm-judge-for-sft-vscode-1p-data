@@ -1,0 +1,69 @@
+// =============================================================================
+// DETAILED: Turns WITHOUT tool usage
+// =============================================================================
+// QUESTION: What do turns look like when NO tools are used?
+//
+// EXPECTED:
+// - llmCallCount = 1 (single LLM call for the response)
+// - promptGrowth = 0 (no tool results to add)
+// - promptTokensList has single value (stable tokens)
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where toolCounts == "{}"  // NO TOOLS
+    | project messageId, toolCounts, numRequests;
+
+let tokenCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+toolData
+| join kind=inner tokenCalls on messageId
+| summarize 
+    llmCallCount = count(),
+    promptTokensList = make_list(promptTokens),
+    completionTokensList = make_list(completionTokens),
+    minPrompt = min(promptTokens),
+    maxPrompt = max(promptTokens)
+    by messageId, toolCounts, numRequests
+| extend promptGrowth = maxPrompt - minPrompt
+| project 
+    messageId,
+    toolCounts,
+    numRequests,
+    llmCallCount,
+    promptTokensList,
+    promptGrowth,
+    completionTokensList
+| order by llmCallCount desc  // Show any anomalies first
+| take 30
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// messageId | toolCounts | numRequests | llmCallCount | promptTokensList | promptGrowth
+// ----------|------------|-------------|--------------|------------------|-------------
+// abc123    | {}         | 1           | 1            | [15000]          | 0
+// def456    | {}         | 1           | 1            | [22000]          | 0
+//
+// If llmCallCount > 1 for toolCounts = {}, investigate why!
+// =============================================================================
+

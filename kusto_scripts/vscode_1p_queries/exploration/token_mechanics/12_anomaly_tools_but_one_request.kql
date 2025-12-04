@@ -1,0 +1,24 @@
+// =============================================================================
+// ANOMALY INVESTIGATION: hasTools=true but numRequests=1
+// =============================================================================
+// FINDING: 118 turns have toolCounts != "{}" but numRequests = 1
+//
+// QUESTION: How can you have tools recorded but only 1 LLM request?
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get the anomalous turns
+AppEvents
+| where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| extend messageId = tostring(Properties["messageId"])
+| extend toolCounts = tostring(Properties["toolCounts"])
+| extend numRequests = toint(Measurements["numRequests"])
+| extend responseType = tostring(Properties["responseType"])
+| where responseType == "success"
+| where toolCounts != "{}"  // HAS TOOLS
+| where numRequests == 1    // BUT ONLY 1 REQUEST?
+| summarize count() by toolCounts
+| order by count_ desc

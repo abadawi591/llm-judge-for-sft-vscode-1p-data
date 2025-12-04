@@ -1,0 +1,96 @@
+// =============================================================================
+// VERIFY: Is turnToolTokens the sum of all tool tokens within a turn?
+// =============================================================================
+// QUESTION: Does the sum of tool tokens from messagesJson match promptGrowth?
+//
+// We compare two sources:
+//   1. messagesJson: role="tool" entries with content=tokenCount
+//   2. promptTokens: max - min across LLM calls (growth = what was added)
+//
+// If they match → turnToolTokens (from messagesJson) is reliable
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Source 1: Extract exact tool tokens from messagesJson
+let toolTokensFromJson = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand with_itemindex=idx message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize 
+        jsonToolTokenSum = sum(toolTokens),
+        jsonToolCount = count()
+        by messageId;
+
+// Source 2: Get promptTokens growth (max - min across LLM calls in a turn)
+let promptGrowth = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | summarize 
+        minPrompt = min(promptTokens),
+        maxPrompt = max(promptTokens),
+        llmCallCount = count()
+        by messageId
+    | extend promptTokenGrowth = maxPrompt - minPrompt;
+
+// Source 3: Get tool metadata from toolCallDetailsInternal
+let toolMeta = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | project messageId, toolCounts, numRequests;
+
+// Join all three sources and compare
+toolMeta
+| where toolCounts != "{}"  // Only turns with tools
+| join kind=inner toolTokensFromJson on messageId
+| join kind=inner promptGrowth on messageId
+| project-away messageId1, messageId2
+| extend toolCountFromMeta = numRequests - 1  // numRequests = tools + 1
+| project 
+    messageId,
+    toolCounts,
+    numRequests,
+    // Tool count comparison
+    toolCountFromMeta,
+    toolCountFromJson = jsonToolCount,
+    toolCountsMatch = (toolCountFromMeta == jsonToolCount),
+    // Token comparison
+    jsonToolTokenSum,           // Sum from messagesJson role="tool"
+    promptTokenGrowth,          // max(promptTokens) - min(promptTokens)
+    tokenDifference = promptTokenGrowth - jsonToolTokenSum,
+    tokensMatch = (abs(promptTokenGrowth - jsonToolTokenSum) < 100 
+                   or abs(promptTokenGrowth - jsonToolTokenSum) < jsonToolTokenSum * 0.05)
+| order by jsonToolTokenSum desc
+| take 50
+
+// =============================================================================
+// INTERPRETATION:
+// - toolCountsMatch = true: Number of tool results matches ✓
+// - tokensMatch = true: promptGrowth ≈ jsonToolTokenSum ✓
+//   → This confirms promptTokens INCLUDES tool tokens
+//   → turnToolTokens (from messagesJson) is the SAME data
+//
+// - If tokenDifference is consistently small positive:
+//   → Some overhead (tool call metadata, not just result tokens)
+// =============================================================================
+

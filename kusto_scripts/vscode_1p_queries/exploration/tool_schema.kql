@@ -1,0 +1,42 @@
+// =============================================================================
+// TOOL CALL EVENT SCHEMA EXPLORATION
+// =============================================================================
+// EVENT: GitHub.copilot-chat/toolCallDetailsInternal
+// PURPOSE: Explore tool call event structure and available fields
+//
+// KEY FINDINGS:
+// - Has conversationId AND messageId (can join with both)
+// - toolCounts: JSON string with tool name → count mapping
+// - numRequests = sum(toolCounts) + 1 (verified)
+// - turnIndex: Sequential turn number within conversation (1, 2, 3...)
+// - responseType: "success" for successful tool calls
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// View full schema
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 1
+| project Properties, Measurements
+
+// =============================================================================
+// ALTERNATIVE: See key fields extracted
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend messageId = tostring(Properties["messageId"])
+// | extend model = tostring(Properties["model"])
+// | extend toolCounts = tostring(Properties["toolCounts"])
+// | extend responseType = tostring(Properties["responseType"])
+// | extend turnIndex = toint(Measurements["turnIndex"])
+// | extend numRequests = toint(Measurements["numRequests"])
+// | extend turnDuration = toint(Measurements["turnDuration"])
+// | project conversationId, messageId, turnIndex, model, toolCounts, numRequests, responseType
+// | order by conversationId asc, turnIndex asc
+// | take 20
+

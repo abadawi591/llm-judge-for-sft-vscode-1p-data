@@ -1,0 +1,18 @@
+let oswe_convos =
+copilot_v0_restricted_copilot_event
+| where timestamp > ago(1d)
+| where name contains "engine.messages"
+| where message_source == "chat.editAgent"
+| where base_model == "oswe-vscode"
+| project conversation_id
+| sample 10;
+copilot_v0_restricted_copilot_event
+| where timestamp > ago(1d)
+| where conversation_id in (oswe_convos)
+| where name == "copilot-chat/engine.messages"
+| join kind=inner (
+    copilot_v0_restricted_copilot_code_snippet
+    | where timestamp > ago(1d)
+    | project messages_json, snippet_id
+) on snippet_id
+| project conversation_id, message_id, messages_json, base_model

@@ -1,0 +1,71 @@
+// =============================================================================
+// INVESTIGATION: Which events have Trajectory vs Message data?
+// =============================================================================
+// The README mentions:
+//   - Conversation Messages: text between user/model (no tool calls, system prompts)
+//   - Conversation Trajectories: full JSON to LLM API (includes everything)
+//
+// Let's find which events contain each type.
+// =============================================================================
+
+// Query 1: List ALL GitHub Copilot event names
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot"
+| summarize count() by Name
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Search for events containing "trajectory" in name or properties
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "trajectory" 
+    or Properties contains "trajectory"
+    or Name contains "Trajectory"
+| summarize count() by Name
+| order by count_ desc
+*/
+
+// =============================================================================
+// Query 3: Search for events containing "message" in name
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "message" or Name contains "Message"
+| summarize count() by Name
+| order by count_ desc
+*/
+
+// =============================================================================
+// Query 4: Look at what messagesJson actually contains
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJson = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJson)
+| take 1
+| project messagesJson
+*/
+
+// =============================================================================
+// Query 5: Check engine.messages event (mentioned in README)
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages"
+| take 1
+| project Properties, Measurements
+*/
+

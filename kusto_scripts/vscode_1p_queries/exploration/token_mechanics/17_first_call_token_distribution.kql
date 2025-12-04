@@ -1,0 +1,55 @@
+// =============================================================================
+// DISTRIBUTION: First LLM call token counts
+// =============================================================================
+// Shows the distribution of promptTokens for the first call of Turn 1
+// This helps us understand what's in the initial context.
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Find Turn 1 data
+let turn1Data = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where turnIndex == 1
+    | project messageId;
+
+// Get the FIRST LLM call for each Turn 1
+let firstCallTokens = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | summarize firstCallPromptTokens = min(promptTokens) by messageId;
+
+// Bucket into ranges
+turn1Data
+| join kind=inner firstCallTokens on messageId
+| extend tokenBucket = case(
+    firstCallPromptTokens < 1000, "0-1K",
+    firstCallPromptTokens < 5000, "1K-5K",
+    firstCallPromptTokens < 10000, "5K-10K",
+    firstCallPromptTokens < 15000, "10K-15K",
+    firstCallPromptTokens < 20000, "15K-20K",
+    firstCallPromptTokens < 30000, "20K-30K",
+    "30K+"
+)
+| summarize count = count() by tokenBucket
+| order by tokenBucket asc
+
+// =============================================================================
+// INTERPRETATION:
+// - If most are in 5K-15K range → System prompt + tools included
+// - If most are in 0-1K range → Only user message (unlikely for agent mode)
+// - Wide spread → Varies by conversation context
+// =============================================================================
+

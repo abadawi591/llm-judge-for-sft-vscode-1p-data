@@ -1,0 +1,20 @@
+// =============================================================================
+// SCHEMA: toolCallDetailsInternal
+// =============================================================================
+// PURPOSE: See all available fields in tool call events
+//
+// Key fields:
+// - toolCounts: JSON like {"read_file":3,"list_dir":1}
+// - numRequests: Total LLM calls = sum(toolCounts) + 1
+// - turnIndex: Sequential turn number
+// - turnDuration: Turn duration in ms
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 1
+| project 
+    AllProperties = Properties,
+    AllMeasurements = Measurements
+

@@ -1,0 +1,21 @@
+// =============================================================================
+// SCHEMA: engine.messages.length (INPUT direction)
+// =============================================================================
+// PURPOSE: See all available fields in the INPUT direction events
+//
+// These events contain:
+// - messagesJson: Full conversation history with tool result token counts
+//   Tool results appear as: {"role":"tool","content":1234,"tool_call_id":"..."}
+//   where content = TOKEN COUNT for that tool result
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| take 1
+| project 
+    AllProperties = Properties,
+    AllMeasurements = Measurements
+

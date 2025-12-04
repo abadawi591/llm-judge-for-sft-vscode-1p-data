@@ -1,0 +1,70 @@
+// =============================================================================
+// DELTA ACCURACY VERIFICATION
+// =============================================================================
+// PURPOSE: Verify the accuracy of promptTokenDelta calculation
+//
+// LIMITATION: When we capture a partial conversation (minTurnIndex > 1),
+// the first promptTokenDelta is inaccurate because we don't have the
+// previous turn's data to calculate the actual delta.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Query 1: How many conversations start from turnIndex=1 vs partial?
+// -----------------------------------------------------------------------------
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| extend conversationId = tostring(Properties["conversationId"])
+| extend turnIndex = toint(Measurements["turnIndex"])
+| extend responseType = tostring(Properties["responseType"])
+| where responseType == "success"
+| summarize minTurnIndex = min(turnIndex) by conversationId
+| summarize 
+    completeConvos = countif(minTurnIndex == 1),
+    partialConvos = countif(minTurnIndex > 1),
+    totalConvos = count()
+| extend completePercent = round(100.0 * completeConvos / totalConvos, 1)
+| extend partialPercent = round(100.0 * partialConvos / totalConvos, 1)
+
+// -----------------------------------------------------------------------------
+// Query 2: For partial conversations, what's the typical starting turnIndex?
+// -----------------------------------------------------------------------------
+// AppEvents
+// | where TimeGenerated > ago(24h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend turnIndex = toint(Measurements["turnIndex"])
+// | extend responseType = tostring(Properties["responseType"])
+// | where responseType == "success"
+// | summarize minTurnIndex = min(turnIndex) by conversationId
+// | where minTurnIndex > 1  // Only partial conversations
+// | summarize 
+//     avgStartTurn = avg(minTurnIndex),
+//     medianStartTurn = percentile(minTurnIndex, 50),
+//     p90StartTurn = percentile(minTurnIndex, 90),
+//     maxStartTurn = max(minTurnIndex)
+
+// -----------------------------------------------------------------------------
+// Query 3: Compare first promptTokens vs typical delta
+// This shows how inflated the first delta is for partial conversations
+// -----------------------------------------------------------------------------
+// AppEvents
+// | where TimeGenerated > ago(2h)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend message_direction = tostring(Properties["message_direction"])
+// | where message_direction == "output"
+// | extend messageId = tostring(Properties["headerRequestId"])
+// | extend promptTokens = toint(Measurements["promptTokens"])
+// | summarize 
+//     firstPromptTokens = min(promptTokens),
+//     lastPromptTokens = max(promptTokens),
+//     callCount = count()
+//     by messageId
+// | where callCount > 1
+// | extend typicalDelta = (lastPromptTokens - firstPromptTokens) / (callCount - 1)
+// | extend firstDeltaInflation = firstPromptTokens / typicalDelta
+// | where typicalDelta > 0
+// | summarize 
+//     avgInflation = avg(firstDeltaInflation),
+//     medianInflation = percentile(firstDeltaInflation, 50)
+

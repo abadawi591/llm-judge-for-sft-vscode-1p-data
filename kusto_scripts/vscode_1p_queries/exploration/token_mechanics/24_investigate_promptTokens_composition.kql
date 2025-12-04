@@ -1,0 +1,73 @@
+// =============================================================================
+// INVESTIGATE: Is promptTokens = system + user tokens?
+// =============================================================================
+// The messagesJson shows token counts per role:
+//   {"role":"system","content":15864}
+//   {"role":"user","content":2555}
+//   {"role":"assistant","content":71}
+//   {"role":"tool","content":7905}
+//
+// QUESTION: Does promptTokens = sum of all these? Or just system + user?
+// =============================================================================
+
+let timeStart = ago(1h);
+
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+// Get the promptTokens from output direction for same messageId
+| join kind=inner (
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project messageId, promptTokens
+) on messageId
+| take 100  // Sample for analysis
+// Parse messagesJson and sum by role
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),
+    toolTokens = sumif(tokenCount, role == "tool"),
+    totalFromJson = sum(tokenCount),
+    promptTokens = take_any(promptTokens)
+    by messageId
+| extend systemPlusUser = systemTokens + userTokens
+| extend allExceptTool = systemTokens + userTokens + assistantTokens
+| project 
+    messageId,
+    promptTokens,
+    // Possible formulas:
+    totalFromJson,          // All roles summed
+    systemPlusUser,         // Just system + user
+    allExceptTool,          // All except tool
+    // Which matches?
+    matchesTotal = (abs(promptTokens - totalFromJson) < 100),
+    matchesSystemUser = (abs(promptTokens - systemPlusUser) < 100),
+    matchesAllExceptTool = (abs(promptTokens - allExceptTool) < 100),
+    // Show the breakdown
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolTokens
+| order by promptTokens desc
+
+// =============================================================================
+// INTERPRETATION:
+// If matchesTotal = true → promptTokens = ALL tokens (system + user + assistant + tool)
+// If matchesSystemUser = true → promptTokens = only system + user
+// If matchesAllExceptTool = true → promptTokens = system + user + assistant
+// =============================================================================
+

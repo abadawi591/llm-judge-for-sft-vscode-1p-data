@@ -1,0 +1,86 @@
+// =============================================================================
+// STEP 4: Side-by-side comparison - promptTokens vs trajectory breakdown
+// =============================================================================
+// For a specific messageId, show EACH LLM call with both metrics
+
+let targetMessageId = "15d38f47-08bb-4b6b-920d-673a3913b3d1";  // Turn 1 with 20 LLM calls
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get OUTPUT events (promptTokens)
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, promptTokens, completionTokens
+    | order by TimeGenerated asc
+    | extend callIndex = row_number();
+
+// Get INPUT events (trajectory) and parse
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | project TimeGenerated, messagesJsonStr
+    | order by TimeGenerated asc
+    | extend callIndex = row_number();
+
+// Parse trajectory breakdown
+let trajectoryParsed = 
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | extend hasCacheControl = isnotempty(message.copilot_cache_control)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount),
+        cachedCount = countif(hasCacheControl),
+        // Calculate non-cached tokens
+        nonCachedTokens = sumif(tokenCount, not(hasCacheControl))
+        by TimeGenerated, callIndex;
+
+// Join OUTPUT and INPUT for side-by-side comparison
+outputEvents
+| join kind=inner trajectoryParsed on callIndex
+| project-away TimeGenerated1, callIndex1
+| project 
+    callIndex,
+    // From OUTPUT (actual LLM metrics)
+    promptTokens,
+    completionTokens,
+    // From INPUT (trajectory breakdown)
+    trajectoryTotal,
+    nonCachedTokens,
+    cachedCount,
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolTokens,
+    // Comparisons
+    diff_total = promptTokens - trajectoryTotal,
+    diff_nonCached = promptTokens - nonCachedTokens,
+    // Does promptTokens match non-cached?
+    matchesNonCached = (abs(promptTokens - nonCachedTokens) < 100)
+| order by callIndex asc
+
+// =============================================================================
+// HYPOTHESIS:
+// If matchesNonCached = true → promptTokens = trajectory MINUS cached tokens
+// This would prove caching is reducing the actual token count
+// =============================================================================
+

@@ -1,0 +1,256 @@
+// =============================================================================
+// SFT COMPLETE CONVERSATIONS WITH TOKEN BREAKDOWN
+// =============================================================================
+// PURPOSE: Extract complete conversations with detailed token breakdown per LLM call
+// 
+// NEW FEATURES (vs sft_complete_conversations_3to10.kql):
+// - Per LLM call: token breakdown by role (system, user, assistant, tool)
+// - Per turn: aggregated token breakdown
+// - Trajectory-based metrics for full visibility
+//
+// TOKEN BREAKDOWN FROM TRAJECTORY:
+// - systemTokens: System prompt tokens
+// - userTokens: User message tokens
+// - assistantTokens: Model response tokens (intermediate + final)
+// - toolTokens: Tool result tokens
+//
+// DOCUMENTATION: See ../docs/01_DATA_STRUCTURE.md
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+let minTurns = 3;
+let maxTurns = 10;
+
+// Step 1: Get deduplicated messages
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName, userTime = TimeGenerated;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// Step 2: Get token data per LLM call (OUTPUT direction)
+let tokenEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Calculate promptTokenDelta
+let tokenEventsWithDelta = 
+    tokenEvents
+    | extend prevMessageId = prev(messageId)
+    | extend prevPromptTokens = prev(promptTokens)
+    | extend promptTokenDelta = iif(messageId == prevMessageId, promptTokens - prevPromptTokens, promptTokens)
+    | project TimeGenerated, messageId, model, promptTokens, promptTokenDelta, completionTokens;
+
+// Step 3: Get token breakdown from trajectory (INPUT direction - messagesJson)
+let trajectoryBreakdown = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc;
+
+// Parse trajectory and calculate breakdown per LLM call
+let trajectoryParsed = 
+    trajectoryBreakdown
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, TimeGenerated;
+
+// Step 4: Join token events with trajectory breakdown
+let tokenDataWithBreakdown = 
+    tokenEventsWithDelta
+    | join kind=leftouter trajectoryParsed on messageId, TimeGenerated
+    | project-away messageId1, TimeGenerated1
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolTokens = coalesce(toolTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0);
+
+// Aggregate token data into array per messageId
+let tokenData = 
+    tokenDataWithBreakdown
+    | summarize 
+        llmCalls = make_list(pack(
+            "promptTokens", promptTokens,
+            "promptTokenDelta", promptTokenDelta,
+            "completionTokens", completionTokens,
+            "model", model,
+            // Token breakdown from trajectory
+            "breakdown", pack(
+                "systemTokens", systemTokens,
+                "userTokens", userTokens,
+                "assistantTokens", assistantTokens,
+                "toolTokens", toolTokens,
+                "trajectoryTotal", trajectoryTotal
+            )
+        )),
+        // Turn-level aggregates (from last LLM call which has full context)
+        turnSystemTokens = max(systemTokens),
+        turnUserTokens = max(userTokens),
+        turnAssistantTokens = max(assistantTokens),
+        turnToolTokens_trajectory = max(toolTokens)
+        by messageId;
+
+// Step 5: Get tool data
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration;
+
+// Step 6: Join all data
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        // Turn-level token breakdown
+        tokenBreakdown = pack(
+            "systemTokens", turnSystemTokens,
+            "userTokens", turnUserTokens,
+            "assistantTokens", turnAssistantTokens,
+            "toolTokens", turnToolTokens_trajectory
+        ),
+        toolCounts,
+        numRequests,
+        turnDuration;
+
+// Step 7: Aggregate into nested JSON per conversation
+let allConversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "tokenBreakdown", tokenBreakdown,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDuration
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    );
+
+// Step 8: Filter for complete conversations
+allConversations
+| where minTurnIndex == 1
+| where capturedTurnCount == maxTurnIndex
+| where capturedTurnCount >= minTurns
+| where capturedTurnCount <= maxTurns
+| project 
+    conversationId, 
+    userName, 
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,
+    turns = turnsArray
+| order by capturedTurnCount desc, conversationId asc
+| take 100
+
+// =============================================================================
+// OUTPUT STRUCTURE:
+// {
+//   "conversationId": "...",
+//   "turns": [
+//     {
+//       "turnIndex": 1,
+//       "llmCalls": [
+//         {
+//           "promptTokens": 15000,
+//           "promptTokenDelta": 15000,
+//           "completionTokens": 200,
+//           "model": "claude-sonnet-4.5",
+//           "breakdown": {
+//             "systemTokens": 3000,
+//             "userTokens": 2000,
+//             "assistantTokens": 0,
+//             "toolTokens": 10000,
+//             "trajectoryTotal": 15000
+//           }
+//         },
+//         ...
+//       ],
+//       "tokenBreakdown": {  // Turn-level summary
+//         "systemTokens": 3000,
+//         "userTokens": 5000,
+//         "assistantTokens": 500,
+//         "toolTokens": 15000
+//       },
+//       ...
+//     }
+//   ]
+// }
+// =============================================================================
+

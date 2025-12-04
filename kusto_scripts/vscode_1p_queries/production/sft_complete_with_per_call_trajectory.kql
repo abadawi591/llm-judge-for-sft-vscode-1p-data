@@ -1,0 +1,348 @@
+// =============================================================================
+// SFT COMPLETE CONVERSATIONS WITH PER-LLM-CALL TRAJECTORY
+// =============================================================================
+// PURPOSE: Extract complete conversations with trajectory breakdown for EVERY LLM call
+// 
+// KEY DIFFERENCE FROM OTHER QUERIES:
+// - Each LLM call includes its own messagesJson trajectory breakdown
+// - Shows how context grows within a turn (not just final state)
+// - Enables analysis of token state at each decision point
+//
+// =============================================================================
+// TOKEN RELATIONSHIP EXPLAINED (Updated based on official Copilot docs)
+// =============================================================================
+//
+// ⚠️ CRITICAL: TWO DIFFERENT messagesJson FORMATS!
+//
+// From official docs: "we only parse messagesJson [from engine.messages],
+// never engine.messages.length" — CONVERSATION_XML_TAGS_20251001.md
+//
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ engine.messages                     │ engine.messages.length             │
+// │ ────────────────────────────────────│────────────────────────────────────│
+// │ messagesJson = ACTUAL TEXT          │ messagesJson = LENGTH ESTIMATES    │
+// │ {"role":"user","content":"Hello"}   │ {"role":"user","content":245}      │
+// │                                      │                                    │
+// │ Used for: Training data extraction  │ Used for: Token analysis (this!)   │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// TWO SEPARATE DATA SOURCES (both from engine.messages.length):
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ INPUT direction (messagesJson)      │ OUTPUT direction                   │
+// │ ────────────────────────────────────│────────────────────────────────────│
+// │ ESTIMATED token counts per role     │ ACTUAL API token counts            │
+// │ Pre-computed by Copilot             │ Reported by LLM API                │
+// │                                      │                                    │
+// │ trajectoryTotal = SUM(content)      │ promptTokens = API charged tokens  │
+// │ (Copilot's estimate)                │ (Actual tokenization)              │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// WHY promptTokens << trajectoryTotal:
+// 1. TOKENIZER MISMATCH: messagesJson.content = Copilot's estimate, but
+//    promptTokens = actual LLM API tokenization (different tokenizers!)
+// 2. MESSAGE SELECTION: Not all messages may be sent (context window limits)
+// - NOT caching (verified: copilot_cache_control has <3% correlation)
+//
+// hasTrajectory FLAG:
+// - true: INPUT event was captured, trajectory data is real
+// - false: INPUT event missing, trajectory is all zeros (telemetry gap)
+//
+// promptTokenDelta:
+// - Positive: Context grew (new user message, tool results)
+// - Negative: Context reset (exceeds window)
+// - First call: Equals promptTokens
+//
+// trajectoryTotal vs promptTokens:
+// - trajectoryTotal: Copilot's ESTIMATE (useful for relative comparison)
+// - promptTokens: LLM API's ACTUAL tokens (use for cost analysis)
+// - Ratio varies by model (different tokenizers!)
+//
+// DOCUMENTATION: 
+// - ../docs/01_DATA_STRUCTURE.md
+// - ../docs/vscode_1p_data_team_docs/CONVERSATION_TRAJECTORY_EXTRACTION.md
+// =============================================================================
+
+// MEMORY OPTIMIZATION: Reduce time window if you get E_LOW_MEMORY_CONDITION
+// The mv-expand on messagesJson is expensive. Try 1h or 6h first.
+// For 24h+ windows, use sft_complete_with_per_call_trajectory_lite.kql instead.
+let timeStart = ago(6h);  // Reduced from 24h to avoid OOM
+let timeEnd = now();
+let minTurns = 3;
+let maxTurns = 10;
+
+// Step 1: Get deduplicated messages (Conversation Messages)
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// Step 2: Get token data per LLM call (OUTPUT direction) with call index
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Add call index within each messageId (1, 2, 3, ...)
+let tokenEvents = 
+    tokenEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Add promptTokenDelta
+let tokenEventsIndexed = 
+    tokenEvents
+    | extend prevMessageId = prev(messageId)
+    | extend prevPromptTokens = prev(promptTokens)
+    | extend promptTokenDelta = iif(messageId == prevMessageId, promptTokens - prevPromptTokens, promptTokens)
+    | extend isContextReset = (messageId == prevMessageId and promptTokenDelta < 0)
+    | project messageId, callIndex, model, promptTokens, promptTokenDelta, completionTokens, isContextReset;
+
+// Step 3: Get trajectory per LLM call (INPUT direction) with call index
+// NOTE: INPUT events may not exist for all OUTPUT events (telemetry limitation)
+// We index all INPUT events to align with OUTPUT events as best as possible
+// MEMORY: Filter out empty messagesJson early to reduce mv-expand cost
+let trajectoryEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)  // Filter early to reduce memory
+    | where strlen(messagesJsonStr) < 500000  // Skip extremely long trajectories
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc;
+
+// Add call index within each messageId
+let trajectoryEvents = 
+    trajectoryEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Parse trajectory and calculate breakdown per LLM call
+let trajectoryParsed = 
+    trajectoryEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | extend isCached = isnotempty(message.copilot_cache_control)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount),
+        cachedMessageCount = countif(isCached)
+        by messageId, callIndex;
+
+// Step 4: Join token events with trajectory (by messageId AND callIndex)
+// NOTE: Some LLM calls may not have trajectory data (INPUT event missing or empty messagesJson)
+let tokenDataWithTrajectory = 
+    tokenEventsIndexed
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    // Flag to indicate if trajectory data was found for this call
+    | extend hasTrajectory = isnotnull(trajectoryTotal) and trajectoryTotal > 0
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolTokens = coalesce(toolTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+    | extend cachedMessageCount = coalesce(cachedMessageCount, 0)
+    // Calculate token difference (Copilot estimate - API actual)
+    // This difference is due to BOTH: 1) tokenizer mismatch, 2) message selection
+    // NOT reliable for actual "truncation" amount - use for relative comparison only
+    | extend estimatedVsActualDelta = iif(hasTrajectory, trajectoryTotal - promptTokens, toint(0));
+
+// Aggregate into llmCalls array per messageId (turn)
+let tokenData = 
+    tokenDataWithTrajectory
+    | summarize 
+        llmCalls = make_list(pack(
+            "promptTokens", promptTokens,
+            "promptTokenDelta", promptTokenDelta,
+            "completionTokens", completionTokens,
+            "model", model,
+            "isContextReset", isContextReset,
+            "hasTrajectory", hasTrajectory,  // Flag: true if trajectory data available
+            // Trajectory breakdown for THIS specific LLM call (zeros if hasTrajectory=false)
+            // Note: trajectoryTotal is Copilot's ESTIMATE, promptTokens is API ACTUAL
+            "trajectory", pack(
+                "systemTokens", systemTokens,
+                "userTokens", userTokens,
+                "assistantTokens", assistantTokens,
+                "toolTokens", toolTokens,
+                "trajectoryTotal", trajectoryTotal,          // Copilot's estimate
+                "cachedMessageCount", cachedMessageCount,
+                "estimatedVsActualDelta", estimatedVsActualDelta  // trajectoryTotal - promptTokens
+            )
+        )),
+        // Turn-level summary (from final LLM call)
+        turnFinalPromptTokens = max(promptTokens),
+        turnFinalTrajectoryTotal = max(trajectoryTotal),
+        turnHasContextReset = max(toint(isContextReset)) > 0
+        by messageId;
+
+// Step 5: Get tool metadata
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration;
+
+// Step 6: Join all data
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        // Turn-level summary
+        turnSummary = pack(
+            "finalPromptTokens", turnFinalPromptTokens,
+            "finalTrajectoryTotal", turnFinalTrajectoryTotal,
+            "hasContextReset", turnHasContextReset,
+            "llmCallCount", array_length(llmCalls)
+        ),
+        toolCounts,
+        numRequests,
+        turnDuration;
+
+// Step 7: Aggregate into nested JSON per conversation
+let allConversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDuration
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    );
+
+// Step 8: Filter for complete conversations
+allConversations
+| where minTurnIndex == 1
+| where capturedTurnCount == maxTurnIndex
+| where capturedTurnCount >= minTurns
+| where capturedTurnCount <= maxTurns
+| project 
+    conversationId, 
+    userName, 
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,
+    turns = turnsArray
+| order by capturedTurnCount desc, conversationId asc
+| take 50
+
+// =============================================================================
+// OUTPUT STRUCTURE:
+// {
+//   "conversationId": "...",
+//   "turns": [
+//     {
+//       "turnIndex": 1,
+//       "llmCalls": [
+//         {
+//           "promptTokens": 25619,        // LLM API actual charged tokens
+//           "promptTokenDelta": 25619,
+//           "completionTokens": 289,
+//           "model": "claude-sonnet-4.5",
+//           "isContextReset": false,
+//           "hasTrajectory": true,        // Flag: trajectory data available
+//           "trajectory": {               // Per-call trajectory breakdown
+//             "systemTokens": 19806,      // Copilot's estimate (constant within turn)
+//             "userTokens": 25679,        // Copilot's estimate (constant within turn)
+//             "assistantTokens": 0,       // Grows with each call
+//             "toolTokens": 0,            // Grows with each tool result
+//             "trajectoryTotal": 45485,   // Copilot's ESTIMATE (sum of above)
+//             "cachedMessageCount": 3,
+//             "estimatedVsActualDelta": 19866  // trajectoryTotal - promptTokens
+//           }                             // Note: delta due to tokenizer mismatch, not truncation
+//         },
+//         {
+//           "promptTokens": 42999,
+//           "trajectory": {
+//             "systemTokens": 19806,
+//             "userTokens": 25679,
+//             "assistantTokens": 196,     // Now has model response from call 1
+//             "toolTokens": 50795,        // Tool result added
+//             "trajectoryTotal": 96476
+//           }
+//         },
+//         // ... more LLM calls, each with its own trajectory state
+//       ],
+//       "turnSummary": {
+//         "finalPromptTokens": 55709,     // API actual tokens for final call
+//         "finalTrajectoryTotal": 112534, // Copilot's estimate for final call
+//         "hasContextReset": false,
+//         "llmCallCount": 20
+//       },
+//       "toolCounts": "{\"read_file\":11,\"replace_string_in_file\":6,...}",
+//       "numRequests": 20
+//     }
+//   ]
+// }
+// =============================================================================
+

@@ -1,0 +1,130 @@
+// =============================================================================
+// SFT DATA FOR SESSION-BASED ROUTER (FIRST TURNS ONLY)
+// =============================================================================
+// PURPOSE: Extract first turns from complete conversations for session-based routing
+// 
+// USE CASE: Train a classifier on FIRST USER MESSAGE to route entire conversation
+// 
+// WHY COMPLETE CONVERSATIONS?
+// - Even though we only use turn 1, completeness gives us:
+//   - Accurate token counts (promptTokenDelta is reliable)
+//   - Task outcome signal (did the conversation succeed?)
+//   - Complexity indicators (how many turns did it take?)
+//
+// OUTPUT: Flat list of first turns with conversation metadata
+// TARGET: ~300k samples → LLM-judge → balance to 100k for SFT
+//
+// BALANCING STRATEGY:
+// - Don't filter by turn count here (let LLM-judge handle reasoning/non-reasoning split)
+// - Include conversation metadata for post-hoc analysis
+// - Model field can be used for pre-stratification (opus/o1 = reasoning proxy)
+//
+// DOCUMENTATION: See ../AGENT_SFT_DATA_GUIDE.md
+// =============================================================================
+
+let timeStart = ago(7d);  // Wide window to get enough data
+let timeEnd = now();
+
+// Step 1: Get deduplicated messages
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+// Separate user and model messages
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// Step 2: Get tool data with model info
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend model = tostring(Properties["model"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project conversationId = tostring(Properties["conversationId"]), 
+              messageId, model, toolCounts, turnIndex, numRequests, turnDuration;
+
+// Step 3: Calculate conversation-level stats
+let conversationStats = 
+    toolData
+    | summarize 
+        totalTurns = max(turnIndex),
+        minTurnIndex = min(turnIndex),
+        totalRequests = sum(numRequests),
+        totalDurationMs = sum(turnDuration),
+        models = make_set(model)
+        by conversationId
+    | where minTurnIndex == 1  // Only complete conversations
+    | extend isComplete = (minTurnIndex == 1);
+
+// Step 4: Get first turn data only
+let firstTurns = 
+    toolData
+    | where turnIndex == 1
+    | project conversationId, messageId, model, toolCounts, numRequests, turnDuration;
+
+// Step 5: Join everything
+let result = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner firstTurns on conversationId, messageId
+    | join kind=inner conversationStats on conversationId
+    | project-away conversationId1, messageId1, conversationId2, messageId2, conversationId3;
+
+// Step 6: Output with complexity signals for downstream balancing
+result
+| project 
+    conversationId,
+    userName,
+    // First turn content (for classification)
+    userMessage,
+    modelMessage,
+    // First turn metrics
+    model,
+    toolCounts,
+    numRequests,
+    turnDurationMs = turnDuration,
+    // Conversation-level context (for analysis)
+    conversationTotalTurns = totalTurns,
+    conversationTotalRequests = totalRequests,
+    conversationTotalDurationMs = totalDurationMs,
+    conversationModels = models,
+    isComplete,
+    // Pre-stratification helpers
+    isLikelyReasoning = model in ("claude-opus-4.5", "o1", "o3", "o1-mini", "o1-preview"),
+    complexityBucket = case(
+        numRequests == 1, "simple",
+        numRequests <= 3, "moderate",
+        numRequests <= 10, "complex",
+        "very_complex"
+    )
+| order by conversationTotalTurns desc
+| take 50000  // Adjust based on needs
+

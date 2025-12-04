@@ -1,0 +1,196 @@
+// getting conversation ids with > 1 and at least 3 turns
+let pre_smpl = 
+    AppEvents
+    | where TimeGenerated > ago(2h) and TimeGenerated <= ago(1h)
+    | where Name startswith "GitHub.copilot-chat/model.request.added"
+    | extend uiKind = tostring(Properties["uiKind"])
+    | where uiKind == "editingSessionAgent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend convTurn = toint(Properties["conversationTurn"])
+    | summarize cnt = dcount(headerRequestId),minTurn = min(convTurn),maxTurn = max(convTurn) by conversationId
+    | where isnotempty(conversationId) and minTurn == 1 and maxTurn>3
+    | project conversationId;
+let smpl = 
+    materialize(pre_smpl| sample 1);
+// labeling rows as supplemental or non-supplemental based on mostRecent...
+let requests =
+    AppEvents
+    | where TimeGenerated > ago(3h) 
+    | where Name startswith "GitHub.copilot-chat/model.request.added"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend conversationTurn = toint(Properties["conversationTurn"])
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend uiKind = tostring(Properties["uiKind"])
+    | extend mostRecentConversationHeaderRequestId = tostring(Properties["mostRecentConversationHeaderRequestId"])
+    | extend mostRecentConversationHeaderRequestIdTurn = toint(Properties["mostRecentConversationHeaderRequestIdTurn"])
+    | extend supplementalRequest = iif(isnotempty(mostRecentConversationHeaderRequestId),1,0)
+    | project uiKind,conversationId,conversationTurn,headerRequestId,supplementalRequest,mostRecentConversationHeaderRequestId,mostRecentConversationHeaderRequestIdTurn;
+// getting a list of non-conversation flow (semantic search, instant apply, etc) header request ids and associating it with the given turn
+let req_table = 
+    requests
+    | where supplementalRequest == 0
+    | where uiKind == "editingSessionAgent"
+    | project uiKind,conversationId,conversationTurn,headerRequestId
+    | join kind = leftouter (requests 
+                            | where supplementalRequest == 1
+                            //| where uiKind == "conversationPanel"
+                            | summarize supplementalHeaderRequestIds = make_set(headerRequestId)
+                                by mostRecentConversationHeaderRequestId
+                            | project headerRequestId = mostRecentConversationHeaderRequestId,supplementalHeaderRequestIds)
+        on headerRequestId
+    | project conversationId,conversationTurn,headerRequestId,supplementalHeaderRequestIds
+    | join kind = inner smpl on conversationId;
+// getting a list of all the header request ids (supplemental and part of the conversation)
+let reqSet = 
+    req_table
+    | extend headerRequestId = pack_array(headerRequestId)
+    | extend all_reqs = array_concat(headerRequestId,supplementalHeaderRequestIds)
+    // before the mv-expand, we get headerRequestId: [list of headerRequestIds associated with that trajectory (1 OG headerRequestId + many supplementals)]
+    | mv-expand all_reqs //to typeof(string)
+    // after mv-expand, we get a new row for each headerRequestId -> supplementalHeaderRequestId pair
+    | where isnotempty(all_reqs)
+    | project headerRequestId = tostring(all_reqs);
+// combine the 'manually' chunked parts of each message in the list (could be tool call, could be user query, model response, system, etc etc)
+let individualMessages =
+    AppEvents
+    | where TimeGenerated > ago(5h)
+    // model.message.added contains the trajectory text. model.request.added contains more of the metadata
+    | where Name startswith "GitHub.copilot-chat/model.message.added"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | where conversationId in (smpl)
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend messageDirection = tostring(Properties["messageDirection"])
+    | extend messageUuid = tostring(Properties["messageUuid"])
+    | extend messageJson = tostring(Properties["messageJson"])
+    | extend chunkIndex = toint(Properties["chunkIndex"])
+    | extend totalChunks = toint(Properties["totalChunks"])
+    | project conversationId,headerRequestId, messageDirection,messageUuid,chunkIndex,totalChunks,messageJson
+    | order by messageUuid,chunkIndex asc
+    | summarize conversationId = max(conversationId),
+                headerRequestId = max(headerRequestId),
+                messageDirection = max(messageDirection),
+                messageJson = make_list(messageJson),
+                chunkIndex = make_list(chunkIndex),
+                totalChunks = max(totalChunks)
+                by messageUuid
+    // concatenate the chunked message into the full message (so it's a list of messages, not a list of lists of parts of messages)
+    | extend messageJson = tostring(strcat_array(messageJson,""))
+    | extend collectedChunks = array_length(chunkIndex)
+    | extend messageJson = iff(collectedChunks==totalChunks,parse_json(messageJson),parse_json("{\"corrupted\":\"true\"}"))
+    | where headerRequestId in (reqSet | distinct headerRequestId);
+// same de-chunking process, but for the list of tools
+let requestOptions =
+    AppEvents
+    | where TimeGenerated > ago(5h)
+    | where Name startswith "GitHub.copilot-chat/model.request.options.added"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend requestOptionsId = tostring(Properties["requestOptionsId"])
+    | extend requestOptionsJson = tostring(Properties["requestOptionsJson"])
+    | extend chunkIndex = toint(Properties["chunkIndex"])
+    | extend totalChunks = toint(Properties["totalChunks"])
+    | project conversationId, headerRequestId, requestOptionsId,chunkIndex,totalChunks,requestOptionsJson
+    | order by requestOptionsId,chunkIndex asc
+    | summarize conversationId = max(conversationId),
+                headerRequestId = max(headerRequestId),
+                requestOptionsJson = make_list(requestOptionsJson),
+                chunkIndex = make_list(chunkIndex),
+                totalChunks = max(totalChunks)
+                by requestOptionsId
+    | extend requestOptionsJson = tostring(strcat_array(requestOptionsJson,""))
+    | extend collectedChunks = array_length(chunkIndex)
+    | extend requestOptionsJson = iff(collectedChunks==totalChunks,parse_json(requestOptionsJson),parse_json("{\"corrupted\":\"true\"}"))
+    | extend model = trim('"',iff(bag_has_key(requestOptionsJson,"request.option.model"),requestOptionsJson["request.option.model"],"anavailable"))
+    | extend tools = array_length(iff(bag_has_key(requestOptionsJson,"request.option.tools"),parse_json(tostring(requestOptionsJson["request.option.tools"])),parse_json("[]")))
+    | where headerRequestId in (reqSet | distinct headerRequestId);
+// same de-chunking but for model output. also keeping track of tokens
+let modelOutputs = 
+    AppEvents
+    | where TimeGenerated > ago(3h)
+    | where Name startswith "GitHub.copilot-chat/model.modelCall.output"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend modelCallId = tostring(Properties["modelCallId"])
+    | extend messageUuids = tostring(Properties["messageUuids"])
+    | extend chunkIndex = toint(Properties["chunkIndex"])
+    | extend totalChunks = toint(Properties["totalChunks"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend totalTokens = toint(Measurements["promptTokens"])
+    | project conversationId,headerRequestId,modelCallId,messageUuids,chunkIndex,totalChunks,promptTokens,completionTokens,totalTokens
+    | order by modelCallId,chunkIndex asc
+    | summarize conversationId = max(conversationId),
+                headerRequestId = max(headerRequestId),
+                messageUuids = make_list(messageUuids),
+                chunkIndex = make_list(chunkIndex),
+                totalChunks = max(totalChunks),
+                promptTokens = max(promptTokens),
+                completionTokens = max(completionTokens),
+                totalTokens = max(totalTokens)
+                by modelCallId
+    | extend messageUuids = tostring(strcat_array(messageUuids,""))
+    | extend collectedChunks = array_length(chunkIndex)
+    | extend messageUuids = iff(collectedChunks==totalChunks,parse_json(messageUuids),parse_json("[]"))
+    | extend messages_len = array_length(messageUuids)
+    | mv-apply with_itemindex=messageIndex messageUuids=messageUuids on (where messageIndex >= 0)
+    | extend messageUuids = tostring(messageUuids)
+    | join kind = leftouter (individualMessages| project messageUuid,messageJson)on $left.messageUuids==$right.messageUuid| order by modelCallId, messageIndex asc
+    | summarize conversationId = max(conversationId),
+                headerRequestId = max(headerRequestId),
+                promptTokens = max(promptTokens),
+                completionTokens = max(completionTokens),
+                totalTokens = max(totalTokens),
+                output_messages = make_list(messageJson)
+    by modelCallId
+    | where headerRequestId in (reqSet | distinct headerRequestId);
+let modelInputs = 
+    AppEvents
+    | where TimeGenerated > ago(3h)
+    | where Name startswith "GitHub.copilot-chat/model.modelCall.input"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend headerRequestId = tostring(Properties["headerRequestId"])
+    | extend requestTurn = toint(Properties["requestTurn"])
+    | extend modelCallId = tostring(Properties["modelCallId"])
+    | extend requestOptionsId = tostring(Properties["requestOptionsId"])
+    | extend messageUuids = tostring(Properties["messageUuids"])
+    | extend chunkIndex = toint(Properties["chunkIndex"])
+    | extend totalChunks = toint(Properties["totalChunks"])
+    | project conversationId,headerRequestId, requestTurn,modelCallId,requestOptionsId,chunkIndex,totalChunks,messageUuids
+    | order by requestOptionsId,chunkIndex asc
+    | summarize conversationId = max(conversationId),
+                headerRequestId = max(headerRequestId),
+                requestTurn = max(requestTurn),
+                requestOptionsId = max(requestOptionsId),
+                messageUuids = make_list(messageUuids),
+                chunkIndex = make_list(chunkIndex),
+                totalChunks = max(totalChunks)
+                by modelCallId
+    | extend messageUuids = tostring(strcat_array(messageUuids,""))
+    | extend collectedChunks = array_length(chunkIndex)
+    | extend messageUuids = iff(collectedChunks==totalChunks,parse_json(messageUuids),parse_json("[]"))
+    | extend messages_len = array_length(messageUuids)
+    | mv-apply with_itemindex=messageIndex messageUuids=messageUuids on (where messageIndex >= 0)
+    | extend messageUuids = tostring(messageUuids)
+    | join kind = leftouter (individualMessages| project messageUuid,messageJson)on $left.messageUuids==$right.messageUuid
+    | where headerRequestId in (reqSet | distinct headerRequestId);
+let all_messages = 
+modelInputs
+| order by modelCallId, messageIndex asc
+| summarize conversationId = max(conversationId),
+            headerRequestId = max(headerRequestId),
+            requestTurn = max(requestTurn),
+            requestOptionsId = max(requestOptionsId),
+            input_messages = make_list(messageJson),
+            indecies = make_list(messageIndex)
+  by modelCallId
+| join kind = fullouter (modelOutputs| project headerRequestId,modelCallId,output_messages,promptTokens,completionTokens,totalTokens) on headerRequestId,modelCallId
+| join kind = leftouter (requestOptions| project requestOptionsId,requestOptionsJson) on requestOptionsId
+| project conversationId,headerRequestId, requestTurn, modelCallId, requestOptionsId,input_messages,output_messages,requestOptionsJson,promptTokens,completionTokens,totalTokens
+| extend input_messages_len = array_length(input_messages);
+req_table
+| join kind = leftouter all_messages on headerRequestId
+| project conversationId,conversationTurn,headerRequestId,supplementalHeaderRequestIds,requestTurn,modelCallId,requestOptionsId,input_messages,output_messages,requestOptionsJson,promptTokens,totalTokens,completionTokens,input_messages_len
+| order by conversationId,conversationTurn asc,headerRequestId,requestTurn asc
+
+

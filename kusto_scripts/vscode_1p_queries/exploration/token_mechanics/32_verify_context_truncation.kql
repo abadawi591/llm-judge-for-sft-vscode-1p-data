@@ -1,0 +1,138 @@
+// =============================================================================
+// VERIFY: Is the difference due to context window truncation?
+// =============================================================================
+// HYPOTHESIS: messagesJson contains FULL history, but API only receives
+// a truncated subset that fits the context window.
+//
+// EVIDENCE NEEDED:
+// 1. Large conversations have bigger gaps between trajectoryTotal and promptTokens
+// 2. The gap correlates with conversation length (more messages = more truncation)
+
+let timeStart = ago(1h);
+
+// =============================================================================
+// Query 1: Include arguments tokens in trajectoryTotal
+// =============================================================================
+// First, let's get a more accurate trajectoryTotal that includes tool_call arguments
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1  // First call only for simplicity
+    | take 1000;
+
+// Parse and count ALL tokens including tool_call arguments
+let fullTokenCount =
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend contentTokens = toint(message.content)
+    | extend toolCalls = message.tool_calls
+    | extend hasToolCalls = isnotnull(toolCalls) and array_length(toolCalls) > 0
+    // Count argument tokens from tool_calls
+    | mv-apply tc = toolCalls on (
+        summarize argumentTokens = sum(toint(tc.function.arguments))
+    )
+    | extend argumentTokens = coalesce(argumentTokens, 0)
+    | summarize 
+        messageCount = count(),
+        contentTotal = sum(contentTokens),
+        argumentsTotal = sum(argumentTokens),
+        fullTrajectory = sum(contentTokens) + sum(argumentTokens)
+        by messageId;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | project messageId, promptTokens;
+
+// Compare
+fullTokenCount
+| join kind=inner outputEvents on messageId
+| project 
+    messageId,
+    messageCount,
+    contentTotal,
+    argumentsTotal,
+    fullTrajectory,
+    promptTokens,
+    diff = promptTokens - fullTrajectory,
+    ratio = round(100.0 * promptTokens / fullTrajectory, 1)
+| order by messageCount desc
+| take 30
+
+// =============================================================================
+// Query 2: Correlation between message count and gap
+// =============================================================================
+// Uncomment to run:
+/*
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | take 2000;
+
+let fullTokenCount =
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend contentTokens = toint(message.content)
+    | summarize 
+        messageCount = count(),
+        contentTotal = sum(contentTokens)
+        by messageId;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | project messageId, promptTokens;
+
+// Group by message count to see if more messages = bigger gap
+fullTokenCount
+| join kind=inner outputEvents on messageId
+| extend messageBucket = case(
+    messageCount <= 5, "1-5 messages",
+    messageCount <= 10, "6-10 messages",
+    messageCount <= 20, "11-20 messages",
+    messageCount <= 50, "21-50 messages",
+    "50+ messages"
+)
+| summarize 
+    count(),
+    avgContentTotal = avg(contentTotal),
+    avgPromptTokens = avg(promptTokens),
+    avgGap = avg(contentTotal - promptTokens),
+    avgRatio = avg(100.0 * promptTokens / contentTotal)
+    by messageBucket
+| order by avgContentTotal asc
+*/
+

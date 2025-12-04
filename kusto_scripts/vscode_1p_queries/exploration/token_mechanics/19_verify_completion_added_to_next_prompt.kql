@@ -1,0 +1,97 @@
+// =============================================================================
+// VERIFY: Are completion tokens added to the next LLM call's prompt?
+// =============================================================================
+// HYPOTHESIS: 
+//   promptTokens[call N+1] = promptTokens[call N] + completionTokens[call N] + tool_result_tokens
+//
+// Within a SINGLE TURN with multiple LLM calls:
+//   Call 1: prompt=11,317, completion=113 → model says "I'll search..."
+//   Call 2: prompt=15,817 → includes Call 1's response (113 tokens) + tool result
+//
+// The growth should be: completion_tokens + tool_result_tokens (+ small overhead)
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get turns with exactly 2 LLM calls (1 tool + final response)
+let turnsWithTwoCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where numRequests == 2  // Exactly 2 LLM calls
+    | project messageId;
+
+// Get sequential LLM calls with their tokens
+let llmCallSequence = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Get tool tokens from messagesJson (only the NEW ones in this turn)
+let toolTokens = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize lastToolTokens = max(toolTokens) by messageId;  // Most recent tool result
+
+// Join and calculate
+turnsWithTwoCalls
+| join kind=inner (
+    llmCallSequence
+    | summarize 
+        call1Prompt = min(promptTokens),
+        call2Prompt = max(promptTokens),
+        call1Completion = arg_min(TimeGenerated, completionTokens).completionTokens
+        by messageId
+) on messageId
+| join kind=leftouter toolTokens on messageId
+| project-away messageId1, messageId2
+| extend lastToolTokens = coalesce(lastToolTokens, 0)
+| extend promptGrowth = call2Prompt - call1Prompt
+| extend expectedGrowth = call1Completion + lastToolTokens
+| extend difference = promptGrowth - expectedGrowth
+| extend percentDiff = round(100.0 * difference / promptGrowth, 1)
+| project 
+    messageId,
+    call1Prompt,
+    call1Completion,    // Model's response from Call 1
+    lastToolTokens,     // Tool result tokens
+    call2Prompt,
+    promptGrowth,       // Actual growth
+    expectedGrowth,     // completion + tool tokens
+    difference,         // Should be small (overhead)
+    percentDiff
+| where promptGrowth > 0
+| order by abs(difference) asc
+| take 50
+
+// =============================================================================
+// EXPECTED:
+// If completion IS added to next prompt:
+//   promptGrowth ≈ call1Completion + lastToolTokens
+//   difference should be small (0-100 tokens for metadata overhead)
+//
+// If completion NOT added:
+//   promptGrowth ≈ lastToolTokens only (much smaller than expected)
+// =============================================================================
+

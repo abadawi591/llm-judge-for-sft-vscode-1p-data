@@ -1,0 +1,53 @@
+// =============================================================================
+// EXPLORE: What other tables have Copilot/GitHub data?
+// =============================================================================
+// The user pointed out there are other tables in the cluster.
+// Let's see what else might have token/message data.
+// =============================================================================
+
+// Query 1: Check AppMetrics for any Copilot metrics
+AppMetrics
+| where TimeGenerated > ago(1h)
+| where Name contains "copilot" or Name contains "GitHub" or Name contains "chat"
+| summarize count() by Name
+| order by count_ desc
+| take 20
+
+// =============================================================================
+// Query 2: Check AppRequests for Copilot requests
+// =============================================================================
+// Uncomment to run:
+/*
+AppRequests
+| where TimeGenerated > ago(1h)
+| where Name contains "copilot" or Name contains "GitHub" or Url contains "copilot"
+| summarize count() by Name
+| order by count_ desc
+| take 20
+*/
+
+// =============================================================================
+// Query 3: List ALL distinct event names in AppEvents for GitHub/Copilot
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub"
+| summarize count() by Name
+| order by count_ desc
+*/
+
+// =============================================================================
+// Query 4: Check if there's a dedicated tokens table
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "token" or Name contains "Token"
+| summarize count() by Name
+| order by count_ desc
+| take 20
+*/
+

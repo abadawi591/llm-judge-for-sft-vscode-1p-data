@@ -1,0 +1,121 @@
+// =============================================================================
+// INVESTIGATE: What is the 'content' field in messagesJson?
+// =============================================================================
+// We assumed content = token count, but is that correct?
+// 
+// FINDINGS FROM QUERY 4:
+// - promptTokens << trajectoryTotal (sum of content)
+// - copilot_cache_control doesn't explain the difference
+// - Need to understand what 'content' actually represents
+
+let timeStart = ago(1h);
+
+// =============================================================================
+// Query 1: Look at actual messagesJson structure
+// =============================================================================
+// What does a message look like?
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 1
+| mv-expand message = parse_json(messagesJsonStr)
+| project 
+    role = tostring(message.role),
+    content = message.content,           // What type is this?
+    contentType = gettype(message.content),
+    cacheControl = message.copilot_cache_control,
+    allFields = message
+
+// =============================================================================
+// Query 2: Is 'content' always an integer (token count) or sometimes text?
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 500
+| mv-expand message = parse_json(messagesJsonStr)
+| extend contentType = gettype(message.content)
+| extend contentValue = tostring(message.content)
+| extend isNumeric = isnull(toint(contentValue)) == false
+| extend sampleContent = iif(strlen(contentValue) > 100, strcat(substring(contentValue, 0, 100), "..."), contentValue)
+| summarize 
+    count(),
+    contentTypes = make_set(contentType),
+    numericCount = countif(isNumeric),
+    textCount = countif(not(isNumeric))
+    by role
+*/
+
+// =============================================================================
+// Query 3: Compare content field types between roles
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 200
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend contentType = gettype(message.content)
+| extend contentLength = strlen(tostring(message.content))
+| summarize 
+    count(),
+    avgContentLength = avg(contentLength),
+    minContentLength = min(contentLength),
+    maxContentLength = max(contentLength)
+    by role, contentType
+| order by role, count_ desc
+*/
+
+// =============================================================================
+// Query 4: Sample actual content values
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 5
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend contentRaw = tostring(message.content)
+| extend contentPreview = iif(strlen(contentRaw) > 200, strcat(substring(contentRaw, 0, 200), "..."), contentRaw)
+| project role, contentPreview
+*/
+
+// =============================================================================
+// Query 5: Check if there's a separate 'tokens' or 'token_count' field
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 1
+| mv-expand message = parse_json(messagesJsonStr)
+| project messageFields = bag_keys(message)
+*/
+

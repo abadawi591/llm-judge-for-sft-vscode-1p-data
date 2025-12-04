@@ -1,0 +1,83 @@
+// =============================================================================
+// COMPARE: Turn 1 first call vs Turn 2 first call (no tools in either)
+// =============================================================================
+// For conversations where BOTH Turn 1 and Turn 2 have no tools:
+//   - Turn 1 Call 1: system + tools + user1
+//   - Turn 2 Call 1: system + tools + user1 + model1 + user2
+//
+// The DIFFERENCE should be:
+//   Turn 2 - Turn 1 ≈ user1_tokens + model1_completion + user2_tokens
+//
+// This proves the system prompt is the SAME in both (it's a constant base)
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Find conversations with at least 2 turns, both without tools
+let noToolTurns = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where numRequests == 1  // No tools (single LLM call)
+    | project conversationId, messageId, turnIndex;
+
+// Get conversations with both Turn 1 and Turn 2 having no tools
+let validConvos = 
+    noToolTurns
+    | summarize 
+        hasTurn1 = countif(turnIndex == 1),
+        hasTurn2 = countif(turnIndex == 2)
+        by conversationId
+    | where hasTurn1 == 1 and hasTurn2 == 1;
+
+// Get first call tokens for these turns
+let tokenData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | summarize 
+        promptTokens = min(promptTokens),
+        completionTokens = max(completionTokens)
+        by messageId;
+
+// Join and calculate
+noToolTurns
+| join kind=inner validConvos on conversationId
+| join kind=inner tokenData on messageId
+| project conversationId, turnIndex, promptTokens, completionTokens
+| summarize 
+    turn1Prompt = maxif(promptTokens, turnIndex == 1),
+    turn1Completion = maxif(completionTokens, turnIndex == 1),
+    turn2Prompt = maxif(promptTokens, turnIndex == 2)
+    by conversationId
+| extend promptGrowth = turn2Prompt - turn1Prompt
+| extend expectedGrowth = turn1Completion + 200  // completion + ~user message
+| project 
+    conversationId,
+    turn1Prompt,
+    turn1Completion,
+    turn2Prompt,
+    promptGrowth,
+    expectedGrowth,
+    // If system prompt is constant, growth should be close to expected
+    isReasonable = (promptGrowth > 0 and promptGrowth < turn1Completion * 3)
+| take 30
+
+// =============================================================================
+// INTERPRETATION:
+// If turn1Prompt ≈ 8,000-15,000 → System prompt is included
+// If promptGrowth ≈ turn1Completion + small_amount → System is constant (not re-added)
+// =============================================================================
+

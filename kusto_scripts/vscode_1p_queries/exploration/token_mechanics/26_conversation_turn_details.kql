@@ -1,0 +1,59 @@
+// =============================================================================
+// STEP 2: Get turn-level details for a specific conversation
+// =============================================================================
+// PASTE YOUR CONVERSATION ID FROM QUERY 25 BELOW:
+
+let targetConversationId = "bdaf0437-46e2-4ca3-b954-f704c4fd6160";
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get tool details for each turn
+let turnDetails = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | where conversationId == targetConversationId
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | project conversationId, messageId, turnIndex, numRequests, toolCounts;
+
+// Get all LLM calls for this conversation
+let llmCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | where message_direction == "output"
+    | project TimeGenerated, messageId, promptTokens, completionTokens, message_direction;
+
+// Join to get turn context
+turnDetails
+| join kind=inner llmCalls on messageId
+| project-away messageId1
+| summarize 
+    llmCallCount = count(),
+    promptTokensList = make_list(promptTokens),
+    completionTokensList = make_list(completionTokens),
+    minPrompt = min(promptTokens),
+    maxPrompt = max(promptTokens)
+    by conversationId, messageId, turnIndex, numRequests, toolCounts
+| extend promptGrowthInTurn = maxPrompt - minPrompt
+| order by turnIndex asc
+| project 
+    turnIndex,
+    messageId,
+    numRequests,
+    toolCounts,
+    llmCallCount,
+    promptTokensList,
+    completionTokensList,
+    minPrompt,
+    maxPrompt,
+    promptGrowthInTurn
+

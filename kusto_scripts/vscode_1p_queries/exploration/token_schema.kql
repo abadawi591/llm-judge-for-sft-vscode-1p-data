@@ -1,0 +1,51 @@
+// =============================================================================
+// TOKEN EVENT SCHEMA EXPLORATION
+// =============================================================================
+// EVENT: GitHub.copilot-chat/engine.messages.length
+// PURPOSE: Explore token event structure and available fields
+// 
+// KEY FINDINGS:
+// - headerRequestId = messageId (for joining)
+// - message_direction: "input" (prompt) or "output" (completion)
+// - Token counts are in Measurements for "output" direction
+// - NO mode field - must join with message events to filter
+// - NO conversationId field - must join with message events
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// View full schema for OUTPUT direction (has token counts)
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| take 1
+| project Properties, Measurements
+
+// =============================================================================
+// ALTERNATIVE: Count by message_direction
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend message_direction = tostring(Properties["message_direction"])
+// | summarize count() by message_direction
+
+// =============================================================================
+// ALTERNATIVE: See token fields extracted
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend message_direction = tostring(Properties["message_direction"])
+// | where message_direction == "output"
+// | extend headerRequestId = tostring(Properties["headerRequestId"])
+// | extend baseModel = tostring(Properties["baseModel"])
+// | extend promptTokens = toint(Measurements["promptTokens"])
+// | extend completionTokens = toint(Measurements["completionTokens"])
+// | project TimeGenerated, headerRequestId, baseModel, promptTokens, completionTokens
+// | take 10
+

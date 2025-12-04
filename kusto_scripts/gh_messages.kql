@@ -1,0 +1,40 @@
+// get message ids of greetings
+let start_time = ago(7d);
+let end_time = now();
+let pst_start_hour = 7;
+let pst_end_hour = 16;
+let grateful_phrases = dynamic(["hello", "good morning", "welcome", "thank you"]);
+// snippet ids of all grateful phrases
+let grateful_snippet_ids =
+    copilot_v0_restricted_copilot_code_snippet
+    | where timestamp >= start_time and timestamp <= end_time
+    | where message_text != ""
+    | where message_text has_any (grateful_phrases)
+    | project snippet_id;
+// Get unique conversation IDs and the turn index of grateful messages
+let grateful_convo_data = 
+    copilot_v0_restricted_copilot_event
+    | where name contains "/conversation.messageText"
+    | where snippet_id in (grateful_snippet_ids)
+    | extend country = tostring(client['client_country_region'])
+    | where country in ("United States", "United Kingdom", "Canada")
+    | where source == "user"
+    | project conversation_id
+    | distinct conversation_id
+    | sample 200;
+// Get all messages from conversations with grateful messages
+let all_conversation_messages =
+    copilot_v0_restricted_copilot_event
+    | where timestamp >= start_time and timestamp <= end_time
+    | where name contains "/conversation.messageText"
+    | join kind=inner grateful_convo_data on conversation_id
+    | summarize arg_max(timestamp, *) by message_id, case(source == "user", "user", strcat(source, "_", tostring(rand())))
+    | project conversation_id, message_id, turn_index, source, snippet_id;
+all_conversation_messages
+| join kind=inner (
+    copilot_v0_restricted_copilot_code_snippet
+    | where timestamp >= start_time and timestamp <= end_time
+    | project snippet_id, message_text
+) on snippet_id
+| project conversation_id, turn_index, source, message_text
+| order by conversation_id, turn_index asc

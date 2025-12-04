@@ -1,0 +1,126 @@
+// =============================================================================
+// VERIFY: Message Selection via model.modelCall.input
+// =============================================================================
+// Based on schema documentation, model.modelCall.input shows WHICH messages
+// actually get sent to the model (via messageUuids).
+//
+// This should explain the gap between messagesJson (full) and promptTokens (actual)
+
+let timeStart = ago(1h);
+
+// =============================================================================
+// Query 1: Examine model.modelCall.input event structure
+// =============================================================================
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/model.modelCall.input"
+    or Name == "GitHub.copilot.chat/model.modelCall.input"  // Try both naming patterns
+| take 5
+| project 
+    TimeGenerated,
+    Name,
+    messageCount = toint(Properties["messageCount"]),
+    maxTokenWindow = toint(Measurements["maxTokenWindow"]),
+    messageUuids = Properties["messageUuids"],
+    conversationId = tostring(Properties["conversationId"]),
+    headerRequestId = tostring(Properties["headerRequestId"]),
+    AllProperties = Properties,
+    AllMeasurements = Measurements
+
+// =============================================================================
+// Query 2: Compare messageCount to messagesJson message count
+// =============================================================================
+// Uncomment to run:
+/*
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/model.modelCall.input"
+        or Name == "GitHub.copilot.chat/model.modelCall.input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend sentMessageCount = toint(Properties["messageCount"])
+    | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+    | project messageId, sentMessageCount, maxTokenWindow;
+
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | extend preparedMessageCount = array_length(parse_json(messagesJsonStr))
+    | project messageId, preparedMessageCount, messagesJsonStr;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project messageId, promptTokens;
+
+inputEvents
+| join kind=inner trajectoryEvents on messageId
+| join kind=inner outputEvents on messageId
+| project 
+    messageId,
+    preparedMessageCount,   // Messages in messagesJson
+    sentMessageCount,       // Messages actually sent (from model.modelCall.input)
+    promptTokens,           // Tokens charged
+    maxTokenWindow,
+    messagesDropped = preparedMessageCount - sentMessageCount,
+    selectionRatio = round(100.0 * sentMessageCount / preparedMessageCount, 1)
+| order by preparedMessageCount desc
+| take 20
+*/
+
+// =============================================================================
+// Query 3: Distribution of selection ratios
+// =============================================================================
+// Uncomment to run:
+/*
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/model.modelCall.input"
+        or Name == "GitHub.copilot.chat/model.modelCall.input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend sentMessageCount = toint(Properties["messageCount"])
+    | project messageId, sentMessageCount;
+
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | extend preparedMessageCount = array_length(parse_json(messagesJsonStr))
+    | project messageId, preparedMessageCount;
+
+inputEvents
+| join kind=inner trajectoryEvents on messageId
+| where preparedMessageCount > 0
+| extend selectionRatio = round(100.0 * sentMessageCount / preparedMessageCount, 0)
+| summarize 
+    count(),
+    avgPrepared = avg(preparedMessageCount),
+    avgSent = avg(sentMessageCount),
+    avgDropped = avg(preparedMessageCount - sentMessageCount)
+    by selectionRatioBucket = case(
+        selectionRatio >= 100, "100% (all sent)",
+        selectionRatio >= 75, "75-99%",
+        selectionRatio >= 50, "50-74%",
+        selectionRatio >= 25, "25-49%",
+        "< 25%"
+    )
+| order by avgPrepared asc
+*/
+

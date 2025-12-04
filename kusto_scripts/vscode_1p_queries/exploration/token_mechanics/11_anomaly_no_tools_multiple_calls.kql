@@ -1,0 +1,70 @@
+// =============================================================================
+// ANOMALY INVESTIGATION: hasTools=false but multiple LLM calls
+// =============================================================================
+// FINDING: Turns with toolCounts="{}" have avgLlmCallCount=1.29 (not 1!)
+//          and avgPromptGrowth=380.55 (not 0!)
+//
+// QUESTION: Why do some no-tool turns have multiple LLM calls?
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where toolCounts == "{}"  // NO TOOLS
+    | where numRequests == 1
+    | project messageId, toolCounts, numRequests;
+
+let tokenCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens, model
+    | order by messageId, TimeGenerated asc;
+
+// Find turns with NO tools but MORE than 1 LLM call
+toolData
+| join kind=inner tokenCalls on messageId
+| summarize 
+    llmCallCount = count(),
+    promptTokensList = make_list(promptTokens),
+    completionTokensList = make_list(completionTokens),
+    models = make_set(model),
+    minPrompt = min(promptTokens),
+    maxPrompt = max(promptTokens)
+    by messageId, toolCounts, numRequests
+| extend promptGrowth = maxPrompt - minPrompt
+| where llmCallCount > 1  // ANOMALY: More than 1 LLM call but no tools
+| project 
+    messageId,
+    toolCounts,
+    numRequests,
+    llmCallCount,
+    promptTokensList,
+    promptGrowth,
+    models,
+    completionTokensList
+| order by llmCallCount desc
+| take 50
+
+// =============================================================================
+// POSSIBLE EXPLANATIONS TO LOOK FOR:
+// 1. Multiple models in 'models' set → model switching/fallback
+// 2. Decreasing promptTokens in list → context reset/retry
+// 3. Similar promptTokens but different completions → regeneration
+// =============================================================================
+

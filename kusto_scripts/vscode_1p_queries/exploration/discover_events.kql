@@ -1,0 +1,26 @@
+// =============================================================================
+// DISCOVER EVENT TYPES
+// =============================================================================
+// PURPOSE: Find all relevant event names in telemetry
+// USE WHEN: Starting exploration or looking for new event types
+// =============================================================================
+
+// Find all Copilot-related events
+let timeStart = ago(1h);
+AppEvents
+| where TimeGenerated > timeStart
+| where Name contains "copilot" or Name contains "GitHub"
+| summarize count() by Name
+| order by count_ desc
+| take 50
+
+// =============================================================================
+// ALTERNATIVE: Find tool-related events specifically
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name contains "tool"
+// | summarize count() by Name
+// | order by count_ desc
+

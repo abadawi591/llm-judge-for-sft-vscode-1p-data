@@ -1,0 +1,211 @@
+// =============================================================================
+// COMPLETE 3-TURN CONVERSATIONS WITH PROMPT TOKEN DELTA
+// =============================================================================
+// PURPOSE: Extract complete conversations with exactly 3 turns, including
+//          the calculated promptTokenDelta field for each LLM call.
+// 
+// USE CASE: 
+// - Understanding token accumulation patterns
+// - Training data exploration
+// - Validating completeness guarantees make promptTokenDelta reliable
+//
+// COMPLETENESS CRITERIA:
+// - minTurnIndex == 1          → Conversation starts from the beginning
+// - capturedTurnCount == 3     → Exactly 3 turns captured
+// - maxTurnIndex == 3          → No gaps (would be >3 if we skipped any)
+//
+// WHY promptTokenDelta IS RELIABLE:
+// - With minTurnIndex == 1, we have the TRUE first turn
+// - First turn's first LLM call: delta = promptTokens (full initial context)
+// - Subsequent calls: delta = current - previous (actual token growth)
+// - Unlike partial captures, no misleading "fake first turn" deltas
+//
+// OUTPUT FIELDS:
+// - conversationId, userName, capturedTurnCount, minTurnIndex, maxTurnIndex
+// - isComplete: true (guaranteed by filters)
+// - turns[]: Array with turnIndex, messageId, userMessage, modelMessage
+//   - llmCalls[]: Array with promptTokens, promptTokenDelta, completionTokens, model
+//   - turnToolTokens, turnToolCount, toolCounts, numRequests, turnDurationMs
+//
+// DOCUMENTATION: See ../docs/01_DATA_STRUCTURE.md
+// =============================================================================
+
+let timeStart = ago(7d);  // Look back 7 days to find good examples
+let timeEnd = now();
+let exactTurnCount = 3;   // We want exactly 3 turns
+
+// Step 1: Get deduplicated messages
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+// Separate user and model messages
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName, userTime = TimeGenerated;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// Step 2: Get token data per LLM call WITH promptTokenDelta calculation
+let tokenEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Calculate promptTokenDelta: difference from previous call within same messageId
+// For the first call in a turn: delta = promptTokens (full context)
+// For subsequent calls: delta = current - previous (what was added)
+let tokenEventsWithDelta = 
+    tokenEvents
+    | extend prevMessageId = prev(messageId)
+    | extend prevPromptTokens = prev(promptTokens)
+    | extend promptTokenDelta = iif(messageId == prevMessageId, 
+                                    promptTokens - prevPromptTokens, 
+                                    promptTokens)
+    | project messageId, model, promptTokens, promptTokenDelta, completionTokens;
+
+// Aggregate token events into an array per messageId
+let tokenData = 
+    tokenEventsWithDelta
+    | summarize 
+        llmCalls = make_list(pack(
+            "promptTokens", promptTokens,
+            "promptTokenDelta", promptTokenDelta,
+            "completionTokens", completionTokens,
+            "model", model
+        ))
+        by messageId;
+
+// Step 3: Get per-turn tool tokens from messagesJson
+let toolTokenData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand with_itemindex=idx message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize 
+        allToolResults = make_list(pack("idx", idx, "tokens", toolTokens)),
+        totalToolResults = count()
+        by messageId;
+
+// Step 4: Get tool call metadata
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | extend thisToolCallCount = iif(toolCounts == "{}", 0, numRequests - 1)
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration, thisToolCallCount;
+
+// Step 5: Join all data and calculate per-turn tool tokens
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=leftouter toolTokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3, messageId4
+    | extend allToolResults = coalesce(allToolResults, dynamic([]))
+    | extend totalToolResults = coalesce(totalToolResults, 0)
+    | extend cutoffIdx = totalToolResults - thisToolCallCount
+    | mv-apply tr = allToolResults on (
+        where toint(tr.idx) >= cutoffIdx
+        | summarize turnToolTokens = sum(toint(tr.tokens)), turnToolCount = count()
+    )
+    | extend turnToolTokens = coalesce(turnToolTokens, 0)
+    | extend turnToolCount = coalesce(turnToolCount, 0)
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnToolTokens,
+        turnToolCount,
+        toolCounts,
+        numRequests,
+        turnDuration;
+
+// Step 6: Aggregate into nested JSON per conversation
+let allConversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnToolTokens", turnToolTokens,
+            "turnToolCount", turnToolCount,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDuration
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    );
+
+// Step 7: FILTER FOR COMPLETE 3-TURN CONVERSATIONS ONLY
+allConversations
+| where minTurnIndex == 1                          // Starts from turn 1 (complete beginning)
+| where capturedTurnCount == exactTurnCount        // Exactly 3 turns captured
+| where maxTurnIndex == exactTurnCount             // No gaps (3 turns, max index = 3)
+| project 
+    conversationId, 
+    userName, 
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,  // Guaranteed by our filters
+    turns = turnsArray
+| order by conversationId asc
+| take 50  // Return up to 50 examples for exploration
+

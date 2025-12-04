@@ -1,0 +1,67 @@
+// =============================================================================
+// DETAILED: Sequential LLM calls within a single turn
+// =============================================================================
+// Shows EACH LLM call in sequence with the token delta between calls
+// This proves exactly how promptTokens grows call-by-call
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get turns with 3-4 LLM calls for detailed analysis
+let multiCallTurns = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where numRequests between (3 .. 4)  // 2-3 tools + final
+    | take 20
+    | project messageId, toolCounts, numRequests;
+
+// Get ALL LLM calls for these turns with row numbers
+let llmCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens;
+
+// Join and show sequence
+multiCallTurns
+| join kind=inner llmCalls on messageId
+| order by messageId, TimeGenerated asc
+| extend callIndex = row_number(1, messageId != prev(messageId))
+| extend prevPrompt = iif(callIndex > 1 and messageId == prev(messageId), prev(promptTokens), 0)
+| extend prevCompletion = iif(callIndex > 1 and messageId == prev(messageId), prev(completionTokens), 0)
+| extend promptDelta = iif(callIndex > 1, promptTokens - prevPrompt, promptTokens)
+| project 
+    messageId,
+    callIndex,
+    promptTokens,
+    completionTokens,
+    // Show the growth
+    promptDelta,
+    prevCompletion,
+    // If completion is added: promptDelta should be close to prevCompletion + tool_tokens
+    deltaMinusCompletion = promptDelta - prevCompletion  // This would be ~tool_tokens + overhead
+| order by messageId, callIndex asc
+
+// =============================================================================
+// INTERPRETATION:
+// For each call after the first:
+//   promptDelta = new tokens added to context
+//   prevCompletion = model's response from previous call
+//   
+//   If promptDelta ≈ prevCompletion + something:
+//     → "something" = tool result tokens + small overhead
+//     → Proves completion IS added to next prompt
+// =============================================================================
+

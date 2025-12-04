@@ -1,0 +1,16 @@
+// =============================================================================
+// SEARCH: Find any field containing "tool" and "token"
+// =============================================================================
+// PURPOSE: Discover if there's a dedicated tool token field we missed
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot-chat/"
+| take 10000
+| mv-expand prop = bag_keys(Properties)
+| extend propName = tostring(prop)
+| where propName contains "tool" or propName contains "token" or propName contains "Token"
+| distinct propName, Name
+| order by Name, propName
+

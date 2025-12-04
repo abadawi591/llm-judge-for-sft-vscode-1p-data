@@ -1,0 +1,74 @@
+// =============================================================================
+// AGGREGATE: Compare turns WITH tools vs WITHOUT tools
+// =============================================================================
+// QUESTION: Does promptTokens include tool tokens?
+//
+// HYPOTHESIS: If promptTokens includes tools, then:
+// - Turns with NO tools should have promptGrowth ≈ 0 (no tool results to add)
+// - Turns WITH tools should have promptGrowth > 0 (tool results added)
+//
+// OUTPUT: Summary grouped by hasTools and numRequests
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | project messageId, toolCounts, numRequests;
+
+let tokenCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens;
+
+// Aggregate LLM calls per turn
+let llmCallStats = 
+    tokenCalls
+    | summarize 
+        llmCallCount = count(),
+        minPromptTokens = min(promptTokens),
+        maxPromptTokens = max(promptTokens),
+        promptTokenGrowth = max(promptTokens) - min(promptTokens),
+        totalCompletionTokens = sum(completionTokens)
+        by messageId;
+
+// Join with tool data and summarize
+toolData
+| join kind=inner llmCallStats on messageId
+| project-away messageId1
+| extend hasTools = (toolCounts != "{}")
+| summarize 
+    avgLlmCallCount = avg(llmCallCount),
+    avgPromptGrowth = avg(promptTokenGrowth),
+    count = count()
+    by hasTools, numRequests
+| order by hasTools asc, numRequests asc
+
+// =============================================================================
+// EXPECTED RESULTS:
+// hasTools | numRequests | avgLlmCallCount | avgPromptGrowth | count
+// ---------|-------------|-----------------|-----------------|------
+// false    | 1           | ~1              | ~0              | many
+// true     | 2           | ~2              | >0              | some
+// true     | 3           | ~3              | >0              | some
+// true     | 4           | ~4              | >0              | some
+//
+// INTERPRETATION:
+// - hasTools=false → promptGrowth ≈ 0 confirms no tool tokens added
+// - hasTools=true → promptGrowth > 0 confirms tool tokens ARE in promptTokens
+// =============================================================================
+

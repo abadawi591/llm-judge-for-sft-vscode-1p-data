@@ -1,0 +1,126 @@
+// =============================================================================
+// MULTI-TURN TOKEN TRACE: Follow tokens across a complete conversation
+// =============================================================================
+// PURPOSE: Trace promptTokens and turnToolTokens across multiple turns
+//          to understand how they relate.
+//
+// QUESTION: Does promptTokens include tool tokens from previous turns?
+// =============================================================================
+
+let timeStart = ago(7d);
+let timeEnd = now();
+
+// Step 1: Find a complete 3-turn conversation with tool usage in turn 1
+let targetConvo = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex),
+        hasToolsInTurn1 = maxif(numRequests, turnIndex == 1) > 1
+        by conversationId
+    | where turnCount == 3 and hasToolsInTurn1  // 3 turns, tools in turn 1
+    | take 1;
+
+// Step 2: Get all turn details for this conversation
+let turnDetails = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | join kind=inner targetConvo on conversationId
+    | project conversationId, messageId, turnIndex, toolCounts, numRequests;
+
+// Step 3: Get ALL LLM calls for each turn
+let llmCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Step 4: Get tool tokens from messagesJson for each turn
+let toolTokens = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize 
+        toolTokensInContext = sum(toolTokens),
+        toolResultCount = count()
+        by messageId;
+
+// Step 5: Join everything together
+turnDetails
+| join kind=inner (
+    llmCalls
+    | summarize 
+        llmCallCount = count(),
+        promptTokensList = make_list(promptTokens),
+        completionTokensList = make_list(completionTokens),
+        firstPrompt = min(promptTokens),
+        lastPrompt = max(promptTokens)
+        by messageId
+) on messageId
+| join kind=leftouter toolTokens on messageId
+| project-away messageId1, messageId2
+| extend toolTokensInContext = coalesce(toolTokensInContext, 0)
+| extend toolResultCount = coalesce(toolResultCount, 0)
+| extend promptGrowthInTurn = lastPrompt - firstPrompt
+| project 
+    conversationId,
+    turnIndex,
+    toolCounts,
+    numRequests,
+    llmCallCount,
+    // Token progression within this turn
+    promptTokensList,
+    firstPrompt,
+    lastPrompt,
+    promptGrowthInTurn,
+    // Tool tokens visible in messagesJson at this turn
+    toolTokensInContext,
+    toolResultCount,
+    completionTokensList
+| order by conversationId, turnIndex asc
+
+// =============================================================================
+// EXPECTED OUTPUT (example):
+// 
+// Turn | toolCounts          | promptTokensList              | toolTokensInContext
+// -----|---------------------|-------------------------------|--------------------
+// 1    | {web_search:2,...}  | [11317,15817,18210,21934]    | 10,617  (this turn's tools)
+// 2    | {}                  | [24426]                       | 10,617  (same! from turn 1)
+// 3    | {}                  | [24989]                       | 10,617  (same! from turn 1)
+//
+// KEY INSIGHT:
+// - Turn 2's promptTokens (24426) INCLUDES the 10,617 tool tokens from Turn 1
+// - That's why toolTokensInContext stays the same across turns
+// - promptTokens = base_context + all_previous_messages + all_tool_results
+// =============================================================================
+

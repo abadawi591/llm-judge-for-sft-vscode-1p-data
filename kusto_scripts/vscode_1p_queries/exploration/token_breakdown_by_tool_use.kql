@@ -1,0 +1,72 @@
+// =============================================================================
+// EXPLORATION: How tool use affects token consumption
+// =============================================================================
+// PURPOSE: Understand if tool results contribute to prompt token growth
+// HYPOTHESIS: Within a single turn, prompt tokens should grow as more tools are called
+//             because tool results become part of the context
+// =============================================================================
+
+// Query A: Compare prompt token growth across LLM calls within same messageId
+// If we see multiple token events for the same messageId, we can track how
+// prompt tokens grow as tools are called
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| extend headerRequestId = tostring(Properties["headerRequestId"])
+| extend promptTokens = toint(Measurements["promptTokens"])
+| extend completionTokens = toint(Measurements["completionTokens"])
+// Find messageIds with multiple token events (= multiple LLM calls = tool use)
+| summarize 
+    tokenEventCount = count(),
+    tokenEvents = make_list(pack("time", TimeGenerated, "prompt", promptTokens, "completion", completionTokens))
+    by headerRequestId
+| where tokenEventCount >= 3  // Focus on turns with multiple tool calls
+| take 5
+// Expected: Within each messageId's tokenEvents array, promptTokens should increase
+// as each subsequent LLM call includes previous tool results
+
+// =============================================================================
+// Query B: Side-by-side comparison with toolCallDetails
+// =============================================================================
+// Uncomment and run separately:
+/*
+let tokenData = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | summarize 
+        tokenEventCount = count(),
+        totalPromptTokens = sum(promptTokens),
+        avgPromptTokens = avg(promptTokens),
+        minPromptTokens = min(promptTokens),
+        maxPromptTokens = max(promptTokens)
+        by messageId;
+let toolData = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | project messageId, toolCounts, numRequests;
+tokenData
+| join kind=inner toolData on messageId
+| project 
+    messageId,
+    numRequests,
+    tokenEventCount,
+    toolCounts,
+    minPromptTokens,
+    maxPromptTokens,
+    promptGrowth = maxPromptTokens - minPromptTokens,
+    totalPromptTokens
+| order by numRequests desc
+| take 20
+*/
+

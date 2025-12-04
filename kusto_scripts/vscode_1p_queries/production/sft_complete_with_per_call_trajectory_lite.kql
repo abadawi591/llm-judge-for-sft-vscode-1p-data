@@ -1,0 +1,184 @@
+// =============================================================================
+// SFT COMPLETE CONVERSATIONS - LITE VERSION (Memory Optimized)
+// =============================================================================
+// This is a lighter version that SKIPS trajectory parsing to avoid OOM errors.
+// Use when the full version fails with E_LOW_MEMORY_CONDITION.
+//
+// DIFFERENCES FROM FULL VERSION:
+// - Does NOT parse messagesJson (avoids expensive mv-expand)
+// - Does NOT include trajectory breakdown (systemTokens, userTokens, etc.)
+// - DOES include promptTokens, completionTokens, promptTokenDelta
+// - Much faster and lower memory usage
+//
+// For trajectory analysis, use exploration queries on smaller time windows.
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+let minTurns = 3;
+let maxTurns = 10;
+
+// Step 1: Get deduplicated messages (Conversation Messages)
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// Step 2: Get token data per LLM call (OUTPUT direction only - skip trajectory)
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Add call index and promptTokenDelta
+let tokenEventsIndexed = 
+    tokenEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | extend prevMessageId = prev(messageId)
+    | extend prevPromptTokens = prev(promptTokens)
+    | extend promptTokenDelta = iif(messageId == prevMessageId, promptTokens - prevPromptTokens, promptTokens)
+    | extend isContextReset = (messageId == prevMessageId and promptTokenDelta < 0)
+    | project messageId, callIndex, model, promptTokens, promptTokenDelta, completionTokens, isContextReset;
+
+// Aggregate into llmCalls array per messageId (turn)
+let tokenData = 
+    tokenEventsIndexed
+    | summarize 
+        llmCalls = make_list(pack(
+            "promptTokens", promptTokens,
+            "promptTokenDelta", promptTokenDelta,
+            "completionTokens", completionTokens,
+            "model", model,
+            "isContextReset", isContextReset
+        )),
+        turnFinalPromptTokens = max(promptTokens),
+        turnHasContextReset = max(iif(isContextReset, 1, 0)) > 0,
+        llmCallCount = count()
+        by messageId;
+
+// Step 3: Get tool usage data
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend toolType = tostring(Properties["toolType"])
+    | summarize 
+        toolCounts = make_bag(pack(toolType, count())),
+        numRequests = max(toint(Properties["numRequests"]))
+        by messageId;
+
+// Step 4: Get turn duration
+let turnDuration = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/firstTurn"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend turnDurationMs = toint(Measurements["turnDurationMS"])
+    | summarize turnDurationMs = max(turnDurationMs) by messageId;
+
+// Step 5: Get turn index
+let turnIndexData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/turnIndex"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | summarize turnIndex = max(turnIndex) by conversationId, messageId;
+
+// Step 6: Assemble turns
+let allTurns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=leftouter tokenData on messageId
+    | join kind=leftouter toolData on messageId
+    | join kind=leftouter turnDuration on messageId
+    | join kind=leftouter turnIndexData on conversationId, messageId
+    | project 
+        conversationId,
+        messageId,
+        userName,
+        turnIndex = coalesce(turnIndex, 1),
+        userMessage,
+        modelMessage,
+        llmCalls = coalesce(llmCalls, dynamic([])),
+        turnSummary = pack(
+            "finalPromptTokens", coalesce(turnFinalPromptTokens, 0),
+            "hasContextReset", coalesce(turnHasContextReset, false),
+            "llmCallCount", coalesce(llmCallCount, 0)
+        ),
+        toolCounts = coalesce(tostring(toolCounts), "{}"),
+        numRequests = coalesce(numRequests, 0),
+        turnDurationMs = coalesce(turnDurationMs, 0);
+
+// Step 7: Aggregate into conversations with completeness check
+let allConversations = 
+    allTurns
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turns = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId;
+
+// Step 8: Filter for complete conversations (3-10 turns)
+allConversations
+| where minTurnIndex == 1                              // Starts from beginning
+| where capturedTurnCount == maxTurnIndex              // No gaps
+| where capturedTurnCount >= minTurns                  // At least 3 turns
+| where capturedTurnCount <= maxTurns                  // At most 10 turns
+| extend isComplete = true
+| project 
+    conversationId,
+    userName,
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete,
+    turns
+| order by capturedTurnCount desc
+| take 100
+

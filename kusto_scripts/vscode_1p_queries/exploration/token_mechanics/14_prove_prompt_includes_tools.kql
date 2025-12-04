@@ -1,0 +1,88 @@
+// =============================================================================
+// PROOF: promptTokens INCLUDES tool tokens
+// =============================================================================
+// This query proves that promptTokens grows by EXACTLY the tool token amount
+//
+// MATH:
+//   promptTokens[call N+1] - promptTokens[call N] ≈ tool_result_tokens
+//
+// If they match, it proves tool tokens are INSIDE promptTokens, not separate.
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get turns with exactly 2 LLM calls (1 tool + 1 final response)
+let turnsWithOneTool = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where numRequests == 2  // Exactly 1 tool + 1 final = 2 requests
+    | project messageId, toolCounts;
+
+// Get the two promptTokens values for these turns
+let tokenProgression = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | project TimeGenerated, messageId, promptTokens
+    | order by messageId, TimeGenerated asc;
+
+// Get tool token from messagesJson
+let toolTokenFromJson = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize toolTokenSum = sum(toolTokens) by messageId;
+
+// Join and compare
+turnsWithOneTool
+| join kind=inner (
+    tokenProgression
+    | summarize 
+        firstPrompt = min(promptTokens),
+        secondPrompt = max(promptTokens)
+        by messageId
+    | extend promptGrowth = secondPrompt - firstPrompt
+) on messageId
+| join kind=inner toolTokenFromJson on messageId
+| project 
+    messageId,
+    toolCounts,
+    firstPrompt,
+    secondPrompt,
+    promptGrowth,      // How much promptTokens grew
+    toolTokenSum,      // Tokens from tool result (from messagesJson)
+    difference = promptGrowth - toolTokenSum,
+    match = (abs(promptGrowth - toolTokenSum) < 50)  // Within 50 tokens?
+| order by toolTokenSum desc
+| take 30
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// If "match" = true for most rows, it PROVES:
+//   promptTokens growth = tool tokens added
+//   Therefore: promptTokens INCLUDES tool tokens
+//
+// Small differences (< 50 tokens) are likely from:
+//   - Tool call metadata (function name, parameters)
+//   - Model's intermediate response before tool call
+// =============================================================================
+

@@ -1,0 +1,15 @@
+// =============================================================================
+// LIST: All measurement fields across Copilot events
+// =============================================================================
+// PURPOSE: See what numeric measurements are available in each event type
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot-chat/"
+| take 10000
+| mv-expand meas = bag_keys(Measurements)
+| extend measName = tostring(meas)
+| distinct measName, Name
+| order by Name, measName
+

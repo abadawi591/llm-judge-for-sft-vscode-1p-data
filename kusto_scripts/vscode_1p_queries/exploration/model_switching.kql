@@ -1,0 +1,78 @@
+// =============================================================================
+// MODEL SWITCHING EXPLORATION
+// =============================================================================
+// PURPOSE: Explore how often users manually switch models within a conversation
+// USE CASE: Data for conversation-aware routing (not session-based routing)
+//
+// KEY QUESTION: Within the same conversationId, how often does the model change?
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Query 1: Find conversations with multiple models
+// -----------------------------------------------------------------------------
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| extend conversationId = tostring(Properties["conversationId"])
+| extend model = tostring(Properties["model"])
+| extend turnIndex = toint(Measurements["turnIndex"])
+| extend responseType = tostring(Properties["responseType"])
+| where responseType == "success"
+| summarize 
+    uniqueModels = dcount(model),
+    models = make_set(model),
+    turnCount = count(),
+    minTurn = min(turnIndex),
+    maxTurn = max(turnIndex)
+    by conversationId
+| where uniqueModels > 1  // Only conversations with model switches
+| order by uniqueModels desc, turnCount desc
+| take 50
+
+// -----------------------------------------------------------------------------
+// Query 2: Distribution of model switching frequency
+// -----------------------------------------------------------------------------
+// AppEvents
+// | where TimeGenerated > ago(24h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend model = tostring(Properties["model"])
+// | extend responseType = tostring(Properties["responseType"])
+// | where responseType == "success"
+// | summarize uniqueModels = dcount(model) by conversationId
+// | summarize conversationCount = count() by uniqueModels
+// | order by uniqueModels asc
+
+// -----------------------------------------------------------------------------
+// Query 3: See model switches in detail (specific conversation)
+// -----------------------------------------------------------------------------
+// let targetConvo = "YOUR_CONVERSATION_ID_HERE";
+// AppEvents
+// | where TimeGenerated > ago(24h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | where conversationId == targetConvo
+// | extend model = tostring(Properties["model"])
+// | extend turnIndex = toint(Measurements["turnIndex"])
+// | extend responseType = tostring(Properties["responseType"])
+// | project turnIndex, model, responseType
+// | order by turnIndex asc
+
+// -----------------------------------------------------------------------------
+// Query 4: Model switch patterns (what models do users switch between?)
+// -----------------------------------------------------------------------------
+// AppEvents
+// | where TimeGenerated > ago(24h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend model = tostring(Properties["model"])
+// | extend turnIndex = toint(Measurements["turnIndex"])
+// | extend responseType = tostring(Properties["responseType"])
+// | where responseType == "success"
+// | order by conversationId, turnIndex asc
+// | extend prevModel = prev(model)
+// | extend prevConvo = prev(conversationId)
+// | where conversationId == prevConvo and model != prevModel
+// | summarize switchCount = count() by fromModel = prevModel, toModel = model
+// | order by switchCount desc
+

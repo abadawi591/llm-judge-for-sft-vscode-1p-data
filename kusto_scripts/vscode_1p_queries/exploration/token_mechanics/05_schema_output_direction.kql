@@ -1,0 +1,20 @@
+// =============================================================================
+// SCHEMA: engine.messages.length (OUTPUT direction)
+// =============================================================================
+// PURPOSE: See all available fields in the OUTPUT direction events
+//
+// These events contain:
+// - promptTokens: Cumulative tokens sent to LLM
+// - completionTokens: Tokens in LLM response
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| take 1
+| project 
+    AllProperties = Properties,
+    AllMeasurements = Measurements
+

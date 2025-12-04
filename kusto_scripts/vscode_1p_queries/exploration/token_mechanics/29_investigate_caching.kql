@@ -1,0 +1,93 @@
+// =============================================================================
+// INVESTIGATE: Prompt Caching (copilot_cache_control)
+// =============================================================================
+// Look at the caching patterns in trajectories
+
+let timeStart = ago(1h);
+
+// Query 1: How common is caching?
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 1000
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend hasCacheControl = isnotempty(message.copilot_cache_control)
+| extend cacheType = tostring(message.copilot_cache_control.type)
+| summarize 
+    totalMessages = count(),
+    cachedMessages = countif(hasCacheControl),
+    cacheTypes = make_set(cacheType)
+    by role
+| extend cacheRate = round(100.0 * cachedMessages / totalMessages, 1)
+| order by totalMessages desc
+
+// =============================================================================
+// Query 2: See actual cache control values
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where messagesJsonStr contains "cache_control"
+| take 1
+| mv-expand message = parse_json(messagesJsonStr)
+| where isnotempty(message.copilot_cache_control)
+| project 
+    role = tostring(message.role),
+    tokenCount = toint(message.content),
+    cacheControl = message.copilot_cache_control
+*/
+
+// =============================================================================
+// Query 3: Compare cached vs non-cached token totals
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 500
+| mv-expand message = parse_json(messagesJsonStr)
+| extend tokenCount = toint(message.content)
+| extend hasCacheControl = isnotempty(message.copilot_cache_control)
+| summarize 
+    totalTokens = sum(tokenCount),
+    cachedTokens = sumif(tokenCount, hasCacheControl),
+    nonCachedTokens = sumif(tokenCount, not(hasCacheControl))
+    by messageId
+| join kind=inner (
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | summarize promptTokens = max(promptTokens) by messageId
+) on messageId
+| project 
+    messageId,
+    promptTokens,
+    totalTokens,
+    cachedTokens,
+    nonCachedTokens,
+    diff_total = promptTokens - totalTokens,
+    diff_nonCached = promptTokens - nonCachedTokens,
+    matchesNonCached = (abs(promptTokens - nonCachedTokens) < 500)
+| take 30
+*/
+

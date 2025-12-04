@@ -1,0 +1,39 @@
+// =============================================================================
+// DEEP DIVE: Single Complete Conversation - Token Analysis
+// =============================================================================
+// Step 1: Find ONE small complete conversation with tool usage
+// Step 2: Get ALL data for that conversation
+// Step 3: Analyze token progression turn by turn, call by call
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// STEP 1: Find a good candidate conversation
+// - Complete (starts at turn 1)
+// - 3 turns
+// - Has tool usage in at least one turn
+let candidateConvos = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex),
+        minTurn = min(turnIndex),
+        maxTurn = max(turnIndex),
+        hasTools = maxif(numRequests, numRequests > 1) > 1,
+        messageIds = make_set(messageId)
+        by conversationId
+    | where turnCount == 3 and minTurn == 1 and maxTurn == 3 and hasTools
+    | take 1;
+
+// Show the candidate
+candidateConvos
+| project conversationId, turnCount, minTurn, maxTurn, hasTools, messageIds
+

@@ -1,0 +1,41 @@
+// =============================================================================
+// MESSAGE EVENT SCHEMA EXPLORATION
+// =============================================================================
+// EVENT: GitHub.copilot-chat/conversation.messageText
+// PURPOSE: Explore message event structure and available fields
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// View full schema (Properties and Measurements)
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| take 1
+| project Properties, Measurements
+
+// =============================================================================
+// ALTERNATIVE: See key fields extracted
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name == "GitHub.copilot-chat/conversation.messageText"
+// | extend mode = tostring(Properties["mode"])
+// | extend conversationId = tostring(Properties["conversationId"])
+// | extend messageId = tostring(Properties["messageId"])
+// | extend source = tostring(Properties["source"])
+// | extend messageText = tostring(Properties["messageText"])
+// | project TimeGenerated, mode, conversationId, messageId, source, messageText
+// | take 10
+
+// =============================================================================
+// ALTERNATIVE: Count by mode (agent vs others)
+// =============================================================================
+// let timeStart = ago(1h);
+// AppEvents
+// | where TimeGenerated > timeStart
+// | where Name == "GitHub.copilot-chat/conversation.messageText"
+// | extend mode = tostring(Properties["mode"])
+// | summarize count() by mode
+

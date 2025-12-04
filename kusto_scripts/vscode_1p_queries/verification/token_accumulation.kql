@@ -1,0 +1,56 @@
+// =============================================================================
+// TOKEN ACCUMULATION VERIFICATION
+// =============================================================================
+// PURPOSE: Verify that promptTokens grows within a conversation
+// FINDING: ✅ VERIFIED - promptTokens grows from ~30K to ~43K as context accumulates
+// =============================================================================
+
+let timeStart = ago(2h);
+let timeEnd = ago(1h);
+
+// Get conversationId -> messageId mapping from message events
+let messageConvoMap = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | distinct conversationId, messageId;
+
+// Get token data (headerRequestId = messageId)
+let tokenData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens;
+
+// Join to get conversationId
+let tokenWithConvo = 
+    tokenData
+    | join kind=inner messageConvoMap on messageId
+    | project TimeGenerated, conversationId, messageId, promptTokens, completionTokens;
+
+// Find conversations with multiple messages (at least 3)
+let multiMsgConvos = 
+    tokenWithConvo
+    | summarize msgCount = dcount(messageId) by conversationId
+    | where msgCount >= 3
+    | top 5 by msgCount desc
+    | project conversationId;
+
+// Show messages for those conversations, ordered by time
+// EXPECTED: promptTokens should INCREASE as msgOrder goes up
+tokenWithConvo
+| join kind=inner multiMsgConvos on conversationId
+| project-away conversationId1
+| order by conversationId asc, TimeGenerated asc
+| extend msgOrder = row_number(1, prev(conversationId) != conversationId)
+| project conversationId, msgOrder, TimeGenerated, messageId, promptTokens, completionTokens
+

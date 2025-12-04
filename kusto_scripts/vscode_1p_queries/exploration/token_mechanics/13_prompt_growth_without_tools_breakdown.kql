@@ -1,0 +1,66 @@
+// =============================================================================
+// BREAKDOWN: What causes promptGrowth when there are no tools?
+// =============================================================================
+// FINDING: avgPromptGrowth = 380 for hasTools=false turns
+//
+// QUESTION: If no tools, what's adding ~380 tokens on average?
+// =============================================================================
+
+let timeStart = ago(24h);
+let timeEnd = now();
+
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where toolCounts == "{}"  // NO TOOLS
+    | project messageId, toolCounts, numRequests;
+
+let tokenCalls = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Group by llmCallCount and see distribution
+toolData
+| join kind=inner (
+    tokenCalls
+    | summarize 
+        llmCallCount = count(),
+        minPrompt = min(promptTokens),
+        maxPrompt = max(promptTokens)
+        by messageId
+    | extend promptGrowth = maxPrompt - minPrompt
+) on messageId
+| summarize 
+    count = count(),
+    avgPromptGrowth = avg(promptGrowth),
+    minGrowth = min(promptGrowth),
+    maxGrowth = max(promptGrowth),
+    medianGrowth = percentile(promptGrowth, 50)
+    by llmCallCount
+| order by llmCallCount asc
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// llmCallCount | count  | avgPromptGrowth | interpretation
+// -------------|--------|-----------------|---------------
+// 1            | ~74K   | ~0              | Normal: single call, no growth
+// 2            | ~1K?   | ~380+           | Anomaly: what caused 2nd call?
+// 3+           | rare   | higher          | Anomaly: retries/fallbacks?
+//
+// If llmCallCount=1 has growth=0, then the anomaly is entirely from multi-call turns
+// =============================================================================
+

@@ -1,0 +1,172 @@
+// =============================================================================
+// VERIFY: Is caching actually tracked in telemetry?
+// =============================================================================
+// The user correctly questions: are we ASSUMING the delta is caching,
+// or can we VERIFY it from telemetry?
+//
+// This query checks:
+// 1. Are there any cache-related fields in OUTPUT events?
+// 2. Does the INPUT event's copilot_cache_control correlate with promptTokens?
+
+let timeStart = ago(1h);
+
+// =============================================================================
+// Query 1: All fields in OUTPUT events - look for cache-related ones
+// =============================================================================
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| take 1
+| project 
+    AllProperties = Properties,
+    AllMeasurements = Measurements
+
+// =============================================================================
+// Query 2: Check for cache-related measurement names
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| take 1000
+| mv-expand bagexpansion=array Measurements
+| extend measurementName = tostring(Measurements[0])
+| summarize count() by measurementName
+| where measurementName contains "cache" or measurementName contains "cached"
+| order by count_ desc
+*/
+
+// =============================================================================
+// Query 3: Search ALL event types for cache-related fields
+// =============================================================================
+// Uncomment to run:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot"
+| take 5000
+| mv-expand bagexpansion=array Measurements
+| extend measurementName = tostring(Measurements[0])
+| where measurementName contains "cache"
+| summarize 
+    count(),
+    events = make_set(Name)
+    by measurementName
+*/
+
+// =============================================================================
+// Query 4: Direct comparison - does copilot_cache_control correlate with delta?
+// =============================================================================
+// This tests our hypothesis: does sum of NON-cached tokens ≈ promptTokens?
+// Uncomment to run:
+/*
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    // Only look at first call per turn (simpler analysis)
+    | where callIndex == 1
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend tokenCount = toint(message.content)
+    | extend hasCacheControl = isnotempty(message.copilot_cache_control)
+    | summarize 
+        trajectoryTotal = sum(tokenCount),
+        cachedTokens = sumif(tokenCount, hasCacheControl),
+        nonCachedTokens = sumif(tokenCount, not(hasCacheControl))
+        by messageId;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | project messageId, promptTokens;
+
+inputEvents
+| join kind=inner outputEvents on messageId
+| project 
+    messageId,
+    promptTokens,
+    trajectoryTotal,
+    cachedTokens,
+    nonCachedTokens,
+    diff_from_total = promptTokens - trajectoryTotal,
+    diff_from_nonCached = promptTokens - nonCachedTokens,
+    hypothesis_matches = (abs(promptTokens - nonCachedTokens) < 1000)
+| summarize 
+    totalCases = count(),
+    hypothesisMatches = countif(hypothesis_matches),
+    avgDiffFromTotal = avg(diff_from_total),
+    avgDiffFromNonCached = avg(diff_from_nonCached)
+*/
+
+// =============================================================================
+// Query 5: Detailed comparison for a few cases
+// =============================================================================
+// Uncomment to run:
+/*
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend tokenCount = toint(message.content)
+    | extend hasCacheControl = isnotempty(message.copilot_cache_control)
+    | summarize 
+        trajectoryTotal = sum(tokenCount),
+        cachedTokens = sumif(tokenCount, hasCacheControl),
+        nonCachedTokens = sumif(tokenCount, not(hasCacheControl))
+        by messageId;
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId))
+    | where callIndex == 1
+    | project messageId, promptTokens;
+
+inputEvents
+| join kind=inner outputEvents on messageId
+| project 
+    messageId,
+    promptTokens,
+    trajectoryTotal,
+    cachedTokens,
+    nonCachedTokens,
+    diff_from_total = promptTokens - trajectoryTotal,
+    diff_from_nonCached = promptTokens - nonCachedTokens
+| take 20
+*/
+

@@ -1,0 +1,63 @@
+// =============================================================================
+// STEP 3: Deep dive into ONE messageId - see EVERY LLM call's trajectory
+// =============================================================================
+// PASTE A MESSAGE ID FROM QUERY 26 (pick one with tool usage)
+
+let targetMessageId = "15d38f47-08bb-4b6b-920d-673a3913b3d1";  // Turn 1 with 20 LLM calls
+let timeStart = ago(24h);
+let timeEnd = now();
+
+// Get ALL events for this messageId
+// OUTPUT direction: token counts
+// INPUT direction: trajectory (messagesJson)
+
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens, message_direction
+    | order by TimeGenerated asc;
+
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | project TimeGenerated, messageId, messagesJsonStr, message_direction
+    | order by TimeGenerated asc;
+
+// Parse each input event's trajectory
+inputEvents
+| extend callIndex = row_number()
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| extend hasCacheControl = isnotempty(message.copilot_cache_control)
+| extend cacheType = tostring(message.copilot_cache_control.type)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),
+    toolTokens = sumif(tokenCount, role == "tool"),
+    totalFromTrajectory = sum(tokenCount),
+    cachedMessageCount = countif(hasCacheControl),
+    cacheTypes = make_set(cacheType)
+    by TimeGenerated, messageId, callIndex
+| order by callIndex asc
+
+// =============================================================================
+// COMPARE OUTPUT:
+// Run this separately to see the promptTokens for comparison:
+// =============================================================================
+// outputEvents
+

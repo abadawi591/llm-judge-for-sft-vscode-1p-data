@@ -1,0 +1,151 @@
+// =============================================================================
+// EXPLORATION: Are tool use tokens tracked separately?
+// =============================================================================
+// PURPOSE: Find if there are events that track tokens consumed by tool calls
+//          (tool input/output tokens) separately from conversation tokens
+//
+// ⭐ CONCLUSION (2025-12-02):
+//    Tool tokens are NOT tracked separately!
+//    - `promptTokenCount` in toolCallDetailsInternal = total turn tokens (not tool-specific)
+//    - No events with "token" in the name
+//    - Token events don't distinguish tool calls vs regular calls
+// =============================================================================
+
+// Query 1: Search for any events with "tool" in the name
+// RESULT: Only 2 event types:
+//   - GitHub.copilot-chat/toolCallDetailsInternal: ~16,887
+//   - GitHub.copilot-chat/virtualTools.toolset: ~168
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "tool" or Name contains "Tool"
+| summarize count() by Name
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Check if toolCallDetailsInternal has token breakdown
+// =============================================================================
+// RESULT: Found `promptTokenCount` in Measurements!
+//   But it's the TOTAL turn tokens, not tool-specific tokens.
+//   Measurements: numRequests, turnIndex, sessionDuration, turnDuration,
+//                 promptTokenCount, messageCharLen, availableToolCount, invalidToolCallCount
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 1
+| project Properties, Measurements
+
+// =============================================================================
+// Query 3: Check all measurement fields in toolCallDetailsInternal
+// =============================================================================
+// RESULT: Found these measurement fields:
+//   numRequests, turnIndex, sessionDuration, turnDuration,
+//   promptTokenCount, messageCharLen, availableToolCount, invalidToolCallCount
+//   ❌ No separate "toolInputTokens" or "toolOutputTokens" field
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 100
+| mv-expand bagexpansion=array Measurements
+| extend measurementKey = tostring(Measurements[0])
+| summarize count() by measurementKey
+| order by count_ desc
+
+// =============================================================================
+// Query 4: Check all property fields in toolCallDetailsInternal
+// =============================================================================
+// RESULT: Key property fields:
+//   conversationId, intentId, toolCounts, model, responseType,
+//   availableTools, messageId, + common.* fields
+//   ❌ No token-related properties
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 100
+| mv-expand bagexpansion=array Properties
+| extend propertyKey = tostring(Properties[0])
+| summarize count() by propertyKey
+| order by count_ desc
+
+// =============================================================================
+// Query 5: Search for events with "token" in the name
+// =============================================================================
+// RESULT: ❌ NO ROWS - No events with "token" in the name!
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "token" or Name contains "Token"
+| summarize count() by Name
+| order by count_ desc
+
+// =============================================================================
+// Query 6: Check engine.messages.length for tool-related context
+// =============================================================================
+// RESULT: messageSource values (top):
+//   XtabProvider: 325,948 | chat.editAgent: 173,457 | api.core: 19,158
+//   chat.askAgent: 7,883 | nes.nextCursorPosition: 6,149 | intentDetection: 5,382
+//   ❌ No "tool" or "toolCall" messageSource - tool LLM calls not distinguished!
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend messageSource = tostring(Properties["messageSource"])
+| summarize count() by messageSource
+| order by count_ desc
+
+// =============================================================================
+// Query 7: Compare token counts between turns with/without tools
+// =============================================================================
+// Optional: Run to see token consumption patterns by tool use
+let toolData = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | project messageId, toolCounts, numRequests;
+let tokenData = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | summarize 
+        totalPromptTokens = sum(promptTokens),
+        totalCompletionTokens = sum(completionTokens),
+        llmCallCount = count()
+        by messageId;
+tokenData
+| join kind=inner toolData on messageId
+| project 
+    messageId,
+    numRequests,
+    llmCallCount,
+    toolCounts,
+    totalPromptTokens,
+    totalCompletionTokens,
+    avgPromptPerCall = totalPromptTokens / llmCallCount
+| order by numRequests desc
+| take 20
+
+// =============================================================================
+// ⭐ FINAL CONCLUSION
+// =============================================================================
+// Tool tokens are NOT tracked separately in telemetry.
+// 
+// What we have:
+//   - `promptTokenCount` in toolCallDetailsInternal = total turn tokens
+//   - `promptTokens`/`completionTokens` in engine.messages.length = per-LLM-call tokens
+//
+// What we DON'T have:
+//   - Separate tracking of tokens consumed by tool input/output
+//   - Breakdown of which portion of prompt tokens came from tool results
+//   - Events specifically for tool token consumption
+//
+// Implication for SFT:
+//   - Can track TOTAL tokens per turn
+//   - Can track number of tool calls (via toolCounts)
+//   - CANNOT isolate "tool overhead" tokens from conversation tokens
+// =============================================================================
+

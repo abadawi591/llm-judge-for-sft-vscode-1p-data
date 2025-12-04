@@ -1,0 +1,102 @@
+// =============================================================================
+// DETAILED: Token progression side-by-side
+// =============================================================================
+// PURPOSE: See exactly how tokens accumulate within a single turn
+//
+// Shows:
+// - promptTokensProgression: [11317, 15817, 18210, 21934] - cumulative
+// - toolTokensList: [4500, 2393, 3724] - individual tool results
+// - Comparison of promptGrowth vs toolTokenSum
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Get a few turns WITH tools for detailed analysis
+let toolTurns = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where toolCounts != "{}"
+    | where numRequests between (2 .. 4)  // 1-3 tool calls for easier analysis
+    | take 20
+    | project messageId, toolCounts, numRequests;
+
+// Get ALL LLM calls for these turns (shows progression)
+let llmCallProgression = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | project TimeGenerated, messageId, promptTokens, completionTokens
+    | order by messageId, TimeGenerated asc;
+
+// Get tool token breakdown from messagesJson
+let toolTokenBreakdown = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand with_itemindex=idx message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize 
+        toolTokensList = make_list(toolTokens),
+        toolTokenSum = sum(toolTokens),
+        toolCount = count()
+        by messageId;
+
+// Combine for detailed view
+toolTurns
+| join kind=inner (
+    llmCallProgression
+    | summarize 
+        promptTokensProgression = make_list(promptTokens),
+        completionTokensProgression = make_list(completionTokens),
+        llmCallCount = count()
+        by messageId
+) on messageId
+| join kind=leftouter toolTokenBreakdown on messageId
+| project-away messageId1, messageId2
+| extend firstPrompt = toint(promptTokensProgression[0])
+| extend lastPrompt = toint(promptTokensProgression[array_length(promptTokensProgression)-1])
+| extend promptGrowth = lastPrompt - firstPrompt
+| project 
+    messageId,
+    toolCounts,
+    numRequests,
+    llmCallCount,
+    // LLM Call progression (cumulative)
+    promptTokensProgression,
+    // Tool tokens from messagesJson (individual)
+    toolTokensList,
+    toolTokenSum,
+    // Comparison
+    promptGrowth,
+    difference = promptGrowth - toolTokenSum
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// messageId | toolCounts            | promptTokensProgression      | toolTokensList     | promptGrowth | toolTokenSum | difference
+// ----------|-----------------------|------------------------------|--------------------|--------------|--------------|----------
+// abc123    | {"web_search":2,...}  | [11317,15817,18210,21934]   | [4500,2393,3724]   | 10617        | 10617        | 0
+//
+// INTERPRETATION:
+// If difference ≈ 0:
+//   → promptGrowth = sum of tool result tokens
+//   → promptTokens DOES include tool tokens
+//   → turnToolTokens is accurate when calculated from messagesJson
+// =============================================================================
+

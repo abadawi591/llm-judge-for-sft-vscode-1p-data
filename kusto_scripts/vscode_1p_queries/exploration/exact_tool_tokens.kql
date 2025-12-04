@@ -1,0 +1,85 @@
+// =============================================================================
+// EXPLORATION: Extract EXACT tool tokens from messagesJson
+// =============================================================================
+// DISCOVERY (2025-12-02):
+//   The `messagesJson` field in `engine.messages.length` events contains
+//   the full conversation history with token counts per message role.
+//   
+//   Tool results appear as: {"role":"tool","content":1234,"tool_call_id":"..."}
+//   where `content` = the TOKEN COUNT for that tool result!
+//
+// This is BETTER than the estimate (maxPromptTokens - minPromptTokens)
+// because it gives us the EXACT token count from tool results.
+// =============================================================================
+
+// Query 1: Extract exact tool tokens per turn
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend messagesJson = tostring(Properties["messagesJson"])
+// Parse messagesJson and extract tool role entries
+| mv-expand message = parse_json(messagesJson)
+| where message.role == "tool"
+| extend toolTokens = toint(message.content)
+| summarize 
+    toolResultCount = count(),
+    exactToolTokens = sum(toolTokens),
+    avgToolTokens = avg(toolTokens),
+    maxSingleToolTokens = max(toolTokens)
+    by messageId
+| order by exactToolTokens desc
+| take 20
+
+// =============================================================================
+// Query 2: Get most complete messagesJson per turn (for production use)
+// =============================================================================
+// Uncomment and run separately:
+/*
+let exactToolTokens = 
+    AppEvents
+    | where TimeGenerated > ago(1h)
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJson = tostring(Properties["messagesJson"])
+    | summarize arg_max(TimeGenerated, messagesJson) by messageId
+    | mv-expand message = parse_json(messagesJson)
+    | where message.role == "tool"
+    | extend toolTokens = toint(message.content)
+    | summarize 
+        toolResultCount = count(),
+        exactToolTokens = sum(toolTokens)
+        by messageId;
+exactToolTokens
+| order by exactToolTokens desc
+| take 20
+*/
+
+// =============================================================================
+// Query 3: See the raw messagesJson structure with tool entries
+// =============================================================================
+// Uncomment and run separately:
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJson = tostring(Properties["messagesJson"])
+| where messagesJson contains "\"role\":\"tool\""
+| take 1
+| project messagesJson
+*/
+
+// =============================================================================
+// FINDINGS:
+// - Tool results can be HUGE: 200K+ tokens for single tool results
+// - Example: reading a large file or terminal output
+// - toolResultCount correlates with numRequests from toolCallDetailsInternal
+// - exactToolTokens is the sum of all tool result tokens in a turn
+// =============================================================================
+
