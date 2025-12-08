@@ -1,0 +1,554 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1850" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ea580c"/>
+      <stop offset="100%" style="stop-color:#fb923c"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#34d399"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#f472b6"/>
+    </linearGradient>
+    <linearGradient id="windowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:0.8"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1100" height="1850" fill="#0d1117"/>
+  
+  <!-- Conversation container line -->
+  <rect x="25" y="25" width="4" height="1800" rx="2" fill="url(#cyanGrad)"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- HEADER -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 25)">
+    <rect x="0" y="0" width="1025" height="90" rx="10" fill="#1f2937"/>
+    <text x="20" y="28" font-size="18" font-weight="600" fill="#f9fafb">CONVERSATION</text>
+    <text x="20" y="48" font-size="11" fill="#9ca3af">conversationId: abc123-example</text>
+    
+    <!-- Badges row 1 -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="110" height="22" rx="4" fill="#374151"/>
+      <text x="10" y="15" font-size="10" fill="#a78bfa">claude-opus-4.5</text>
+      
+      <rect x="120" y="0" width="70" height="22" rx="4" fill="#374151"/>
+      <text x="130" y="15" font-size="10" fill="#4ade80">3 turns</text>
+      
+      <rect x="200" y="0" width="90" height="22" rx="4" fill="#374151"/>
+      <text x="210" y="15" font-size="10" fill="#22d3ee">74.62s total</text>
+      
+      <rect x="300" y="0" width="100" height="22" rx="4" fill="#374151"/>
+      <text x="310" y="15" font-size="10" fill="#fbbf24">6 LLM calls</text>
+    </g>
+    
+    <!-- System tokens info (constant across conversation) -->
+    <g transform="translate(550, 15)">
+      <rect x="0" y="0" width="455" height="65" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+      <text x="15" y="18" font-size="10" font-weight="500" fill="#3b82f6">SYSTEM TOKENS (constant across all turns)</text>
+      
+      <text x="15" y="38" font-size="9" fill="#6b7280">systemPrompt:</text>
+      <text x="100" y="38" font-size="10" fill="#93c5fd">~3,200</text>
+      
+      <text x="160" y="38" font-size="9" fill="#6b7280">toolDefinitions:</text>
+      <text x="260" y="38" font-size="10" fill="#93c5fd">~8,100</text>
+      
+      <text x="320" y="38" font-size="9" fill="#6b7280">total:</text>
+      <text x="355" y="38" font-size="11" font-weight="600" fill="#60a5fa">11,300</text>
+      
+      <text x="15" y="55" font-size="9" fill="#6b7280">maxTokenWindow:</text>
+      <text x="115" y="55" font-size="10" fill="#fbbf24">128,000</text>
+      <rect x="180" y="45" width="260" height="14" rx="3" fill="#111827"/>
+      <rect x="180" y="45" width="60" height="14" rx="3" fill="#3b82f6" opacity="0.6"/>
+      <text x="250" y="55" font-size="8" fill="#6b7280">~23% baseline usage</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 1 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 135)">
+    <rect x="0" y="0" width="1025" height="700" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="1025" height="45" rx="10" fill="#374151"/>
+    <rect x="0" y="25" width="1025" height="20" fill="#374151"/>
+    <text x="20" y="28" font-size="14" font-weight="600" fill="#fbbf24">Turn 1</text>
+    <text x="100" y="28" font-size="10" fill="#6b7280">messageId:</text>
+    <text x="165" y="28" font-size="9" fill="#8b949e">ce246918-e14b-40c5...</text>
+    
+    <text x="650" y="28" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="735" y="28" font-size="11" fill="#f9fafb">4</text>
+    <text x="770" y="28" font-size="10" fill="#6b7280">duration:</text>
+    <text x="835" y="28" font-size="11" fill="#22d3ee">48.15s</text>
+    <rect x="900" y="12" width="110" height="22" rx="4" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+    <text x="912" y="27" font-size="9" fill="#4ade80">✓ No truncation</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="55" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="80" y="16" font-size="9" fill="#6b7280">userTokens:</text>
+      <text x="150" y="16" font-size="9" fill="#10b981">1,420 (constant)</text>
+      <text x="20" y="34" font-size="11" fill="#d1d5db">I am an employee in a company with a @microsoft.com email address.</text>
+      <text x="20" y="50" font-size="11" fill="#d1d5db">What is the simplest way to spin up a Slack API client?</text>
+    </g>
+    
+    <!-- Model section with trajectory breakdown -->
+    <g transform="translate(20, 130)">
+      <rect x="0" y="0" width="4" height="520" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Calls with full token breakdown -->
+      <g transform="translate(20, 35)">
+        
+        <!-- Call 1 -->
+        <g transform="translate(0, 0)">
+          <rect x="0" y="0" width="965" height="100" rx="6" fill="#111827"/>
+          <text x="15" y="20" font-size="11" fill="#22d3ee" font-weight="500">LLM Call 1</text>
+          <rect x="95" y="8" width="75" height="18" rx="3" fill="#854d0e"/>
+          <text x="105" y="21" font-size="9" fill="#fbbf24">web_search</text>
+          <text x="15" y="40" font-size="11" fill="#d1d5db">Searching for Slack API user token documentation...</text>
+          
+          <!-- Trajectory breakdown -->
+          <g transform="translate(15, 52)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY (Copilot estimate):</text>
+            <rect x="145" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+            <text x="152" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+            <rect x="205" y="0" width="50" height="16" rx="3" fill="#14532d"/>
+            <text x="212" y="11" font-size="8" fill="#6ee7b7">usr: 1,420</text>
+            <rect x="260" y="0" width="45" height="16" rx="3" fill="#451a03"/>
+            <text x="267" y="11" font-size="8" fill="#fcd34d">ast: 0</text>
+            <rect x="310" y="0" width="50" height="16" rx="3" fill="#500724"/>
+            <text x="317" y="11" font-size="8" fill="#f9a8d4">tool: 0</text>
+            <text x="370" y="11" font-size="8" fill="#6b7280">→</text>
+            <text x="385" y="11" font-size="9" font-weight="500" fill="#fbbf24">12,720</text>
+          </g>
+          
+          <!-- API Response -->
+          <g transform="translate(15, 72)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">API RESPONSE (actual):</text>
+            <text x="145" y="12" font-size="9" fill="#a78bfa">promptTokens: 11,317</text>
+            <text x="295" y="12" font-size="9" fill="#4ade80">completionTokens: 113</text>
+            <text x="470" y="12" font-size="8" fill="#6b7280">ratio:</text>
+            <text x="500" y="12" font-size="9" fill="#8b949e">0.89</text>
+          </g>
+        </g>
+        
+        <!-- Call 2 -->
+        <g transform="translate(0, 110)">
+          <rect x="0" y="0" width="965" height="100" rx="6" fill="#111827"/>
+          <text x="15" y="20" font-size="11" fill="#22d3ee" font-weight="500">LLM Call 2</text>
+          <rect x="95" y="8" width="75" height="18" rx="3" fill="#854d0e"/>
+          <text x="105" y="21" font-size="9" fill="#fbbf24">web_search</text>
+          <text x="15" y="40" font-size="11" fill="#d1d5db">Searching for enterprise Slack app setup...</text>
+          
+          <!-- Trajectory breakdown -->
+          <g transform="translate(15, 52)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY (Copilot estimate):</text>
+            <rect x="145" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+            <text x="152" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+            <rect x="205" y="0" width="50" height="16" rx="3" fill="#14532d"/>
+            <text x="212" y="11" font-size="8" fill="#6ee7b7">usr: 1,420</text>
+            <rect x="260" y="0" width="50" height="16" rx="3" fill="#451a03"/>
+            <text x="267" y="11" font-size="8" fill="#fcd34d">ast: 113</text>
+            <rect x="315" y="0" width="65" height="16" rx="3" fill="#500724"/>
+            <text x="322" y="11" font-size="8" fill="#f9a8d4">tool: 4,500</text>
+            <text x="390" y="11" font-size="8" fill="#6b7280">→</text>
+            <text x="405" y="11" font-size="9" font-weight="500" fill="#fbbf24">17,333</text>
+            <text x="460" y="11" font-size="8" fill="#ec4899">↑ +4,613</text>
+          </g>
+          
+          <!-- API Response -->
+          <g transform="translate(15, 72)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">API RESPONSE (actual):</text>
+            <text x="145" y="12" font-size="9" fill="#a78bfa">promptTokens: 15,817</text>
+            <text x="295" y="12" font-size="9" fill="#4ade80">completionTokens: 177</text>
+            <text x="470" y="12" font-size="8" fill="#6b7280">ratio:</text>
+            <text x="500" y="12" font-size="9" fill="#8b949e">0.91</text>
+          </g>
+        </g>
+        
+        <!-- Call 3 -->
+        <g transform="translate(0, 220)">
+          <rect x="0" y="0" width="965" height="100" rx="6" fill="#111827"/>
+          <text x="15" y="20" font-size="11" fill="#22d3ee" font-weight="500">LLM Call 3</text>
+          <rect x="95" y="8" width="70" height="18" rx="3" fill="#854d0e"/>
+          <text x="105" y="21" font-size="9" fill="#fbbf24">web_fetch</text>
+          <text x="15" y="40" font-size="11" fill="#d1d5db">Fetching official Slack Web API documentation page...</text>
+          
+          <!-- Trajectory breakdown -->
+          <g transform="translate(15, 52)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY (Copilot estimate):</text>
+            <rect x="145" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+            <text x="152" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+            <rect x="205" y="0" width="50" height="16" rx="3" fill="#14532d"/>
+            <text x="212" y="11" font-size="8" fill="#6ee7b7">usr: 1,420</text>
+            <rect x="260" y="0" width="50" height="16" rx="3" fill="#451a03"/>
+            <text x="267" y="11" font-size="8" fill="#fcd34d">ast: 290</text>
+            <rect x="315" y="0" width="70" height="16" rx="3" fill="#500724"/>
+            <text x="322" y="11" font-size="8" fill="#f9a8d4">tool: 10,200</text>
+            <text x="395" y="11" font-size="8" fill="#6b7280">→</text>
+            <text x="410" y="11" font-size="9" font-weight="500" fill="#fbbf24">23,210</text>
+            <text x="470" y="11" font-size="8" fill="#ec4899">↑ +5,877</text>
+          </g>
+          
+          <!-- API Response -->
+          <g transform="translate(15, 72)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">API RESPONSE (actual):</text>
+            <text x="145" y="12" font-size="9" fill="#a78bfa">promptTokens: 18,210</text>
+            <text x="295" y="12" font-size="9" fill="#4ade80">completionTokens: 92</text>
+            <text x="470" y="12" font-size="8" fill="#6b7280">ratio:</text>
+            <text x="500" y="12" font-size="9" fill="#8b949e">0.78</text>
+          </g>
+        </g>
+        
+        <!-- Call 4 (final) -->
+        <g transform="translate(0, 330)">
+          <rect x="0" y="0" width="965" height="130" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+          <text x="15" y="20" font-size="11" fill="#4ade80" font-weight="500">LLM Call 4</text>
+          <rect x="95" y="8" width="95" height="18" rx="3" fill="#14532d"/>
+          <text x="105" y="21" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+          <text x="15" y="42" font-size="11" fill="#d1d5db">Simplest Approach: Create a Slack App with User Token Scopes</text>
+          <text x="15" y="58" font-size="11" fill="#d1d5db">For a personal Slack client that can read/write all channels and DMs...</text>
+          
+          <!-- Trajectory breakdown -->
+          <g transform="translate(15, 75)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY (Copilot estimate):</text>
+            <rect x="145" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+            <text x="152" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+            <rect x="205" y="0" width="50" height="16" rx="3" fill="#14532d"/>
+            <text x="212" y="11" font-size="8" fill="#6ee7b7">usr: 1,420</text>
+            <rect x="260" y="0" width="50" height="16" rx="3" fill="#451a03"/>
+            <text x="267" y="11" font-size="8" fill="#fcd34d">ast: 382</text>
+            <rect x="315" y="0" width="75" height="16" rx="3" fill="#500724"/>
+            <text x="322" y="11" font-size="8" fill="#f9a8d4">tool: 37,733</text>
+            <text x="400" y="11" font-size="8" fill="#6b7280">→</text>
+            <text x="415" y="11" font-size="9" font-weight="500" fill="#fbbf24">50,835</text>
+            <text x="475" y="11" font-size="8" fill="#ec4899">↑ +27,625</text>
+          </g>
+          
+          <!-- API Response -->
+          <g transform="translate(15, 98)">
+            <text x="0" y="12" font-size="8" fill="#6b7280">API RESPONSE (actual):</text>
+            <text x="145" y="12" font-size="9" fill="#a78bfa">promptTokens: 21,934</text>
+            <text x="295" y="12" font-size="9" fill="#4ade80">completionTokens: 915</text>
+            <text x="470" y="12" font-size="8" fill="#6b7280">ratio:</text>
+            <text x="500" y="12" font-size="9" fill="#8b949e">0.43</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar with token growth visualization -->
+    <g transform="translate(20, 660)">
+      <rect x="0" y="0" width="985" height="30" rx="6" fill="#111827"/>
+      <text x="15" y="19" font-size="10" fill="#6b7280">Turn Summary:</text>
+      <text x="110" y="19" font-size="10" fill="#f9a8d4">toolResultTokens: 37,733</text>
+      <text x="280" y="19" font-size="10" fill="#6b7280">toolCounts:</text>
+      <text x="360" y="19" font-size="10" fill="#22d3ee">web_search: 2, web_fetch: 1</text>
+      
+      <!-- Token growth mini-chart -->
+      <g transform="translate(600, 5)">
+        <text x="0" y="12" font-size="8" fill="#6b7280">Token Growth:</text>
+        <rect x="80" y="3" width="30" height="14" rx="2" fill="#3b82f6" opacity="0.5"/>
+        <rect x="115" y="3" width="40" height="14" rx="2" fill="#3b82f6" opacity="0.6"/>
+        <rect x="160" y="3" width="55" height="14" rx="2" fill="#3b82f6" opacity="0.7"/>
+        <rect x="220" y="3" width="120" height="14" rx="2" fill="#3b82f6" opacity="0.9"/>
+        <text x="350" y="14" font-size="8" fill="#6b7280">12K → 50K</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 2 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 855)">
+    <rect x="0" y="0" width="1025" height="280" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="1025" height="45" rx="10" fill="#374151"/>
+    <rect x="0" y="25" width="1025" height="20" fill="#374151"/>
+    <text x="20" y="28" font-size="14" font-weight="600" fill="#fbbf24">Turn 2</text>
+    <text x="100" y="28" font-size="10" fill="#6b7280">messageId:</text>
+    <text x="165" y="28" font-size="9" fill="#8b949e">cb1155ac-74ed-4049...</text>
+    
+    <text x="650" y="28" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="735" y="28" font-size="11" fill="#f9fafb">1</text>
+    <text x="770" y="28" font-size="10" fill="#6b7280">duration:</text>
+    <text x="835" y="28" font-size="11" fill="#22d3ee">10.65s</text>
+    <rect x="900" y="12" width="110" height="22" rx="4" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+    <text x="912" y="27" font-size="9" fill="#4ade80">✓ No truncation</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="40" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="80" y="16" font-size="9" fill="#6b7280">userTokens:</text>
+      <text x="150" y="16" font-size="9" fill="#10b981">890 (new message)</text>
+      <text x="20" y="36" font-size="11" fill="#d1d5db">I went to /apps site and clicked Create an app, then it shows me this [screenshot]</text>
+    </g>
+    
+    <!-- Model section -->
+    <g transform="translate(20, 115)">
+      <rect x="0" y="0" width="4" height="125" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Call box -->
+      <g transform="translate(20, 30)">
+        <rect x="0" y="0" width="965" height="90" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+        <text x="15" y="18" font-size="11" fill="#4ade80" font-weight="500">LLM Call 1</text>
+        <rect x="95" y="6" width="95" height="18" rx="3" fill="#14532d"/>
+        <text x="105" y="19" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+        <text x="15" y="38" font-size="11" fill="#d1d5db">I see you're on the "Your Apps" page. Click the green "Create an App" button...</text>
+        
+        <!-- Trajectory -->
+        <g transform="translate(15, 50)">
+          <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY:</text>
+          <rect x="80" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+          <text x="87" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+          <rect x="140" y="0" width="45" height="16" rx="3" fill="#14532d"/>
+          <text x="147" y="11" font-size="8" fill="#6ee7b7">usr: 890</text>
+          <rect x="190" y="0" width="55" height="16" rx="3" fill="#451a03"/>
+          <text x="197" y="11" font-size="8" fill="#fcd34d">ast: 1,297</text>
+          <rect x="250" y="0" width="75" height="16" rx="3" fill="#500724"/>
+          <text x="257" y="11" font-size="8" fill="#f9a8d4">tool: 37,733</text>
+          <text x="335" y="11" font-size="8" fill="#6b7280">→</text>
+          <text x="350" y="11" font-size="9" font-weight="500" fill="#fbbf24">51,220</text>
+          <text x="420" y="11" font-size="9" fill="#6b7280">|</text>
+          <text x="435" y="11" font-size="9" fill="#a78bfa">promptTokens: 24,426</text>
+          <text x="590" y="11" font-size="9" fill="#4ade80">completionTokens: 299</text>
+        </g>
+        
+        <!-- Context carry-over note -->
+        <g transform="translate(15, 70)">
+          <text x="0" y="12" font-size="8" fill="#8b949e" font-style="italic">↳ Previous turn context (toolResults + assistantTokens) persists in trajectory</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar -->
+    <g transform="translate(20, 250)">
+      <rect x="0" y="0" width="985" height="22" rx="6" fill="#111827"/>
+      <text x="15" y="15" font-size="10" fill="#6b7280">Turn Summary:</text>
+      <text x="110" y="15" font-size="10" fill="#9ca3af">toolResultTokens: 37,733 (context from Turn 1)</text>
+      <text x="400" y="15" font-size="10" fill="#6b7280">new tools this turn:</text>
+      <text x="525" y="15" font-size="10" fill="#6b7280">none</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 3 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 1155)">
+    <rect x="0" y="0" width="1025" height="280" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="1025" height="45" rx="10" fill="#374151"/>
+    <rect x="0" y="25" width="1025" height="20" fill="#374151"/>
+    <text x="20" y="28" font-size="14" font-weight="600" fill="#fbbf24">Turn 3</text>
+    <text x="100" y="28" font-size="10" fill="#6b7280">messageId:</text>
+    <text x="165" y="28" font-size="9" fill="#8b949e">5c095f4d-192d-4f5e...</text>
+    
+    <text x="650" y="28" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="735" y="28" font-size="11" fill="#f9fafb">1</text>
+    <text x="770" y="28" font-size="10" fill="#6b7280">duration:</text>
+    <text x="835" y="28" font-size="11" fill="#22d3ee">15.82s</text>
+    <rect x="900" y="12" width="110" height="22" rx="4" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+    <text x="912" y="27" font-size="9" fill="#4ade80">✓ No truncation</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="40" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="80" y="16" font-size="9" fill="#6b7280">userTokens:</text>
+      <text x="150" y="16" font-size="9" fill="#10b981">620 (new message)</text>
+      <text x="20" y="36" font-size="11" fill="#d1d5db">Who will have access to this app? I'd like to lock it down to just me...</text>
+    </g>
+    
+    <!-- Model section -->
+    <g transform="translate(20, 115)">
+      <rect x="0" y="0" width="4" height="125" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="16" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Call box -->
+      <g transform="translate(20, 30)">
+        <rect x="0" y="0" width="965" height="90" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+        <text x="15" y="18" font-size="11" fill="#4ade80" font-weight="500">LLM Call 1</text>
+        <rect x="95" y="6" width="95" height="18" rx="3" fill="#14532d"/>
+        <text x="105" y="19" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+        <text x="15" y="38" font-size="11" fill="#d1d5db">Only YOU - when you create and install a personal Slack app: The app is private by default...</text>
+        
+        <!-- Trajectory -->
+        <g transform="translate(15, 50)">
+          <text x="0" y="12" font-size="8" fill="#6b7280">TRAJECTORY:</text>
+          <rect x="80" y="0" width="55" height="16" rx="3" fill="#1e3a5f"/>
+          <text x="87" y="11" font-size="8" fill="#93c5fd">sys: 11,300</text>
+          <rect x="140" y="0" width="45" height="16" rx="3" fill="#14532d"/>
+          <text x="147" y="11" font-size="8" fill="#6ee7b7">usr: 620</text>
+          <rect x="190" y="0" width="55" height="16" rx="3" fill="#451a03"/>
+          <text x="197" y="11" font-size="8" fill="#fcd34d">ast: 1,596</text>
+          <rect x="250" y="0" width="75" height="16" rx="3" fill="#500724"/>
+          <text x="257" y="11" font-size="8" fill="#f9a8d4">tool: 37,733</text>
+          <text x="335" y="11" font-size="8" fill="#6b7280">→</text>
+          <text x="350" y="11" font-size="9" font-weight="500" fill="#fbbf24">51,249</text>
+          <text x="420" y="11" font-size="9" fill="#6b7280">|</text>
+          <text x="435" y="11" font-size="9" fill="#a78bfa">promptTokens: 24,989</text>
+          <text x="590" y="11" font-size="9" fill="#4ade80">completionTokens: 466</text>
+        </g>
+        
+        <!-- Context note -->
+        <g transform="translate(15, 70)">
+          <text x="0" y="12" font-size="8" fill="#8b949e" font-style="italic">↳ Accumulated context: all prior assistant responses + tool results in trajectory</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar -->
+    <g transform="translate(20, 250)">
+      <rect x="0" y="0" width="985" height="22" rx="6" fill="#111827"/>
+      <text x="15" y="15" font-size="10" fill="#6b7280">Turn Summary:</text>
+      <text x="110" y="15" font-size="10" fill="#9ca3af">toolResultTokens: 37,733 (context from Turn 1)</text>
+      <text x="400" y="15" font-size="10" fill="#6b7280">new tools this turn:</text>
+      <text x="525" y="15" font-size="10" fill="#6b7280">none</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ENHANCED SUMMARY -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 1455)">
+    <rect x="0" y="0" width="1025" height="370" rx="10" fill="#1f2937" stroke="#22d3ee" stroke-width="1"/>
+    
+    <text x="20" y="28" font-size="14" font-weight="600" fill="#22d3ee">Conversation Summary</text>
+    
+    <g transform="translate(20, 45)">
+      <!-- Row 1: Token totals -->
+      <rect x="0" y="0" width="240" height="70" rx="6" fill="#111827"/>
+      <text x="15" y="20" font-size="9" fill="#6b7280">Total Prompt Tokens (API actual)</text>
+      <text x="15" y="50" font-size="22" font-weight="600" fill="#a78bfa">116,693</text>
+      
+      <rect x="255" y="0" width="240" height="70" rx="6" fill="#111827"/>
+      <text x="270" y="20" font-size="9" fill="#6b7280">Total Completion Tokens</text>
+      <text x="270" y="50" font-size="22" font-weight="600" fill="#4ade80">2,062</text>
+      
+      <rect x="510" y="0" width="240" height="70" rx="6" fill="#111827"/>
+      <text x="525" y="20" font-size="9" fill="#6b7280">Total LLM Requests</text>
+      <text x="525" y="50" font-size="22" font-weight="600" fill="#f9fafb">6</text>
+      <text x="555" y="50" font-size="12" fill="#6b7280">(4 + 1 + 1)</text>
+      
+      <rect x="765" y="0" width="220" height="70" rx="6" fill="#111827"/>
+      <text x="780" y="20" font-size="9" fill="#6b7280">Average Tokenizer Ratio</text>
+      <text x="780" y="50" font-size="22" font-weight="600" fill="#fbbf24">0.72</text>
+      <text x="840" y="50" font-size="10" fill="#6b7280">estimate → actual</text>
+      
+      <!-- Row 2: Tool breakdown -->
+      <rect x="0" y="85" width="495" height="70" rx="6" fill="#111827"/>
+      <text x="15" y="105" font-size="9" fill="#6b7280">Tools Used &amp; Token Cost</text>
+      <g transform="translate(15, 115)">
+        <rect x="0" y="0" width="100" height="24" rx="4" fill="#854d0e"/>
+        <text x="10" y="16" font-size="10" fill="#fbbf24">web_search ×2</text>
+        <rect x="110" y="0" width="90" height="24" rx="4" fill="#854d0e"/>
+        <text x="120" y="16" font-size="10" fill="#fbbf24">web_fetch ×1</text>
+        <text x="220" y="16" font-size="11" fill="#f9a8d4">→ 37,733 tool tokens in context</text>
+      </g>
+      
+      <rect x="510" y="85" width="475" height="70" rx="6" fill="#111827"/>
+      <text x="525" y="105" font-size="9" fill="#6b7280">Total Duration</text>
+      <text x="525" y="135" font-size="18" font-weight="500" fill="#f9fafb">74.62s</text>
+      <text x="620" y="135" font-size="11" fill="#6b7280">(48.15s + 10.65s + 15.82s)</text>
+      <text x="820" y="135" font-size="10" fill="#22d3ee">avg 12.4s/request</text>
+      
+      <!-- Row 3: Context Window Analysis -->
+      <rect x="0" y="170" width="985" height="90" rx="6" fill="#0f172a" stroke="#3b82f6" stroke-width="1"/>
+      <text x="15" y="192" font-size="10" font-weight="500" fill="#3b82f6">Context Window Analysis</text>
+      
+      <!-- Window visualization -->
+      <g transform="translate(15, 205)">
+        <text x="0" y="12" font-size="9" fill="#6b7280">maxTokenWindow: 128,000</text>
+        <rect x="150" y="0" width="500" height="20" rx="4" fill="#1e293b"/>
+        
+        <!-- System (always present) -->
+        <rect x="150" y="0" width="44" height="20" rx="4" fill="#3b82f6"/>
+        <text x="155" y="14" font-size="7" fill="#fff">sys</text>
+        
+        <!-- User (varies) -->
+        <rect x="194" y="0" width="8" height="20" fill="#10b981"/>
+        
+        <!-- Tool Results (largest chunk) -->
+        <rect x="202" y="0" width="147" height="20" fill="#ec4899"/>
+        <text x="250" y="14" font-size="7" fill="#fff">toolResults: 37,733</text>
+        
+        <!-- Assistant -->
+        <rect x="349" y="0" width="8" height="20" fill="#f59e0b"/>
+        
+        <!-- Unused -->
+        <text x="380" y="14" font-size="8" fill="#4b5563">unused (~77K available)</text>
+        
+        <text x="660" y="12" font-size="9" fill="#6b7280">Peak usage:</text>
+        <text x="730" y="12" font-size="10" font-weight="500" fill="#fbbf24">~51K / 128K (40%)</text>
+      </g>
+      
+      <!-- Truncation status -->
+      <g transform="translate(15, 240)">
+        <rect x="0" y="0" width="180" height="22" rx="4" fill="#14532d"/>
+        <text x="10" y="15" font-size="9" fill="#4ade80">✓ No truncation occurred</text>
+        <text x="200" y="15" font-size="9" fill="#6b7280">trajectoryTotal (51K) &lt; maxTokenWindow (128K) throughout conversation</text>
+      </g>
+      
+      <!-- Row 4: Legend -->
+      <rect x="0" y="275" width="985" height="65" rx="6" fill="#111827"/>
+      <text x="15" y="295" font-size="9" font-weight="500" fill="#8b949e">TOKEN FIELD LEGEND</text>
+      
+      <g transform="translate(15, 305)">
+        <rect x="0" y="0" width="14" height="14" rx="2" fill="#3b82f6"/>
+        <text x="20" y="11" font-size="8" fill="#93c5fd">systemTokens</text>
+        <text x="95" y="11" font-size="7" fill="#6b7280">(constant)</text>
+        
+        <rect x="150" y="0" width="14" height="14" rx="2" fill="#10b981"/>
+        <text x="170" y="11" font-size="8" fill="#6ee7b7">userTokens</text>
+        <text x="235" y="11" font-size="7" fill="#6b7280">(per turn)</text>
+        
+        <rect x="290" y="0" width="14" height="14" rx="2" fill="#f59e0b"/>
+        <text x="310" y="11" font-size="8" fill="#fcd34d">assistantTokens</text>
+        <text x="395" y="11" font-size="7" fill="#6b7280">(grows)</text>
+        
+        <rect x="440" y="0" width="14" height="14" rx="2" fill="#ec4899"/>
+        <text x="460" y="11" font-size="8" fill="#f9a8d4">toolResultTokens</text>
+        <text x="550" y="11" font-size="7" fill="#6b7280">(grows)</text>
+        
+        <rect x="605" y="0" width="14" height="14" rx="2" fill="#a78bfa"/>
+        <text x="625" y="11" font-size="8" fill="#c4b5fd">promptTokens</text>
+        <text x="700" y="11" font-size="7" fill="#6b7280">(API actual)</text>
+        
+        <rect x="770" y="0" width="14" height="14" rx="2" fill="#4ade80"/>
+        <text x="790" y="11" font-size="8" fill="#86efac">completionTokens</text>
+        <text x="885" y="11" font-size="7" fill="#6b7280">(API actual)</text>
+      </g>
+      
+      <g transform="translate(15, 325)">
+        <text x="0" y="10" font-size="8" fill="#6b7280">TRAJECTORY = systemTokens + userTokens + assistantTokens + toolResultTokens (Copilot estimate)</text>
+        <text x="550" y="10" font-size="8" fill="#6b7280">|</text>
+        <text x="565" y="10" font-size="8" fill="#6b7280">promptTokens = API actual (used for billing)</text>
+      </g>
+    </g>
+  </g>
+  
+</svg>

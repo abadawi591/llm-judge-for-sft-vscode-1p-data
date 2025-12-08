@@ -1,0 +1,74 @@
+// =============================================================================
+// DEBUG: Compare INPUT vs OUTPUT event timestamps
+// =============================================================================
+// PROBLEM: INPUT events (request sent) and OUTPUT events (response received)
+//          have DIFFERENT timestamps - join on callTime fails!
+//
+// This query shows both sets of events side by side for ONE turn
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Use the specific messageId from your results
+let targetMessageId = "710f5792-1e24-400c-bd63-f04ddffae0a9";
+
+// Show OUTPUT events (actual promptTokens)
+print "=== OUTPUT Events (actual API tokens) ===" | project-away print_0;
+
+AppEvents
+| where TimeGenerated > timeStart
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == targetMessageId
+| extend promptTokens = toint(Measurements["promptTokens"])
+| extend completionTokens = toint(Measurements["completionTokens"])
+| project direction = "OUTPUT", TimeGenerated, promptTokens, completionTokens
+| order by TimeGenerated asc
+
+// =============================================================================
+// Run separately: Show INPUT events (messagesJson with role breakdown)
+// =============================================================================
+/*
+print "=== INPUT Events (messagesJson estimates) ===" | project-away print_0;
+
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == "710f5792-1e24-400c-bd63-f04ddffae0a9"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| project direction = "INPUT", TimeGenerated, messagesJsonStr
+| order by TimeGenerated asc
+*/
+
+// =============================================================================
+// Run separately: Parse INPUT events and show role breakdown
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == "710f5792-1e24-400c-bd63-f04ddffae0a9"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),
+    toolResultTokens = sumif(tokenCount, role == "tool"),
+    total = sum(tokenCount)
+    by TimeGenerated
+| project TimeGenerated, systemTokens, userTokens, assistantTokens, toolResultTokens, total
+| order by TimeGenerated asc
+*/
+

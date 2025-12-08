@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 420" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="780" height="420" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="390" y="30" font-size="16" font-weight="600" fill="#e6edf3" text-anchor="middle">Conversation Structure Hierarchy</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- CONVERSATION (outermost box) -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="20" y="50" width="740" height="305" rx="12" fill="#0f1f2e" stroke="#22d3ee" stroke-width="2"/>
+  <text x="40" y="75" font-size="13" font-weight="600" fill="#22d3ee">CONVERSATION</text>
+  <text x="175" y="75" font-size="10" fill="#6b7280">conversationId</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- TURN 1 -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="90" width="320" height="250" rx="10" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+  <text x="60" y="115" font-size="12" font-weight="600" fill="#fbbf24">TURN 1</text>
+  <text x="125" y="115" font-size="9" fill="#6b7280">messageId</text>
+  
+  <!-- User Message -->
+  <rect x="55" y="128" width="290" height="38" rx="6" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="70" y="146" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+  <text x="115" y="146" font-size="9" fill="#8b949e">"How do I set up a Slack client?"</text>
+  <text x="70" y="160" font-size="8" fill="#6b7280">userTokens: 1,420</text>
+  
+  <!-- Model Response Container -->
+  <rect x="55" y="175" width="290" height="150" rx="6" fill="#1c1410" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="70" y="195" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+  
+  <!-- LLM Calls inside Model (2x2 grid) -->
+  <rect x="70" y="208" width="125" height="42" rx="4" fill="#052e16" stroke="#4ade80" stroke-width="1"/>
+  <text x="85" y="226" font-size="9" font-weight="500" fill="#4ade80">LLM Call 1</text>
+  <text x="85" y="241" font-size="7" fill="#6b7280">web_search</text>
+  
+  <rect x="205" y="208" width="125" height="42" rx="4" fill="#052e16" stroke="#4ade80" stroke-width="1"/>
+  <text x="220" y="226" font-size="9" font-weight="500" fill="#4ade80">LLM Call 2</text>
+  <text x="220" y="241" font-size="7" fill="#6b7280">web_search</text>
+  
+  <rect x="70" y="258" width="125" height="42" rx="4" fill="#052e16" stroke="#4ade80" stroke-width="1"/>
+  <text x="85" y="276" font-size="9" font-weight="500" fill="#4ade80">LLM Call 3</text>
+  <text x="85" y="291" font-size="7" fill="#6b7280">web_fetch</text>
+  
+  <rect x="205" y="258" width="125" height="42" rx="4" fill="#052e16" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="220" y="276" font-size="9" font-weight="500" fill="#4ade80">LLM Call 4</text>
+  <text x="220" y="291" font-size="7" fill="#86efac">final ✓</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- TURN 2 -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="380" y="90" width="200" height="250" rx="10" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+  <text x="400" y="115" font-size="12" font-weight="600" fill="#fbbf24">TURN 2</text>
+  <text x="465" y="115" font-size="9" fill="#6b7280">messageId</text>
+  
+  <!-- User Message -->
+  <rect x="395" y="128" width="170" height="38" rx="6" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="410" y="146" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+  <text x="410" y="160" font-size="8" fill="#6b7280">userTokens: 890</text>
+  
+  <!-- Model Response Container -->
+  <rect x="395" y="175" width="170" height="75" rx="6" fill="#1c1410" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="410" y="195" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+  
+  <!-- Single LLM Call -->
+  <rect x="410" y="208" width="140" height="32" rx="4" fill="#052e16" stroke="#4ade80" stroke-width="1"/>
+  <text x="425" y="228" font-size="9" font-weight="500" fill="#4ade80">LLM Call 1</text>
+  <text x="510" y="228" font-size="7" fill="#86efac">final ✓</text>
+  
+  <!-- No tools indicator -->
+  <text x="480" y="285" font-size="9" fill="#6b7280" text-anchor="middle">(no tools used)</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- DOTS between Turn 2 and Turn N -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <text x="605" y="215" font-size="24" fill="#4b5563" text-anchor="middle">···</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- TURN N (minimal and narrow) -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="640" y="90" width="100" height="250" rx="10" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+  <text x="660" y="115" font-size="12" font-weight="600" fill="#fbbf24">TURN N</text>
+  <text x="690" y="215" font-size="10" fill="#6b7280" text-anchor="middle">...</text>
+  
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LEGEND -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 370)">
+    <rect x="0" y="0" width="740" height="38" rx="6" fill="#161b22"/>
+    
+    <rect x="20" y="13" width="12" height="12" rx="2" fill="none" stroke="#22d3ee" stroke-width="2"/>
+    <text x="38" y="23" font-size="9" fill="#22d3ee">Conversation</text>
+    
+    <rect x="130" y="13" width="12" height="12" rx="2" fill="none" stroke="#fbbf24" stroke-width="2"/>
+    <text x="148" y="23" font-size="9" fill="#fbbf24">Turn</text>
+    
+    <rect x="195" y="13" width="12" height="12" rx="2" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="213" y="23" font-size="9" fill="#a78bfa">User</text>
+    
+    <rect x="255" y="13" width="12" height="12" rx="2" fill="none" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="273" y="23" font-size="9" fill="#fb923c">Model</text>
+    
+    <rect x="325" y="13" width="12" height="12" rx="2" fill="none" stroke="#4ade80" stroke-width="1"/>
+    <text x="343" y="23" font-size="9" fill="#4ade80">LLM Call</text>
+    
+    <line x1="415" y1="6" x2="415" y2="32" stroke="#30363d" stroke-width="1"/>
+    
+    <text x="430" y="17" font-size="9" fill="#8b949e">Conversation → 1...n Turns → (User + Model) → 1...n LLM Calls</text>
+    <text x="430" y="31" font-size="8" fill="#6b7280">Each LLM Call includes full trajectory (system + user + assistant + toolResults)</text>
+  </g>
+</svg>

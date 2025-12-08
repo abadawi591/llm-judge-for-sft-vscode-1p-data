@@ -1,0 +1,120 @@
+// =============================================================================
+// DEBUG: Trace a Single 2-Turn Conversation
+// =============================================================================
+// PURPOSE: Find ONE 2-turn conversation and trace tokens step-by-step
+//          to understand the actual token values (not aggregated incorrectly)
+//
+// PROBLEM: Previous query showed millions of tokens - clearly a bug
+//          Likely due to join creating duplicates
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Step 1: Find a COMPLETE 2-turn conversation
+let twoTurnConvos = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex),
+        minTurn = min(turnIndex),
+        maxTurn = max(turnIndex),
+        messageIds = make_set(messageId)
+        by conversationId
+    | where turnCount == 2 and minTurn == 1 and maxTurn == 2
+    | take 1;
+
+// Get the conversation ID
+let targetConvo = toscalar(twoTurnConvos | project conversationId);
+
+// Step 2: Get the messageIds for both turns
+let turnInfo = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | where conversationId == targetConvo
+    | project conversationId, messageId, turnIndex, numRequests, toolCounts;
+
+// Step 3: Get token events for these messageIds (OUTPUT direction - actual tokens)
+let tokenOutput = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, callTime = TimeGenerated;
+
+// Step 4: Get token events (INPUT direction - messagesJson with role breakdown)
+let tokenInput = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | project messageId, messagesJsonStr, callTime = TimeGenerated;
+
+// Step 5: Show raw token output events for this conversation
+print "=== STEP 5: Raw token OUTPUT events per turn ==="
+| project-away print_0;
+
+turnInfo
+| join kind=inner tokenOutput on messageId
+| project conversationId, turnIndex, messageId, numRequests, toolCounts, promptTokens, completionTokens, model, callTime
+| order by turnIndex asc, callTime asc
+
+// =============================================================================
+// Run queries below SEPARATELY to debug step by step
+// =============================================================================
+
+/*
+// QUERY A: Just show the turn info
+print "=== Turn Info ===" | project-away print_0;
+turnInfo
+
+// QUERY B: Count how many token events per messageId
+print "=== Token event counts per messageId ===" | project-away print_0;
+turnInfo
+| join kind=inner tokenOutput on messageId
+| summarize 
+    outputEventCount = count(),
+    distinctPromptTokens = dcount(promptTokens)
+    by messageId, turnIndex, numRequests
+// If outputEventCount > numRequests, something is wrong!
+
+// QUERY C: Show the raw messagesJson for Turn 1, first call
+print "=== Raw messagesJson for Turn 1 ===" | project-away print_0;
+turnInfo
+| where turnIndex == 1
+| join kind=inner tokenInput on messageId
+| summarize arg_min(callTime, messagesJsonStr) by messageId
+| project messageId, messagesJsonStr
+| take 1
+
+// QUERY D: Parse messagesJson and show role breakdown (NO aggregation)
+print "=== Role breakdown per LLM call ===" | project-away print_0;
+turnInfo
+| join kind=inner tokenInput on messageId
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| project turnIndex, messageId, callTime, role, tokenCount
+| order by turnIndex asc, callTime asc, role asc
+*/
+

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 480">
+  <!-- Background -->
+  <rect width="750" height="480" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="375" y="35" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">TOKEN BEHAVIOR WITHIN A TURN</text>
+  <text x="375" y="55" fill="#8b949e" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">9 LLM calls in a single turn (same messageId)</text>
+  
+  <!-- Table Header -->
+  <rect x="40" y="75" width="670" height="35" rx="6" fill="#21262d"/>
+  <text x="85" y="98" fill="#e6edf3" font-family="monospace" font-size="11" text-anchor="middle" font-weight="600">callIndex</text>
+  <text x="200" y="98" fill="#3b82f6" font-family="monospace" font-size="11" text-anchor="middle" font-weight="600">systemTokens</text>
+  <text x="330" y="98" fill="#10b981" font-family="monospace" font-size="11" text-anchor="middle" font-weight="600">userTokens</text>
+  <text x="470" y="98" fill="#f59e0b" font-family="monospace" font-size="11" text-anchor="middle" font-weight="600">assistantTokens</text>
+  <text x="620" y="98" fill="#ec4899" font-family="monospace" font-size="11" text-anchor="middle" font-weight="600">toolResultTokens</text>
+  
+  <!-- Table Rows -->
+  <!-- Row 1 -->
+  <rect x="40" y="115" width="670" height="28" fill="#161b22"/>
+  <text x="85" y="134" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">1</text>
+  <text x="200" y="134" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="134" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="134" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">0</text>
+  <text x="620" y="134" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">0</text>
+  
+  <!-- Row 2 -->
+  <rect x="40" y="143" width="670" height="28" fill="#0d1117"/>
+  <text x="85" y="162" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">2</text>
+  <text x="200" y="162" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="162" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="162" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">144</text>
+  <text x="620" y="162" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">1,312</text>
+  
+  <!-- Row 3 -->
+  <rect x="40" y="171" width="670" height="28" fill="#161b22"/>
+  <text x="85" y="190" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">3</text>
+  <text x="200" y="190" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="190" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="190" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">144</text>
+  <text x="620" y="190" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">13,006</text>
+  
+  <!-- Row 4 -->
+  <rect x="40" y="199" width="670" height="28" fill="#0d1117"/>
+  <text x="85" y="218" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">4</text>
+  <text x="200" y="218" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="218" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="218" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">343</text>
+  <text x="620" y="218" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">36,505</text>
+  
+  <!-- Row 5 -->
+  <rect x="40" y="227" width="670" height="28" fill="#161b22"/>
+  <text x="85" y="246" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">5</text>
+  <text x="200" y="246" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="246" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="246" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">343</text>
+  <text x="620" y="246" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">57,846</text>
+  
+  <!-- Row 6 -->
+  <rect x="40" y="255" width="670" height="28" fill="#0d1117"/>
+  <text x="85" y="274" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">6</text>
+  <text x="200" y="274" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="274" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="274" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">343</text>
+  <text x="620" y="274" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">91,772</text>
+  
+  <!-- Row 7 -->
+  <rect x="40" y="283" width="670" height="28" fill="#161b22"/>
+  <text x="85" y="302" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">7</text>
+  <text x="200" y="302" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="302" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="302" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">343</text>
+  <text x="620" y="302" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">122,788</text>
+  
+  <!-- Row 8 -->
+  <rect x="40" y="311" width="670" height="28" fill="#0d1117"/>
+  <text x="85" y="330" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">8</text>
+  <text x="200" y="330" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="330" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="330" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">447</text>
+  <text x="620" y="330" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">148,197</text>
+  
+  <!-- Row 9 -->
+  <rect x="40" y="339" width="670" height="28" fill="#161b22"/>
+  <text x="85" y="358" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">9</text>
+  <text x="200" y="358" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">14,722</text>
+  <text x="330" y="358" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">3,916</text>
+  <text x="470" y="358" fill="#fcd34d" font-family="monospace" font-size="11" text-anchor="middle">533</text>
+  <text x="620" y="358" fill="#f9a8d4" font-family="monospace" font-size="11" text-anchor="middle">182,376</text>
+  
+  <!-- Behavior indicators -->
+  <rect x="40" y="375" width="670" height="40" rx="6" fill="#21262d"/>
+  
+  <!-- Constant badges -->
+  <rect x="170" y="385" width="70" height="22" rx="4" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+  <text x="205" y="400" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="500">CONSTANT</text>
+  
+  <rect x="295" y="385" width="70" height="22" rx="4" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+  <text x="330" y="400" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="500">CONSTANT</text>
+  
+  <!-- Grows badges -->
+  <rect x="435" y="385" width="70" height="22" rx="4" fill="#451a03" stroke="#f59e0b" stroke-width="1"/>
+  <text x="470" y="400" fill="#fcd34d" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="500">GROWS ↑</text>
+  
+  <rect x="585" y="385" width="70" height="22" rx="4" fill="#500724" stroke="#ec4899" stroke-width="1"/>
+  <text x="620" y="400" fill="#f9a8d4" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="500">GROWS ↑</text>
+  
+  <!-- Legend -->
+  <text x="200" y="445" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Same system prompt</text>
+  <text x="200" y="458" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">+ tool definitions</text>
+  
+  <text x="330" y="445" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Same user message</text>
+  <text x="330" y="458" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">triggered this turn</text>
+  
+  <text x="470" y="445" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Model's prior</text>
+  <text x="470" y="458" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">responses accumulate</text>
+  
+  <text x="620" y="445" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Tool outputs</text>
+  <text x="620" y="458" fill="#6b7280" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">accumulate</text>
+</svg>

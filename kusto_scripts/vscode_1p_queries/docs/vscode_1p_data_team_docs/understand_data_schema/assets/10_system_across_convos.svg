@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320">
+  <!-- Background -->
+  <rect width="700" height="320" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">SYSTEM TOKENS ACROSS CONVERSATIONS</text>
+  <text x="350" y="50" fill="#8b949e" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Grouped by model — shows HIGH variance</text>
+  
+  <!-- Table Header -->
+  <rect x="40" y="70" width="620" height="32" rx="6" fill="#21262d"/>
+  <text x="130" y="91" fill="#e6edf3" font-family="monospace" font-size="10" text-anchor="middle" font-weight="600">model</text>
+  <text x="280" y="91" fill="#e6edf3" font-family="monospace" font-size="10" text-anchor="middle" font-weight="600">conversations</text>
+  <text x="390" y="91" fill="#10b981" font-family="monospace" font-size="10" text-anchor="middle" font-weight="600">avgSystem</text>
+  <text x="490" y="91" fill="#3b82f6" font-family="monospace" font-size="10" text-anchor="middle" font-weight="600">minSystem</text>
+  <text x="590" y="91" fill="#ef4444" font-family="monospace" font-size="10" text-anchor="middle" font-weight="600">maxSystem</text>
+  
+  <!-- Row 1 - Claude Sonnet -->
+  <rect x="40" y="107" width="620" height="32" fill="#161b22"/>
+  <text x="130" y="128" fill="#c4b5fd" font-family="monospace" font-size="10" text-anchor="middle">claude-sonnet-4.5</text>
+  <text x="280" y="128" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">541</text>
+  <text x="390" y="128" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">15,486</text>
+  <text x="490" y="128" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">5,793</text>
+  <text x="590" y="128" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">157,952</text>
+  
+  <!-- Row 2 - Claude Opus -->
+  <rect x="40" y="139" width="620" height="32" fill="#0d1117"/>
+  <text x="130" y="160" fill="#c4b5fd" font-family="monospace" font-size="10" text-anchor="middle">claude-opus-4.5</text>
+  <text x="280" y="160" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">282</text>
+  <text x="390" y="160" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">17,902</text>
+  <text x="490" y="160" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">0</text>
+  <text x="590" y="160" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">149,177</text>
+  
+  <!-- Row 3 - Gemini -->
+  <rect x="40" y="171" width="620" height="32" fill="#161b22"/>
+  <text x="130" y="192" fill="#fcd34d" font-family="monospace" font-size="10" text-anchor="middle">gemini-3-pro</text>
+  <text x="280" y="192" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">72</text>
+  <text x="390" y="192" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">14,681</text>
+  <text x="490" y="192" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">0</text>
+  <text x="590" y="192" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">52,957</text>
+  
+  <!-- Row 4 - Claude Haiku -->
+  <rect x="40" y="203" width="620" height="32" fill="#0d1117"/>
+  <text x="130" y="224" fill="#c4b5fd" font-family="monospace" font-size="10" text-anchor="middle">claude-haiku-4.5</text>
+  <text x="280" y="224" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">35</text>
+  <text x="390" y="224" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">20,309</text>
+  <text x="490" y="224" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">7,048</text>
+  <text x="590" y="224" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">224,983</text>
+  
+  <!-- Row 5 - GPT-4.1 -->
+  <rect x="40" y="235" width="620" height="32" fill="#161b22"/>
+  <text x="130" y="256" fill="#6ee7b7" font-family="monospace" font-size="10" text-anchor="middle">gpt-4.1</text>
+  <text x="280" y="256" fill="#8b949e" font-family="monospace" font-size="11" text-anchor="middle">18</text>
+  <text x="390" y="256" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">14,496</text>
+  <text x="490" y="256" fill="#93c5fd" font-family="monospace" font-size="11" text-anchor="middle">8,143</text>
+  <text x="590" y="256" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">31,214</text>
+  
+  <!-- Bottom explanation -->
+  <rect x="100" y="280" width="500" height="30" rx="6" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+  <text x="350" y="298" fill="#8b949e" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Variance caused by: different tools, A/B experiments, workspace context, model prompts</text>
+</svg>

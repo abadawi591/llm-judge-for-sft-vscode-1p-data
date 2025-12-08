@@ -1,0 +1,81 @@
+// =============================================================================
+// EXPLORATION: Full Token Breakdown by Role (V2 - FIXED)
+// =============================================================================
+// BUG IN V1: Join + mv-expand created cartesian product → inflated sums
+//
+// FIX: Aggregate the role breakdown BEFORE joining
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Step 1: Get OUTPUT direction (actual promptTokens from API)
+let outputData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    // Keep individual LLM call events (don't aggregate yet)
+    | project messageId, promptTokens, completionTokens, model, callTime = TimeGenerated;
+
+// Step 2: Get INPUT direction and parse roles FIRST, THEN aggregate per event
+let inputData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | extend callTime = TimeGenerated
+    // Parse messagesJson
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    // AGGREGATE PER SINGLE EVENT (using callTime to keep events separate)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callTime;
+
+// Step 3: Join on BOTH messageId AND callTime to match individual LLM calls
+outputData
+| join kind=inner inputData on messageId, callTime
+| project 
+    messageId,
+    model,
+    callTime,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Breakdown from messagesJson (per single LLM call)
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolResultTokens,
+    trajectoryTotal,
+    // Comparison
+    ratio = round(todouble(promptTokens) / todouble(trajectoryTotal), 2),
+    gap = trajectoryTotal - promptTokens
+| order by callTime desc
+| take 50
+
+// =============================================================================
+// EXPECTED VALUES:
+// - systemTokens: ~8,000-15,000 (system prompt + tool definitions)
+// - userTokens: ~100-5,000 (depends on user's message)
+// - assistantTokens: ~0-5,000 (previous responses in context)
+// - toolResultTokens: 0-200,000+ (depends on tool outputs)
+// - promptTokens: ~10,000-200,000 (actual API charge)
+//
+// If you see millions, there's still a bug!
+// =============================================================================
+

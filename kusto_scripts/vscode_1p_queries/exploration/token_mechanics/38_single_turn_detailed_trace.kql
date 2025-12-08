@@ -1,0 +1,86 @@
+// =============================================================================
+// EXPLORATION: Single Turn Detailed Token Trace
+// =============================================================================
+// PURPOSE: Deep dive into ONE turn to see exactly how tokens accumulate
+//          with each LLM call and tool invocation
+//
+// This shows the step-by-step token growth as tools execute
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Find a turn with multiple tool calls (interesting to trace)
+let interestingTurn = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where numRequests >= 4  // At least 3 tool calls + 1 final
+    | take 1
+    | project messageId, toolCounts, numRequests;
+
+// Get all token events for this turn
+let tokenTrace = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend message_direction = tostring(Properties["message_direction"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | project messageId, message_direction, promptTokens, completionTokens, messagesJsonStr, llmCallTime = TimeGenerated;
+
+// Join and show the trace
+interestingTurn
+| join kind=inner tokenTrace on messageId
+| order by llmCallTime asc
+// Add sequence number
+| serialize
+| extend callSequence = row_number()
+// Parse role breakdown for input events
+| extend parsed = parse_json(messagesJsonStr)
+| mv-expand message = parsed
+| extend role = tostring(message.role)
+| extend roleTokens = toint(message.content)
+| summarize 
+    systemTokens = sumif(roleTokens, role == "system"),
+    userTokens = sumif(roleTokens, role == "user"),
+    assistantTokens = sumif(roleTokens, role == "assistant"),
+    toolResultTokens = sumif(roleTokens, role == "tool"),
+    promptTokens = take_any(promptTokens),
+    completionTokens = take_any(completionTokens),
+    toolCounts = take_any(toolCounts),
+    numRequests = take_any(numRequests)
+    by messageId, message_direction, callSequence, llmCallTime
+| order by callSequence asc
+| project 
+    callSequence,
+    message_direction,
+    llmCallTime,
+    // From API (output direction)
+    promptTokens,
+    completionTokens,
+    // From messagesJson (input direction - estimates)
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolResultTokens,
+    estimatedTotal = systemTokens + userTokens + assistantTokens + toolResultTokens,
+    // Metadata
+    toolCounts,
+    numRequests
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// Each row is one LLM call. You'll see:
+// - message_direction = "input" shows the estimate breakdown
+// - message_direction = "output" shows actual promptTokens
+// - toolResultTokens grows with each tool invocation
+// - promptTokens (actual) grows in parallel but with tokenizer differences
+// =============================================================================
+

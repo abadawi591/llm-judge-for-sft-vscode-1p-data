@@ -1,0 +1,89 @@
+// =============================================================================
+// EXPLORATION: Full Token Breakdown by Role
+// =============================================================================
+// PURPOSE: Get complete picture of token composition per LLM call
+// 
+// HYPOTHESIS: 
+//   promptTokens ≈ systemTokens + userTokens + assistantTokens + toolTokens
+//   (where systemTokens includes tool DEFINITIONS)
+//
+// This extracts token counts BY ROLE from messagesJson to understand:
+// - How much is system prompt + tool definitions?
+// - How much are tool results adding?
+// - Does it sum to promptTokens?
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Get INPUT direction (has messagesJson with role breakdown)
+let inputData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | extend llmCallTime = TimeGenerated
+    | where isnotempty(messagesJsonStr)
+    | project messageId, messagesJsonStr, llmCallTime;
+
+// Get OUTPUT direction (has actual promptTokens from API)
+let outputData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, llmCallTime = TimeGenerated;
+
+// Join and parse the role breakdown
+inputData
+| join kind=inner outputData on messageId
+// Parse messagesJson and sum by role
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),
+    toolResultTokens = sumif(tokenCount, role == "tool"),
+    trajectoryTotal = sum(tokenCount),
+    promptTokens = take_any(promptTokens),
+    completionTokens = take_any(completionTokens),
+    model = take_any(model)
+    by messageId
+// Calculate ratios
+| extend ratio = round(todouble(promptTokens) / todouble(trajectoryTotal), 2)
+| extend gap = trajectoryTotal - promptTokens
+| project 
+    messageId,
+    model,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Breakdown from messagesJson (ESTIMATES)
+    systemTokens,      // Includes tool DEFINITIONS
+    userTokens,
+    assistantTokens,
+    toolResultTokens,  // Tool OUTPUT tokens
+    trajectoryTotal,
+    // Comparison
+    ratio,             // promptTokens / trajectoryTotal
+    gap                // trajectoryTotal - promptTokens
+| order by toolResultTokens desc
+| take 50
+
+// =============================================================================
+// INTERPRETATION:
+// - systemTokens: System prompt + tool definitions (~8-15K typically)
+// - toolResultTokens: Tokens from tool outputs (can be huge: 10K-200K+)
+// - ratio < 1.0 means tokenizer differences (Copilot estimate vs actual API)
+// - Large toolResultTokens = heavy tool usage in that turn
+// =============================================================================
+

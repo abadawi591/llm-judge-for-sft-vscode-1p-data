@@ -1,0 +1,93 @@
+// =============================================================================
+// VERIFY: Does systemTokens vary across DIFFERENT conversations?
+// =============================================================================
+// QUESTION: Is the system prompt the same for all conversations, or does it
+//           vary by user, workspace, model, or experiment?
+//
+// HYPOTHESIS: May vary due to:
+// - Different Copilot versions
+// - A/B experiment flags
+// - Different workspace configurations
+// - Model-specific system prompts
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Get system tokens from first LLM call of Turn 1 for multiple conversations
+let turn1Data = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where turnIndex == 1  // Only first turn
+    | project conversationId, messageId;
+
+// Get trajectory for these messages
+let trajectoryData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    // Get first event per messageId
+    | summarize arg_min(TimeGenerated, messagesJsonStr) by messageId
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system")
+        by messageId;
+
+// Get model info
+let modelData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | summarize arg_min(TimeGenerated, model) by messageId;
+
+// Join and show distribution
+turn1Data
+| join kind=inner trajectoryData on messageId
+| join kind=leftouter modelData on messageId
+| summarize 
+    conversationCount = dcount(conversationId),
+    avgSystemTokens = avg(systemTokens),
+    minSystemTokens = min(systemTokens),
+    maxSystemTokens = max(systemTokens),
+    stdDevSystemTokens = stdev(systemTokens)
+    by model
+| extend variancePercent = round((maxSystemTokens - minSystemTokens) / avgSystemTokens * 100, 1)
+| order by conversationCount desc
+
+// =============================================================================
+// INTERPRETATION:
+//
+// If variancePercent is LOW (<5%) → System prompt is consistent
+// If variancePercent is HIGH (>10%) → System prompt varies significantly
+//
+// Group by model to see if different models have different system prompts
+// =============================================================================
+
+// =============================================================================
+// Run this SEPARATELY to see individual conversation values:
+// =============================================================================
+/*
+turn1Data
+| join kind=inner trajectoryData on messageId
+| join kind=leftouter modelData on messageId
+| project conversationId, messageId, model, systemTokens
+| order by systemTokens desc
+| take 50
+*/
+

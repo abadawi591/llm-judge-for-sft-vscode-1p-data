@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 1550" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ea580c"/>
+      <stop offset="100%" style="stop-color:#fb923c"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="950" height="1550" fill="#111827"/>
+  
+  <!-- Conversation container line -->
+  <rect x="25" y="25" width="4" height="1500" rx="2" fill="url(#cyanGrad)"/>
+  
+  <!-- Header -->
+  <g transform="translate(50, 25)">
+    <rect x="0" y="0" width="875" height="70" rx="10" fill="#1f2937"/>
+    <text x="20" y="30" font-size="18" font-weight="600" fill="#f9fafb">CONVERSATION</text>
+    <text x="20" y="50" font-size="11" fill="#9ca3af">conversationId: abc123-example</text>
+    <g transform="translate(420, 18)">
+      <rect x="0" y="0" width="100" height="24" rx="4" fill="#374151"/>
+      <text x="10" y="16" font-size="10" fill="#a78bfa">claude-opus-4.5</text>
+      
+      <rect x="110" y="0" width="70" height="24" rx="4" fill="#374151"/>
+      <text x="120" y="16" font-size="10" fill="#4ade80">3 turns</text>
+      
+      <rect x="190" y="0" width="90" height="24" rx="4" fill="#374151"/>
+      <text x="200" y="16" font-size="10" fill="#22d3ee">74.62s total</text>
+      
+      <rect x="290" y="0" width="100" height="24" rx="4" fill="#374151"/>
+      <text x="300" y="16" font-size="10" fill="#fbbf24">6 requests</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 1 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 115)">
+    <rect x="0" y="0" width="875" height="580" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="875" height="40" rx="10" fill="#374151"/>
+    <rect x="0" y="20" width="875" height="20" fill="#374151"/>
+    <text x="20" y="26" font-size="13" font-weight="600" fill="#fbbf24">Turn 1</text>
+    <text x="600" y="26" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="685" y="26" font-size="10" fill="#f9fafb">4</text>
+    <text x="720" y="26" font-size="10" fill="#6b7280">duration:</text>
+    <text x="785" y="26" font-size="10" fill="#22d3ee">48.15s</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="60" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="20" y="38" font-size="11" fill="#d1d5db">I am an employee in a company with a @microsoft.com email address.</text>
+      <text x="20" y="56" font-size="11" fill="#d1d5db">What is the simplest way to spin up a Slack API client?</text>
+    </g>
+    
+    <!-- Model section -->
+    <g transform="translate(20, 140)">
+      <rect x="0" y="0" width="4" height="390" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Calls stacked vertically -->
+      <g transform="translate(20, 35)">
+        <!-- Call 1 -->
+        <rect x="0" y="0" width="815" height="70" rx="6" fill="#111827"/>
+        <text x="15" y="22" font-size="10" fill="#22d3ee">LLM Call 1</text>
+        <text x="100" y="22" font-size="10" fill="#fbbf24">web_search</text>
+        <text x="15" y="42" font-size="11" fill="#d1d5db">Searching for Slack API user token documentation...</text>
+        <text x="15" y="60" font-size="9" fill="#a78bfa">promptTokens: 11,317</text>
+        <text x="180" y="60" font-size="9" fill="#4ade80">completionTokens: 113</text>
+        
+        <!-- Call 2 -->
+        <rect x="0" y="80" width="815" height="70" rx="6" fill="#111827"/>
+        <text x="15" y="102" font-size="10" fill="#22d3ee">LLM Call 2</text>
+        <text x="100" y="102" font-size="10" fill="#fbbf24">web_search</text>
+        <text x="15" y="122" font-size="11" fill="#d1d5db">Searching for enterprise Slack app setup...</text>
+        <text x="15" y="140" font-size="9" fill="#a78bfa">promptTokens: 15,817</text>
+        <text x="180" y="140" font-size="9" fill="#4ade80">completionTokens: 177</text>
+        
+        <!-- Call 3 -->
+        <rect x="0" y="160" width="815" height="70" rx="6" fill="#111827"/>
+        <text x="15" y="182" font-size="10" fill="#22d3ee">LLM Call 3</text>
+        <text x="100" y="182" font-size="10" fill="#fbbf24">web_fetch</text>
+        <text x="15" y="202" font-size="11" fill="#d1d5db">Fetching official Slack Web API documentation page...</text>
+        <text x="15" y="220" font-size="9" fill="#a78bfa">promptTokens: 18,210</text>
+        <text x="180" y="220" font-size="9" fill="#4ade80">completionTokens: 92</text>
+        
+        <!-- Call 4 (final) -->
+        <rect x="0" y="240" width="815" height="110" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+        <text x="15" y="262" font-size="10" fill="#4ade80">LLM Call 4</text>
+        <text x="100" y="262" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+        <text x="15" y="285" font-size="11" fill="#d1d5db">Simplest Approach: Create a Slack App with User Token Scopes</text>
+        <text x="15" y="305" font-size="11" fill="#d1d5db">For a personal Slack client that can read/write all channels and DMs</text>
+        <text x="15" y="325" font-size="11" fill="#d1d5db">you have access to, you need a User Token (not a Bot Token)...</text>
+        <text x="15" y="345" font-size="9" fill="#a78bfa">promptTokens: 21,934</text>
+        <text x="180" y="345" font-size="9" fill="#4ade80">completionTokens: 915</text>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar -->
+    <g transform="translate(20, 545)">
+      <rect x="0" y="0" width="835" height="24" rx="6" fill="#111827"/>
+      <text x="15" y="16" font-size="10" fill="#6b7280">turnToolTokens:</text>
+      <text x="120" y="16" font-size="10" fill="#fbbf24">37,733</text>
+      <text x="220" y="16" font-size="10" fill="#6b7280">toolCounts:</text>
+      <text x="305" y="16" font-size="10" fill="#22d3ee">web_search: 2, web_fetch: 1</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 2 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 715)">
+    <rect x="0" y="0" width="875" height="250" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="875" height="40" rx="10" fill="#374151"/>
+    <rect x="0" y="20" width="875" height="20" fill="#374151"/>
+    <text x="20" y="26" font-size="13" font-weight="600" fill="#fbbf24">Turn 2</text>
+    <text x="600" y="26" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="685" y="26" font-size="10" fill="#f9fafb">1</text>
+    <text x="720" y="26" font-size="10" fill="#6b7280">duration:</text>
+    <text x="785" y="26" font-size="10" fill="#22d3ee">10.65s</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="40" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="20" y="38" font-size="11" fill="#d1d5db">I went to /apps site and clicked Create an app, then it shows me this [screenshot]</text>
+    </g>
+    
+    <!-- Model section -->
+    <g transform="translate(20, 115)">
+      <rect x="0" y="0" width="4" height="95" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Call box -->
+      <g transform="translate(20, 35)">
+        <rect x="0" y="0" width="815" height="60" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+        <text x="15" y="20" font-size="10" fill="#4ade80">LLM Call 1</text>
+        <text x="100" y="20" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+        <text x="15" y="40" font-size="11" fill="#d1d5db">I see you're on the "Your Apps" page. Click the green "Create an App" button...</text>
+        <text x="15" y="55" font-size="9" fill="#a78bfa">promptTokens: 24,426</text>
+        <text x="180" y="55" font-size="9" fill="#4ade80">completionTokens: 299</text>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar -->
+    <g transform="translate(20, 220)">
+      <rect x="0" y="0" width="835" height="22" rx="6" fill="#111827"/>
+      <text x="15" y="15" font-size="10" fill="#6b7280">turnToolTokens:</text>
+      <text x="120" y="15" font-size="10" fill="#9ca3af">37,733 (context)</text>
+      <text x="280" y="15" font-size="10" fill="#6b7280">toolCounts:</text>
+      <text x="365" y="15" font-size="10" fill="#9ca3af">{}</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TURN 3 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 985)">
+    <rect x="0" y="0" width="875" height="280" rx="10" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+    
+    <!-- Turn header -->
+    <rect x="0" y="0" width="875" height="40" rx="10" fill="#374151"/>
+    <rect x="0" y="20" width="875" height="20" fill="#374151"/>
+    <text x="20" y="26" font-size="13" font-weight="600" fill="#fbbf24">Turn 3</text>
+    <text x="600" y="26" font-size="10" fill="#6b7280">numRequests:</text>
+    <text x="685" y="26" font-size="10" fill="#f9fafb">1</text>
+    <text x="720" y="26" font-size="10" fill="#6b7280">duration:</text>
+    <text x="785" y="26" font-size="10" fill="#22d3ee">15.82s</text>
+    
+    <!-- User message -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="4" height="40" rx="2" fill="url(#purpleGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#a78bfa">USER</text>
+      <text x="20" y="38" font-size="11" fill="#d1d5db">Who will have access to this app? I'd like to lock it down to just me...</text>
+    </g>
+    
+    <!-- Model section -->
+    <g transform="translate(20, 115)">
+      <rect x="0" y="0" width="4" height="125" rx="2" fill="url(#orangeGrad)"/>
+      <text x="20" y="18" font-size="10" font-weight="500" fill="#fb923c">MODEL</text>
+      
+      <!-- LLM Call box -->
+      <g transform="translate(20, 35)">
+        <rect x="0" y="0" width="815" height="90" rx="6" fill="#111827" stroke="#4ade80" stroke-width="1"/>
+        <text x="15" y="20" font-size="10" fill="#4ade80">LLM Call 1</text>
+        <text x="100" y="20" font-size="9" fill="#4ade80">FINAL RESPONSE</text>
+        <text x="15" y="42" font-size="11" fill="#d1d5db">Only YOU - when you create and install a personal Slack app:</text>
+        <text x="15" y="62" font-size="11" fill="#d1d5db">The app is private by default. The User Token acts as YOU.</text>
+        <text x="15" y="82" font-size="9" fill="#a78bfa">promptTokens: 24,989</text>
+        <text x="180" y="82" font-size="9" fill="#4ade80">completionTokens: 466</text>
+      </g>
+    </g>
+    
+    <!-- Turn stats bar -->
+    <g transform="translate(20, 250)">
+      <rect x="0" y="0" width="835" height="22" rx="6" fill="#111827"/>
+      <text x="15" y="15" font-size="10" fill="#6b7280">turnToolTokens:</text>
+      <text x="120" y="15" font-size="10" fill="#9ca3af">37,733 (context)</text>
+      <text x="280" y="15" font-size="10" fill="#6b7280">toolCounts:</text>
+      <text x="365" y="15" font-size="10" fill="#9ca3af">{}</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SUMMARY -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 1285)">
+    <rect x="0" y="0" width="875" height="230" rx="10" fill="#1f2937" stroke="#22d3ee" stroke-width="1"/>
+    
+    <text x="20" y="30" font-size="13" font-weight="600" fill="#22d3ee">Conversation Summary</text>
+    
+    <g transform="translate(20, 50)">
+      <!-- Row 1: Token totals -->
+      <rect x="0" y="0" width="275" height="60" rx="6" fill="#111827"/>
+      <text x="15" y="22" font-size="9" fill="#6b7280">Total Prompt Tokens</text>
+      <text x="15" y="48" font-size="18" font-weight="500" fill="#a78bfa">116,693</text>
+      
+      <rect x="290" y="0" width="275" height="60" rx="6" fill="#111827"/>
+      <text x="305" y="22" font-size="9" fill="#6b7280">Total Completion Tokens</text>
+      <text x="305" y="48" font-size="18" font-weight="500" fill="#4ade80">2,062</text>
+      
+      <rect x="580" y="0" width="255" height="60" rx="6" fill="#111827"/>
+      <text x="595" y="22" font-size="9" fill="#6b7280">Total LLM Requests</text>
+      <text x="595" y="48" font-size="18" font-weight="500" fill="#f9fafb">6</text>
+      <text x="625" y="48" font-size="11" fill="#6b7280">(4 + 1 + 1)</text>
+      
+      <!-- Row 2: Tools and duration -->
+      <rect x="0" y="75" width="420" height="60" rx="6" fill="#111827"/>
+      <text x="15" y="97" font-size="9" fill="#6b7280">Tools Used</text>
+      <text x="15" y="120" font-size="12" fill="#22d3ee">web_search ×2</text>
+      <text x="140" y="120" font-size="12" fill="#22d3ee">web_fetch ×1</text>
+      <text x="270" y="120" font-size="11" fill="#fbbf24">37,733 tool tokens</text>
+      
+      <rect x="435" y="75" width="400" height="60" rx="6" fill="#111827"/>
+      <text x="450" y="97" font-size="9" fill="#6b7280">Total Duration</text>
+      <text x="450" y="120" font-size="16" fill="#f9fafb">74.62s</text>
+      <text x="540" y="120" font-size="11" fill="#6b7280">(48.15s + 10.65s + 15.82s)</text>
+      
+      <!-- Row 3: Note -->
+      <rect x="0" y="150" width="835" height="30" rx="6" fill="#0f172a"/>
+      <text x="15" y="20" font-size="10" fill="#6b7280">Note: Prompt/completion totals are sums of individual llmCalls. Tool tokens persist in context across turns.</text>
+    </g>
+  </g>
+  
+</svg>

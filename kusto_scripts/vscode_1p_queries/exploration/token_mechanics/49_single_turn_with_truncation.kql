@@ -1,0 +1,135 @@
+// =============================================================================
+// SINGLE TURN WITH TOOLS + TRUNCATION DETECTION
+// =============================================================================
+// Shows token breakdown AND detects context truncation
+// 
+// KEY FIELDS:
+// - maxTokenWindow: Model's context limit
+// - trajectoryTotal: What Copilot WANTED to send (estimate)
+// - promptTokens: What was ACTUALLY sent (from API)
+// - exceededWindow: TRUE if trajectoryTotal > maxTokenWindow (REAL truncation!)
+// - truncationDelta: trajectoryTotal - promptTokens (shows TOKENIZER diff, NOT truncation)
+// =============================================================================
+
+// CHANGE THIS to a messageId with tool usage from your data
+let targetMessageId = "710f5792-1e24-400c-bd63-f04ddffae0a9";
+
+let timeStart = ago(24h);
+
+// Step 1: Get OUTPUT events (actual API tokens + maxTokenWindow)
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, maxTokenWindow, model, TimeGenerated
+    | order by TimeGenerated asc
+    | extend callIndex = row_number();
+
+// Step 2: Get INPUT events (trajectory breakdown)
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | where messageId == targetMessageId
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | extend maxTokenWindowInput = toint(Measurements["maxTokenWindow"])
+    | where isnotempty(messagesJsonStr)
+    | project messageId, messagesJsonStr, maxTokenWindowInput, TimeGenerated
+    | order by TimeGenerated asc
+    | extend callIndex = row_number();
+
+// Step 3: Parse trajectory per call
+let trajectoryParsed = 
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount),
+        maxTokenWindowInput = take_any(maxTokenWindowInput)
+        by messageId, callIndex;
+
+// Step 4: Join and calculate truncation
+outputEvents
+| join kind=leftouter trajectoryParsed on messageId, callIndex
+| extend maxTokenWindow = coalesce(maxTokenWindow, maxTokenWindowInput, 0)
+| extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+| extend truncationDelta = trajectoryTotal - promptTokens
+// exceededWindow is the RELIABLE truncation indicator
+| extend exceededWindow = trajectoryTotal > maxTokenWindow
+// tokenizerRatio shows how much Copilot over/under-estimates vs actual API
+| extend tokenizerRatio = round(todouble(promptTokens) / todouble(trajectoryTotal), 2)
+| project 
+    callIndex,
+    model,
+    // Context window
+    maxTokenWindow,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Copilot estimates
+    trajectoryTotal,
+    // Truncation detection
+    truncationDelta,
+    exceededWindow,  // TRUE = actual truncation happened
+    tokenizerRatio,  // promptTokens/trajectoryTotal (shows tokenizer difference)
+    // Role breakdown
+    systemTokens = coalesce(systemTokens, 0),
+    userTokens = coalesce(userTokens, 0),
+    assistantTokens = coalesce(assistantTokens, 0),
+    toolResultTokens = coalesce(toolResultTokens, 0)
+| order by callIndex asc
+
+// =============================================================================
+// HOW TO READ THE OUTPUT:
+//
+// TRUNCATION DETECTION (only use exceededWindow!):
+// ─────────────────────────────────────────────────────────────────────────────
+// exceededWindow = trajectoryTotal > maxTokenWindow
+//
+// - TRUE  → Truncation GUARANTEED (context exceeded window, messages dropped)
+// - FALSE → No truncation (context fit in window)
+//
+// DO NOT use truncationDelta to detect truncation! It measures TOKENIZER
+// DIFFERENCE, not truncation. A large positive delta just means Copilot's
+// tokenizer overestimates compared to the model's actual tokenizer.
+//
+// TOKENIZER METRICS:
+// ─────────────────────────────────────────────────────────────────────────────
+// truncationDelta = trajectoryTotal - promptTokens
+//   - Positive: Copilot estimated MORE tokens than API actually counted
+//   - Negative: Copilot estimated FEWER tokens than API actually counted
+//   - This is NORMAL and does NOT indicate truncation!
+//
+// tokenizerRatio = promptTokens / trajectoryTotal
+//   - ~1.0: Tokenizers agree closely
+//   - <1.0: Copilot overestimates (common, ~0.4-0.8 typical)
+//   - >1.0: Copilot underestimates (less common)
+//
+// EXAMPLE:
+// ─────────────────────────────────────────────────────────────────────────────
+// callIndex | trajectoryTotal | maxTokenWindow | exceededWindow | truncationDelta
+// ----------|-----------------|----------------|----------------|----------------
+//     6     |    110,753      |    127,997     |     FALSE      |     59,012
+//
+// Interpretation:
+// - 110,753 < 127,997 → Context FIT in window → NO truncation
+// - truncationDelta = 59,012 → Just tokenizer difference (Copilot over-counted)
+// - tokenizerRatio = 51,741 / 110,753 = 0.47 → Claude counted ~47% of estimate
+// =============================================================================
+

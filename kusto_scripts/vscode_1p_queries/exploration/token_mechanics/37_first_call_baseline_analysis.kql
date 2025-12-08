@@ -1,0 +1,105 @@
+// =============================================================================
+// EXPLORATION: First LLM Call Baseline (System + Tools Definitions)
+// =============================================================================
+// PURPOSE: Understand what's in the FIRST LLM call of Turn 1
+//          This is the "baseline" before any tool results are added
+//
+// The first call of Turn 1 contains:
+// - System prompt (~3K tokens)
+// - Tool definitions (~8K tokens) 
+// - User message (~200-2K tokens)
+// - NO tool results yet
+// - NO conversation history yet
+//
+// This helps us understand the "overhead" of agent mode
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Find Turn 1 messages
+let turn1Messages = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | where turnIndex == 1
+    | project messageId;
+
+// Get the FIRST LLM call's messagesJson for each Turn 1
+let firstCallBreakdown = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    // Get earliest event per messageId (first LLM call)
+    | summarize arg_min(TimeGenerated, messagesJsonStr) by messageId
+    | where isnotempty(messagesJsonStr);
+
+// Get corresponding promptTokens from output
+let firstCallTokens = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | summarize arg_min(TimeGenerated, promptTokens, model) by messageId;
+
+// Join and analyze
+turn1Messages
+| join kind=inner firstCallBreakdown on messageId
+| join kind=inner firstCallTokens on messageId
+// Parse the role breakdown
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),  // Includes tool definitions!
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),  // Should be 0 for Turn 1
+    toolResultTokens = sumif(tokenCount, role == "tool"),       // Should be 0 for first call
+    estimatedTotal = sum(tokenCount),
+    actualPromptTokens = take_any(promptTokens),
+    model = take_any(model)
+    by messageId
+// Filter to only first calls with no tools yet
+| where toolResultTokens == 0
+| project 
+    messageId,
+    model,
+    actualPromptTokens,
+    // BASELINE breakdown (before any tools)
+    systemTokens,      // System prompt + tool DEFINITIONS (the "overhead")
+    userTokens,        // Just the user's question
+    assistantTokens,   // Should be 0
+    toolResultTokens,  // Should be 0
+    estimatedTotal,
+    ratio = round(todouble(actualPromptTokens) / todouble(estimatedTotal), 2)
+| summarize 
+    avgSystemTokens = avg(systemTokens),
+    minSystemTokens = min(systemTokens),
+    maxSystemTokens = max(systemTokens),
+    p50SystemTokens = percentile(systemTokens, 50),
+    avgUserTokens = avg(userTokens),
+    avgActualPrompt = avg(actualPromptTokens),
+    sampleCount = count()
+    by model
+| order by sampleCount desc
+
+// =============================================================================
+// INTERPRETATION:
+// - avgSystemTokens: The "fixed overhead" of agent mode (system + tool defs)
+//   This is why first message is already 10K+ tokens!
+// - avgUserTokens: Typical user message size
+// - The system tokens include BOTH the system prompt AND tool definitions
+//   They're not separated in telemetry
+// =============================================================================
+

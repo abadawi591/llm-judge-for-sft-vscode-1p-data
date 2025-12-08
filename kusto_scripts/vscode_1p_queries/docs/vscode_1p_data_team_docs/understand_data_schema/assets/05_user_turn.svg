@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 320">
+  <defs>
+    <linearGradient id="turnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.05"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8b949e"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="650" height="320" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="325" y="30" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">WHY userTokens STAYS CONSTANT</text>
+  
+  <!-- User message box -->
+  <rect x="40" y="50" width="570" height="50" rx="8" fill="#14532d" stroke="#10b981" stroke-width="2"/>
+  <text x="60" y="72" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11" font-weight="600">USER SENDS ONE MESSAGE</text>
+  <text x="60" y="90" fill="#e6edf3" font-family="monospace" font-size="11">"Please read my config file and run the tests"</text>
+  
+  <!-- Arrow down -->
+  <path d="M 325 100 L 325 125" stroke="#8b949e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Turn container -->
+  <rect x="40" y="130" width="570" height="150" rx="10" fill="url(#turnGrad)" stroke="#10b981" stroke-width="1.5"/>
+  <text x="60" y="155" fill="#10b981" font-family="system-ui, sans-serif" font-size="12" font-weight="600">TURN BEGINS</text>
+  <text x="180" y="155" fill="#6b7280" font-family="monospace" font-size="10">(messageId: abc-123)</text>
+  
+  <!-- LLM Call boxes -->
+  <rect x="60" y="170" width="165" height="55" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="142" y="188" fill="#fbbf24" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="600">LLM Call 1</text>
+  <text x="142" y="203" fill="#8b949e" font-family="system-ui, sans-serif" font-size="9" text-anchor="middle">"I'll read the config..."</text>
+  <text x="142" y="218" fill="#ec4899" font-family="monospace" font-size="9" text-anchor="middle">→ calls read_file</text>
+  
+  <rect x="243" y="170" width="165" height="55" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="325" y="188" fill="#fbbf24" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="600">LLM Call 2</text>
+  <text x="325" y="203" fill="#8b949e" font-family="system-ui, sans-serif" font-size="9" text-anchor="middle">"Running tests..."</text>
+  <text x="325" y="218" fill="#ec4899" font-family="monospace" font-size="9" text-anchor="middle">→ calls run_terminal</text>
+  
+  <rect x="426" y="170" width="165" height="55" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="508" y="188" fill="#fbbf24" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-weight="600">LLM Call 3</text>
+  <text x="508" y="203" fill="#8b949e" font-family="system-ui, sans-serif" font-size="9" text-anchor="middle">"Tests complete!"</text>
+  <text x="508" y="218" fill="#6ee7b7" font-family="monospace" font-size="9" text-anchor="middle">→ final response</text>
+  
+  <!-- Arrows between calls -->
+  <path d="M 225 197 L 243 197" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 408 197 L 426 197" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Connecting bracket -->
+  <path d="M 60 235 L 60 255 L 591 255 L 591 235" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="4,4"/>
+  
+  <!-- Bottom explanation -->
+  <rect x="40" y="270" width="570" height="40" rx="6" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+  <text x="325" y="292" fill="#e6edf3" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle" font-weight="500">All 3 LLM calls share the SAME user message = SAME userTokens</text>
+</svg>

@@ -1,0 +1,114 @@
+// =============================================================================
+// DEBUG: Raw Token Events - NO JOINS, NO AGGREGATION
+// =============================================================================
+// PURPOSE: See the ACTUAL token values from telemetry without any transformations
+//          This helps us understand what the real numbers look like
+// =============================================================================
+
+// QUERY 1: Raw OUTPUT direction events (actual promptTokens from API)
+// These should show reasonable values (10K-200K range typically)
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend promptTokens = toint(Measurements["promptTokens"])
+| extend completionTokens = toint(Measurements["completionTokens"])
+| extend model = tostring(Properties["baseModel"])
+| project TimeGenerated, messageId, model, promptTokens, completionTokens
+| order by promptTokens desc
+| take 20
+
+// =============================================================================
+// QUERY 2: Raw INPUT direction events - parse messagesJson PER ROW
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+// Parse and show individual roles (one row per role per event)
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| project TimeGenerated, messageId, role, tokenCount
+| order by TimeGenerated desc, messageId, role
+| take 50
+*/
+
+// =============================================================================
+// QUERY 3: Aggregate per single INPUT event (not per messageId!)
+// This shows what ONE messagesJson contains
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+// Parse roles for THIS SINGLE EVENT
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| summarize 
+    systemTokens = sumif(tokenCount, role == "system"),
+    userTokens = sumif(tokenCount, role == "user"),
+    assistantTokens = sumif(tokenCount, role == "assistant"),
+    toolTokens = sumif(tokenCount, role == "tool"),
+    total = sum(tokenCount)
+    by TimeGenerated, messageId  // Group by TimeGenerated to keep events separate!
+| project TimeGenerated, messageId, systemTokens, userTokens, assistantTokens, toolTokens, total
+| order by total desc
+| take 20
+*/
+
+// =============================================================================
+// QUERY 4: Find a 2-turn conversation and show ALL events
+// =============================================================================
+/*
+// First find a 2-turn conversation
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > ago(24h)
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize turnCount = dcount(turnIndex), minT = min(turnIndex), maxT = max(turnIndex) by conversationId
+    | where turnCount == 2 and minT == 1 and maxT == 2
+    | take 1
+    | project conversationId
+);
+// Get messageIds for this conversation
+let messageIds = 
+    AppEvents
+    | where TimeGenerated > ago(24h)
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | where conversationId == targetConvo
+    | project messageId, turnIndex;
+// Show all token OUTPUT events for these messages
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "output"
+| extend messageId = tostring(Properties["headerRequestId"])
+| extend promptTokens = toint(Measurements["promptTokens"])
+| extend completionTokens = toint(Measurements["completionTokens"])
+| join kind=inner messageIds on messageId
+| project turnIndex, messageId, promptTokens, completionTokens, TimeGenerated
+| order by turnIndex asc, TimeGenerated asc
+*/
+

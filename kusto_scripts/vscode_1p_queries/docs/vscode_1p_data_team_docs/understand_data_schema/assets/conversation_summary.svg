@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 620" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="700" height="620" fill="#0d1117"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- HEADER -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 20)">
+    <rect x="0" y="0" width="660" height="50" rx="10" fill="#1f2937" stroke="#22d3ee" stroke-width="2"/>
+    <text x="20" y="32" font-size="18" font-weight="600" fill="#22d3ee">Conversation Summary</text>
+    <text x="250" y="32" font-size="12" fill="#6b7280">conversationId: abc123-example</text>
+    <text x="520" y="32" font-size="12" fill="#8b949e">claude-opus-4.5</text>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ROW 1: Key Metrics -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 85)">
+    <!-- Total Prompt Tokens -->
+    <rect x="0" y="0" width="155" height="85" rx="8" fill="#1f2937"/>
+    <text x="15" y="24" font-size="11" fill="#6b7280">Total Prompt Tokens</text>
+    <text x="15" y="55" font-size="28" font-weight="700" fill="#a78bfa">116,693</text>
+    <text x="15" y="75" font-size="10" fill="#8b949e">API actual (billed)</text>
+    
+    <!-- Total Completion Tokens -->
+    <rect x="170" y="0" width="155" height="85" rx="8" fill="#1f2937"/>
+    <text x="185" y="24" font-size="11" fill="#6b7280">Total Completion Tokens</text>
+    <text x="185" y="55" font-size="28" font-weight="700" fill="#4ade80">2,062</text>
+    <text x="185" y="75" font-size="10" fill="#8b949e">model output</text>
+    
+    <!-- Total LLM Requests -->
+    <rect x="340" y="0" width="155" height="85" rx="8" fill="#1f2937"/>
+    <text x="355" y="24" font-size="11" fill="#6b7280">Total LLM Requests</text>
+    <text x="355" y="55" font-size="28" font-weight="700" fill="#f9fafb">6</text>
+    <text x="355" y="75" font-size="10" fill="#8b949e">(4 + 1 + 1) across 3 turns</text>
+    
+    <!-- Total Duration -->
+    <rect x="510" y="0" width="150" height="85" rx="8" fill="#1f2937"/>
+    <text x="525" y="24" font-size="11" fill="#6b7280">Total Duration</text>
+    <text x="525" y="55" font-size="28" font-weight="700" fill="#22d3ee">74.62s</text>
+    <text x="525" y="75" font-size="10" fill="#8b949e">avg 12.4s/request</text>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ROW 2: Tools & Tokenizer -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 185)">
+    <!-- Tools Used -->
+    <rect x="0" y="0" width="400" height="75" rx="8" fill="#1f2937"/>
+    <text x="15" y="24" font-size="11" fill="#6b7280">Tools Used &amp; Token Cost</text>
+    
+    <g transform="translate(15, 38)">
+      <rect x="0" y="0" width="110" height="28" rx="5" fill="#854d0e"/>
+      <text x="12" y="19" font-size="12" fill="#fbbf24">web_search ×2</text>
+      
+      <rect x="120" y="0" width="100" height="28" rx="5" fill="#854d0e"/>
+      <text x="132" y="19" font-size="12" fill="#fbbf24">web_fetch ×1</text>
+      
+      <text x="235" y="19" font-size="12" fill="#f9a8d4">→ 37,733 tool tokens</text>
+    </g>
+    
+    <!-- Tokenizer Ratio -->
+    <rect x="415" y="0" width="245" height="75" rx="8" fill="#1f2937"/>
+    <text x="430" y="24" font-size="11" fill="#6b7280">Average Tokenizer Ratio</text>
+    <text x="430" y="55" font-size="28" font-weight="700" fill="#fbbf24">0.72</text>
+    <text x="510" y="55" font-size="11" fill="#6b7280">estimate → actual</text>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ROW 3: Context Window Analysis -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 275)">
+    <rect x="0" y="0" width="660" height="130" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1"/>
+    <text x="20" y="28" font-size="13" font-weight="600" fill="#3b82f6">Context Window Analysis</text>
+    
+    <!-- Window bar visualization -->
+    <g transform="translate(20, 45)">
+      <text x="0" y="14" font-size="11" fill="#6b7280">maxTokenWindow:</text>
+      <text x="115" y="14" font-size="12" font-weight="600" fill="#fbbf24">128,000</text>
+      
+      <!-- Bar -->
+      <rect x="0" y="25" width="620" height="28" rx="5" fill="#1e293b"/>
+      
+      <!-- System -->
+      <rect x="0" y="25" width="55" height="28" rx="5" fill="#3b82f6"/>
+      <text x="8" y="44" font-size="9" fill="#fff">sys</text>
+      
+      <!-- User -->
+      <rect x="55" y="25" width="10" height="28" fill="#10b981"/>
+      
+      <!-- Tool Results -->
+      <rect x="65" y="25" width="183" height="28" fill="#ec4899"/>
+      <text x="100" y="44" font-size="9" fill="#fff">toolResults: 37,733</text>
+      
+      <!-- Assistant -->
+      <rect x="248" y="25" width="10" height="28" fill="#f59e0b"/>
+      
+      <!-- Unused -->
+      <text x="280" y="44" font-size="10" fill="#4b5563">unused (~77K available)</text>
+      
+      <!-- Peak usage label -->
+      <text x="480" y="44" font-size="11" font-weight="500" fill="#fbbf24">Peak: ~51K / 128K (40%)</text>
+    </g>
+    
+    <!-- Truncation status -->
+    <g transform="translate(20, 100)">
+      <rect x="0" y="0" width="180" height="24" rx="5" fill="#14532d"/>
+      <text x="12" y="16" font-size="11" fill="#4ade80">✓ No truncation occurred</text>
+      <text x="200" y="16" font-size="11" fill="#6b7280">trajectoryTotal (51K) &lt; maxTokenWindow (128K)</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ROW 4: Token Field Legend -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 420)">
+    <rect x="0" y="0" width="660" height="85" rx="8" fill="#1f2937"/>
+    <text x="20" y="24" font-size="12" font-weight="600" fill="#8b949e">TOKEN FIELD LEGEND</text>
+    
+    <!-- Row 1 of legend -->
+    <g transform="translate(20, 40)">
+      <rect x="0" y="0" width="18" height="18" rx="4" fill="#3b82f6"/>
+      <text x="25" y="13" font-size="11" fill="#93c5fd">systemTokens</text>
+      <text x="120" y="13" font-size="10" fill="#6b7280">(constant)</text>
+      
+      <rect x="190" y="0" width="18" height="18" rx="4" fill="#10b981"/>
+      <text x="215" y="13" font-size="11" fill="#6ee7b7">userTokens</text>
+      <text x="300" y="13" font-size="10" fill="#6b7280">(per turn)</text>
+      
+      <rect x="370" y="0" width="18" height="18" rx="4" fill="#f59e0b"/>
+      <text x="395" y="13" font-size="11" fill="#fcd34d">assistantTokens</text>
+      <text x="500" y="13" font-size="10" fill="#6b7280">(grows)</text>
+      
+      <rect x="555" y="0" width="18" height="18" rx="4" fill="#ec4899"/>
+      <text x="580" y="13" font-size="11" fill="#f9a8d4">toolResult</text>
+    </g>
+    
+    <!-- Row 2 of legend -->
+    <g transform="translate(20, 65)">
+      <text x="0" y="12" font-size="10" fill="#6b7280">TRAJECTORY = sys + usr + ast + tool (Copilot estimate)</text>
+      <text x="320" y="12" font-size="10" fill="#4b5563">│</text>
+      <text x="340" y="12" font-size="10" fill="#6b7280">promptTokens = API actual (used for billing)</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ROW 5: Per-Turn Breakdown -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(20, 520)">
+    <rect x="0" y="0" width="660" height="80" rx="8" fill="#1f2937"/>
+    <text x="20" y="24" font-size="12" font-weight="600" fill="#8b949e">PER-TURN BREAKDOWN</text>
+    
+    <g transform="translate(20, 42)">
+      <!-- Turn 1 -->
+      <rect x="0" y="0" width="200" height="28" rx="5" fill="#111827"/>
+      <text x="10" y="18" font-size="11" fill="#fbbf24">Turn 1:</text>
+      <text x="60" y="18" font-size="10" fill="#8b949e">4 calls</text>
+      <text x="110" y="18" font-size="10" fill="#22d3ee">48.15s</text>
+      <text x="160" y="18" font-size="10" fill="#f9a8d4">+37.7K tool</text>
+      
+      <!-- Turn 2 -->
+      <rect x="215" y="0" width="200" height="28" rx="5" fill="#111827"/>
+      <text x="225" y="18" font-size="11" fill="#fbbf24">Turn 2:</text>
+      <text x="275" y="18" font-size="10" fill="#8b949e">1 call</text>
+      <text x="320" y="18" font-size="10" fill="#22d3ee">10.65s</text>
+      <text x="375" y="18" font-size="10" fill="#6b7280">no tools</text>
+      
+      <!-- Turn 3 -->
+      <rect x="430" y="0" width="200" height="28" rx="5" fill="#111827"/>
+      <text x="440" y="18" font-size="11" fill="#fbbf24">Turn 3:</text>
+      <text x="490" y="18" font-size="10" fill="#8b949e">1 call</text>
+      <text x="535" y="18" font-size="10" fill="#22d3ee">15.82s</text>
+      <text x="590" y="18" font-size="10" fill="#6b7280">no tools</text>
+    </g>
+  </g>
+</svg>

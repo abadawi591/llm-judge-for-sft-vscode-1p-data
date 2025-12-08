@@ -1,0 +1,145 @@
+// =============================================================================
+// 2-Turn Trace with CALL INDEX (Following Production Pattern)
+// =============================================================================
+// FIX: Use row_number() to create callIndex, then join on (messageId, callIndex)
+// This is how the production query sft_complete_with_per_call_trajectory.kql does it
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Step 1: Find a complete 2-turn conversation
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex), 
+        minT = min(turnIndex), 
+        maxT = max(turnIndex) 
+        by conversationId
+    | where turnCount == 2 and minT == 1 and maxT == 2
+    | take 1
+    | project conversationId
+);
+
+// Step 2: Get turn metadata
+let turnMeta = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | where conversationId == targetConvo
+    | project turnIndex, messageId, numRequests, toolCounts;
+
+// Step 3: OUTPUT events with callIndex (SAME AS PRODUCTION)
+let outputEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, TimeGenerated
+    | order by messageId, TimeGenerated asc;
+
+// Add callIndex using row_number (resets when messageId changes)
+let outputEvents = 
+    outputEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Step 4: INPUT events with callIndex (SAME AS PRODUCTION)
+let inputEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | project messageId, messagesJsonStr, TimeGenerated
+    | order by messageId, TimeGenerated asc;
+
+// Add callIndex
+let inputEvents = 
+    inputEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Parse trajectory breakdown per LLM call
+let trajectoryParsed = 
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// Step 5: JOIN on (messageId, callIndex) - THE KEY FIX!
+let tokenDataWithTrajectory = 
+    outputEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    | extend hasTrajectory = isnotnull(trajectoryTotal) and trajectoryTotal > 0
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0);
+
+// Step 6: Join with turn metadata
+turnMeta
+| join kind=inner tokenDataWithTrajectory on messageId
+| project 
+    turnIndex,
+    messageId,
+    callIndex,
+    numRequests,
+    toolCounts,
+    model,
+    // Actual API tokens (from OUTPUT)
+    promptTokens,
+    completionTokens,
+    // Role breakdown (from INPUT via callIndex join)
+    hasTrajectory,
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolResultTokens,
+    trajectoryTotal,
+    // Comparison
+    ratio = iif(trajectoryTotal > 0, round(todouble(promptTokens) / todouble(trajectoryTotal), 2), 0.0),
+    gap = trajectoryTotal - promptTokens
+| order by turnIndex asc, callIndex asc
+
+// =============================================================================
+// EXPECTED OUTPUT (for 2 turns):
+//
+// turnIndex | callIndex | promptTokens | systemTokens | userTokens | toolResultTokens
+// ----------|-----------|--------------|--------------|------------|------------------
+// 1         | 1         | 12,500       | 10,000       | 500        | 0
+// 1         | 2         | 17,500       | 10,000       | 500        | 5,000
+// 1         | 3         | 22,500       | 10,000       | 500        | 10,000
+// 2         | 1         | 25,000       | 10,000       | 800        | 10,000 (from turn 1)
+// ...
+//
+// systemTokens = System prompt + tool definitions (~8-15K, constant)
+// userTokens = User message tokens (varies)
+// toolResultTokens = Grows as tools execute within turn
+// =============================================================================
+

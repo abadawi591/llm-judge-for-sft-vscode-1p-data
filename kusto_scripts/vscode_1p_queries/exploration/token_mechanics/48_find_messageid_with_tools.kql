@@ -1,0 +1,18 @@
+// =============================================================================
+// FIND: MessageId with Tool Usage
+// =============================================================================
+// Run this FIRST to get a messageId, then use it in query 47
+// =============================================================================
+
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| extend messageId = tostring(Properties["messageId"])
+| extend numRequests = toint(Measurements["numRequests"])
+| extend toolCounts = tostring(Properties["toolCounts"])
+| extend responseType = tostring(Properties["responseType"])
+| where responseType == "success"
+| where numRequests >= 3  // At least 2 tool calls + 1 final response
+| project messageId, numRequests, toolCounts
+| take 10
+

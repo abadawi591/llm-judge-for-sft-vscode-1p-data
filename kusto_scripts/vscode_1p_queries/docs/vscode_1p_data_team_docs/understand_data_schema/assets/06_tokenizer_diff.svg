@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 350">
+  <!-- Background -->
+  <rect width="700" height="350" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">SAME TEXT, DIFFERENT TOKENIZERS</text>
+  <text x="350" y="50" fill="#8b949e" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Why trajectoryTotal ≠ promptTokens</text>
+  
+  <!-- Input text -->
+  <rect x="150" y="65" width="400" height="35" rx="6" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+  <text x="350" y="88" fill="#e6edf3" font-family="monospace" font-size="12" text-anchor="middle">"Hello, how are you doing today?"</text>
+  
+  <!-- Arrow down splitting -->
+  <path d="M 350 100 L 350 120 L 200 140" stroke="#8b949e" stroke-width="1.5" fill="none" marker-end="url(#arrowTok)"/>
+  <path d="M 350 100 L 350 120 L 500 140" stroke="#8b949e" stroke-width="1.5" fill="none" marker-end="url(#arrowTok)"/>
+  <defs>
+    <marker id="arrowTok" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8b949e"/>
+    </marker>
+  </defs>
+  
+  <!-- Copilot tokenizer box -->
+  <rect x="40" y="145" width="280" height="160" rx="10" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+  <text x="180" y="172" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle" font-weight="600">Copilot's Tokenizer</text>
+  
+  <!-- Copilot tokens -->
+  <rect x="60" y="185" width="80" height="24" rx="4" fill="#2563eb"/>
+  <text x="100" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">"Hello"</text>
+  
+  <rect x="150" y="185" width="40" height="24" rx="4" fill="#2563eb"/>
+  <text x="170" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">","</text>
+  
+  <rect x="200" y="185" width="60" height="24" rx="4" fill="#2563eb"/>
+  <text x="230" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" how"</text>
+  
+  <rect x="270" y="185" width="40" height="24" rx="4" fill="#2563eb"/>
+  <text x="290" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" are"</text>
+  
+  <rect x="60" y="218" width="55" height="24" rx="4" fill="#2563eb"/>
+  <text x="87" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" you"</text>
+  
+  <rect x="125" y="218" width="70" height="24" rx="4" fill="#2563eb"/>
+  <text x="160" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" doing"</text>
+  
+  <rect x="205" y="218" width="65" height="24" rx="4" fill="#2563eb"/>
+  <text x="237" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" today"</text>
+  
+  <rect x="280" y="218" width="30" height="24" rx="4" fill="#2563eb"/>
+  <text x="295" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">"?"</text>
+  
+  <!-- Copilot total -->
+  <rect x="100" y="258" width="120" height="30" rx="6" fill="#1d4ed8"/>
+  <text x="160" y="278" fill="#fff" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle" font-weight="600">TOTAL: 8 tokens</text>
+  
+  <!-- Claude tokenizer box -->
+  <rect x="380" y="145" width="280" height="160" rx="10" fill="#14532d" stroke="#10b981" stroke-width="2"/>
+  <text x="520" y="172" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle" font-weight="600">Claude's Tokenizer</text>
+  
+  <!-- Claude tokens -->
+  <rect x="400" y="185" width="80" height="24" rx="4" fill="#059669"/>
+  <text x="440" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">"Hello,"</text>
+  
+  <rect x="490" y="185" width="70" height="24" rx="4" fill="#059669"/>
+  <text x="525" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" how"</text>
+  
+  <rect x="570" y="185" width="80" height="24" rx="4" fill="#059669"/>
+  <text x="610" y="202" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" are you"</text>
+  
+  <rect x="400" y="218" width="80" height="24" rx="4" fill="#059669"/>
+  <text x="440" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" doing"</text>
+  
+  <rect x="490" y="218" width="80" height="24" rx="4" fill="#059669"/>
+  <text x="530" y="235" fill="#fff" font-family="monospace" font-size="10" text-anchor="middle">" today?"</text>
+  
+  <!-- Claude total -->
+  <rect x="460" y="258" width="120" height="30" rx="6" fill="#047857"/>
+  <text x="520" y="278" fill="#fff" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle" font-weight="600">TOTAL: 5 tokens</text>
+  
+  <!-- Bottom calculation -->
+  <rect x="150" y="315" width="400" height="28" rx="6" fill="#21262d" stroke="#fbbf24" stroke-width="1"/>
+  <text x="350" y="334" fill="#fbbf24" font-family="monospace" font-size="11" text-anchor="middle">tokenizerRatio = 5/8 = 0.625 (Claude counted 63% of Copilot's estimate)</text>
+</svg>

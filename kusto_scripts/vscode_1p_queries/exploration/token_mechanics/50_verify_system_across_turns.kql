@@ -1,0 +1,78 @@
+// =============================================================================
+// VERIFY: Does systemTokens vary across turns in the SAME conversation?
+// =============================================================================
+// QUESTION: Is the system prompt constant within a conversation, or does it
+//           change between turns?
+//
+// HYPOTHESIS: Should be relatively constant, but may vary due to:
+// - Dynamic context injection
+// - Different tool sets enabled
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Find a conversation with multiple turns
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize turnCount = dcount(turnIndex) by conversationId
+    | where turnCount >= 3  // At least 3 turns
+    | take 1
+    | project conversationId
+);
+
+// Get all messageIds for this conversation
+let messageIds = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | where conversationId == targetConvo
+    | project messageId, turnIndex;
+
+// Get FIRST LLM call's trajectory for each turn (to compare system tokens)
+let trajectoryData = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    // Get first event per messageId
+    | summarize arg_min(TimeGenerated, messagesJsonStr) by messageId
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user")
+        by messageId;
+
+// Join and show results
+messageIds
+| join kind=inner trajectoryData on messageId
+| project turnIndex, messageId, systemTokens, userTokens
+| order by turnIndex asc
+
+// =============================================================================
+// EXPECTED OUTPUT:
+//
+// turnIndex | messageId | systemTokens | userTokens
+// ----------|-----------|--------------|------------
+//     1     | abc-123   |   14,722     |   3,916
+//     2     | def-456   |   14,722     |   1,205    (different user message)
+//     3     | ghi-789   |   14,722     |   2,847    (different user message)
+//
+// If systemTokens is CONSTANT across turns → system prompt doesn't change
+// If systemTokens VARIES → dynamic context is being injected
+// =============================================================================
+

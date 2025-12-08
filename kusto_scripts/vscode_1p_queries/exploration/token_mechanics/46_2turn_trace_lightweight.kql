@@ -1,0 +1,126 @@
+// =============================================================================
+// 2-Turn Trace - LIGHTWEIGHT VERSION
+// =============================================================================
+// FIX: Filter to specific messageIds FIRST, then apply row_number()
+// This avoids scanning the entire dataset
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Step 1: Find a complete 2-turn conversation and get its messageIds
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex), 
+        minT = min(turnIndex), 
+        maxT = max(turnIndex) 
+        by conversationId
+    | where turnCount == 2 and minT == 1 and maxT == 2
+    | take 1
+    | project conversationId
+);
+
+// Get messageIds for this conversation
+let targetMessageIds = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | where conversationId == targetConvo
+    | project turnIndex, messageId, numRequests, toolCounts;
+
+// Get just the messageId list for filtering
+let messageIdList = targetMessageIds | project messageId;
+
+// Step 2: Get OUTPUT events ONLY for our messageIds (filtered FIRST!)
+let outputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    // FILTER EARLY - only our messageIds
+    | join kind=inner messageIdList on messageId
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, TimeGenerated
+    | order by messageId, TimeGenerated asc
+    // Now row_number only runs on ~9-20 rows, not millions!
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Step 3: Get INPUT events ONLY for our messageIds
+let inputEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    // FILTER EARLY
+    | join kind=inner messageIdList on messageId
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | project messageId, messagesJsonStr, TimeGenerated
+    | order by messageId, TimeGenerated asc
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Parse trajectory
+let trajectoryParsed = 
+    inputEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// Step 4: Join OUTPUT with trajectory on (messageId, callIndex)
+let tokenDataWithTrajectory = 
+    outputEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    | extend hasTrajectory = isnotnull(trajectoryTotal) and trajectoryTotal > 0
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0);
+
+// Step 5: Join with turn metadata and display
+targetMessageIds
+| join kind=inner tokenDataWithTrajectory on messageId
+| project 
+    turnIndex,
+    messageId,
+    callIndex,
+    numRequests,
+    toolCounts,
+    model,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Role breakdown
+    hasTrajectory,
+    systemTokens,
+    userTokens,
+    assistantTokens,
+    toolResultTokens,
+    trajectoryTotal
+| order by turnIndex asc, callIndex asc
+

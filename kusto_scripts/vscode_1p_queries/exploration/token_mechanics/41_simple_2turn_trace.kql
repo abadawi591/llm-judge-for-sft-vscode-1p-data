@@ -1,0 +1,122 @@
+// =============================================================================
+// SIMPLE: Trace a 2-Turn Conversation End-to-End
+// =============================================================================
+// This query finds a 2-turn conversation and shows each LLM call in sequence
+// with its token breakdown. No complex joins.
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Step 1: Find a complete 2-turn conversation
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex), 
+        minT = min(turnIndex), 
+        maxT = max(turnIndex) 
+        by conversationId
+    | where turnCount == 2 and minT == 1 and maxT == 2
+    | take 1
+    | project conversationId
+);
+
+// Step 2: Get turn metadata
+let turnMeta = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | where conversationId == targetConvo
+    | project turnIndex, messageId, numRequests, toolCounts;
+
+// Step 3: Get ALL token OUTPUT events for these turns
+let tokenEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, callTime = TimeGenerated;
+
+// Step 4: Get INPUT events (messagesJson) - pre-aggregate per event
+let roleBreakdown = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | extend callTime = TimeGenerated
+    | where isnotempty(messagesJsonStr)
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool")
+        by messageId, callTime;
+
+// Step 5: Join everything
+turnMeta
+| join kind=inner tokenEvents on messageId
+| join kind=leftouter roleBreakdown on messageId, callTime
+| project 
+    turnIndex,
+    messageId,
+    callTime,
+    numRequests,
+    toolCounts,
+    model,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Role breakdown (may be null if input event missing)
+    systemTokens = coalesce(systemTokens, 0),
+    userTokens = coalesce(userTokens, 0),
+    assistantTokens = coalesce(assistantTokens, 0),
+    toolResultTokens = coalesce(toolResultTokens, 0),
+    estimatedTotal = coalesce(systemTokens, 0) + coalesce(userTokens, 0) + coalesce(assistantTokens, 0) + coalesce(toolResultTokens, 0)
+| order by turnIndex asc, callTime asc
+
+// =============================================================================
+// HOW TO READ THE OUTPUT:
+//
+// TURN 1 (first user message):
+//   - First row: systemTokens ≈ 8-15K (system prompt + tool definitions)
+//                userTokens ≈ 100-2K (user's question)
+//                toolResultTokens = 0 (no tools invoked yet)
+//                promptTokens ≈ 10-17K (actual API charge)
+//
+//   - If numRequests > 1, subsequent rows show tool results being added:
+//                toolResultTokens grows as each tool executes
+//                promptTokens grows accordingly
+//
+// TURN 2 (second user message):
+//   - First row: assistantTokens now > 0 (Turn 1's response in context)
+//                systemTokens same (~8-15K)
+//                userTokens = new question
+//
+// The growth pattern should be:
+//   Turn 1 Call 1: ~12K base
+//   Turn 1 Call 2: ~12K + tool1_result
+//   Turn 1 Call 3: ~12K + tool1_result + tool2_result
+//   Turn 2 Call 1: ~12K + Turn1_context + new_user_msg
+// =============================================================================
+

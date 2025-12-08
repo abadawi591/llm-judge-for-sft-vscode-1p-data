@@ -1,0 +1,75 @@
+// =============================================================================
+// CHECK: Do INPUT events exist for this messageId?
+// =============================================================================
+// First, let's see if there are ANY input events with messagesJson
+// for the specific turn you're looking at
+// =============================================================================
+
+let targetMessageId = "710f5792-1e24-400c-bd63-f04ddffae0a9";
+
+// Query 1: Count INPUT vs OUTPUT events for this messageId
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == targetMessageId
+| extend message_direction = tostring(Properties["message_direction"])
+| summarize eventCount = count() by message_direction
+
+// =============================================================================
+// Query 2: Show raw INPUT events (uncomment and run separately)
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == "710f5792-1e24-400c-bd63-f04ddffae0a9"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| project TimeGenerated, message_direction, messagesJsonStr
+| order by TimeGenerated asc
+*/
+
+// =============================================================================
+// Query 3: If INPUT exists, parse and show roles (uncomment and run separately)
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == "710f5792-1e24-400c-bd63-f04ddffae0a9"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| where isnotempty(messagesJsonStr)
+| take 1
+| mv-expand message = parse_json(messagesJsonStr)
+| extend role = tostring(message.role)
+| extend tokenCount = toint(message.content)
+| project role, tokenCount
+*/
+
+// =============================================================================
+// Query 4: Check if messagesJson is populated or empty
+// =============================================================================
+/*
+AppEvents
+| where TimeGenerated > ago(24h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend messageId = tostring(Properties["headerRequestId"])
+| where messageId == "710f5792-1e24-400c-bd63-f04ddffae0a9"
+| extend message_direction = tostring(Properties["message_direction"])
+| where message_direction == "input"
+| extend messagesJsonStr = tostring(Properties["messagesJson"])
+| extend hasMessagesJson = isnotempty(messagesJsonStr)
+| extend messagesJsonLength = strlen(messagesJsonStr)
+| summarize 
+    totalInputEvents = count(),
+    withMessagesJson = countif(hasMessagesJson),
+    withoutMessagesJson = countif(not(hasMessagesJson)),
+    avgJsonLength = avg(messagesJsonLength)
+*/
+

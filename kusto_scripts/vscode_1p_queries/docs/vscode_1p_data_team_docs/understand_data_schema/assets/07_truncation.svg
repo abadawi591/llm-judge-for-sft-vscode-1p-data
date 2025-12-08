@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 340">
+  <!-- Background -->
+  <rect width="700" height="340" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">CONTEXT TRUNCATION</text>
+  <text x="350" y="50" fill="#8b949e" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">When trajectoryTotal exceeds maxTokenWindow</text>
+  
+  <!-- No truncation section -->
+  <rect x="40" y="70" width="620" height="110" rx="10" fill="#0f1f0f" stroke="#10b981" stroke-width="1"/>
+  <text x="60" y="95" fill="#10b981" font-family="system-ui, sans-serif" font-size="13" font-weight="600">NO TRUNCATION (fits in window)</text>
+  
+  <!-- Window bar - no truncation -->
+  <rect x="60" y="110" width="580" height="40" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="630" y="115" fill="#6b7280" font-family="monospace" font-size="9" text-anchor="end">maxTokenWindow = 128,000</text>
+  
+  <!-- Used portion -->
+  <rect x="60" y="110" width="250" height="40" rx="6" fill="#14532d"/>
+  <text x="185" y="135" fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle">trajectoryTotal = 55,000</text>
+  
+  <!-- Unused space label -->
+  <text x="450" y="135" fill="#6b7280" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">unused space</text>
+  
+  <!-- Status badge -->
+  <rect x="520" y="155" width="140" height="22" rx="4" fill="#14532d" stroke="#10b981" stroke-width="1"/>
+  <text x="590" y="170" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle" font-weight="500">exceededWindow = FALSE ✓</text>
+  
+  <!-- Truncation section -->
+  <rect x="40" y="195" width="620" height="130" rx="10" fill="#1f0f0f" stroke="#ef4444" stroke-width="1"/>
+  <text x="60" y="220" fill="#ef4444" font-family="system-ui, sans-serif" font-size="13" font-weight="600">TRUNCATION (exceeds window)</text>
+  
+  <!-- Window bar - truncation -->
+  <rect x="60" y="235" width="580" height="40" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="630" y="230" fill="#6b7280" font-family="monospace" font-size="9" text-anchor="end">maxTokenWindow = 128,000</text>
+  
+  <!-- Exceeding portion (full bar, fills completely) -->
+  <rect x="60" y="235" width="580" height="40" rx="6" fill="#7f1d1d"/>
+  <text x="350" y="260" fill="#fca5a5" font-family="monospace" font-size="11" text-anchor="middle">trajectoryTotal = 195,000 (67,000 tokens DROPPED!)</text>
+  
+  <!-- Overflow indicator -->
+  <rect x="640" y="235" width="50" height="40" rx="0 6 6 0" fill="#450a0a" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="665" y="260" fill="#ef4444" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle" font-weight="bold">↗</text>
+  
+  <!-- Status badge -->
+  <rect x="520" y="285" width="140" height="22" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+  <text x="590" y="300" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle" font-weight="500">exceededWindow = TRUE ⚠️</text>
+</svg>

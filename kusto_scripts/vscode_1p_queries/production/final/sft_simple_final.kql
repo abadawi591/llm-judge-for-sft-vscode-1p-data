@@ -1,0 +1,214 @@
+// =============================================================================
+// SFT SIMPLE EXTRACTION - FINAL VERSION (LIGHTWEIGHT)
+// =============================================================================
+// PURPOSE: Fast extraction of complete conversations WITHOUT trajectory parsing.
+//          Use this when you don't need per-role token breakdown.
+//
+// WHAT'S INCLUDED:
+// - promptTokens, completionTokens (actual API counts)
+// - maxTokenWindow (for reference)
+// - Tool usage data
+// - Complete conversation filtering
+//
+// WHAT'S NOT INCLUDED (for performance):
+// - Per-role trajectory breakdown (systemTokens, userTokens, etc.)
+// - No INPUT direction parsing (avoids expensive mv-expand)
+//
+// USE CASE: Quick data extraction when token breakdown not needed
+// FOR DETAILED BREAKDOWN: Use sft_stratified_final.kql instead
+//
+// DOCUMENTATION: See ../docs/vscode_1p_data_team_docs/understand_data_schema.md
+// =============================================================================
+
+let timeStart = ago(7d);
+let timeEnd = now();
+let minTurns = 3;
+let maxTurns = 10;
+
+// =============================================================================
+// STEP 1: Get deduplicated conversation messages
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction only - fast!)
+// =============================================================================
+let tokenEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, maxTokenWindow
+    | order by messageId, TimeGenerated asc;
+
+// Aggregate into llmCalls array per messageId (turn)
+let tokenData = 
+    tokenEvents
+    | summarize 
+        llmCalls = make_list(pack(
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "model", model,
+            "maxTokenWindow", maxTokenWindow
+        )),
+        turnMaxPromptTokens = max(promptTokens),
+        turnTotalCompletionTokens = sum(completionTokens),
+        turnMaxTokenWindow = max(maxTokenWindow),
+        turnLlmCallCount = count()
+        by messageId;
+
+// =============================================================================
+// STEP 3: Get tool metadata
+// =============================================================================
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration;
+
+// =============================================================================
+// STEP 4: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnSummary = pack(
+            "maxPromptTokens", turnMaxPromptTokens,
+            "totalCompletionTokens", turnTotalCompletionTokens,
+            "maxTokenWindow", turnMaxTokenWindow,
+            "llmCallCount", turnLlmCallCount
+        ),
+        toolCounts,
+        numRequests,
+        turnDurationMs = turnDuration;
+
+// =============================================================================
+// STEP 5: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    );
+
+// =============================================================================
+// STEP 6: Filter for complete conversations and output
+// =============================================================================
+conversations
+| where minTurnIndex == 1
+| where capturedTurnCount == maxTurnIndex
+| where capturedTurnCount >= minTurns
+| where capturedTurnCount <= maxTurns
+| project 
+    conversationId, 
+    userName, 
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,
+    turns = turnsArray
+| order by capturedTurnCount desc
+| take 500
+
+// =============================================================================
+// OUTPUT SCHEMA (simplified - no trajectory breakdown):
+// {
+//   "conversationId": "...",
+//   "capturedTurnCount": 5,
+//   "isComplete": true,
+//   "turns": [
+//     {
+//       "turnIndex": 1,
+//       "messageId": "...",
+//       "userMessage": "...",
+//       "modelMessage": "...",
+//       "llmCalls": [
+//         {
+//           "promptTokens": 24958,      // ACTUAL (from LLM API)
+//           "completionTokens": 172,
+//           "model": "claude-opus-4.5",
+//           "maxTokenWindow": 127997
+//         }
+//       ],
+//       "turnSummary": {
+//         "maxPromptTokens": 78559,
+//         "totalCompletionTokens": 2500,
+//         "maxTokenWindow": 127997,
+//         "llmCallCount": 9
+//       },
+//       "toolCounts": "{\"read_file\":5}",
+//       "numRequests": 6
+//     }
+//   ]
+// }
+// =============================================================================
+

@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 750" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="620" height="750" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="310" y="35" font-size="18" font-weight="600" fill="#e6edf3" text-anchor="middle">Telemetry Events Overview</text>
+  
+  <!-- Outer container -->
+  <rect x="25" y="55" width="570" height="675" rx="10" fill="#111827" stroke="#22d3ee" stroke-width="2"/>
+  
+  <!-- Container header -->
+  <rect x="25" y="55" width="570" height="40" rx="10" fill="#164e63"/>
+  <rect x="25" y="75" width="570" height="20" fill="#164e63"/>
+  <text x="310" y="82" font-size="13" font-weight="600" fill="#22d3ee" text-anchor="middle" letter-spacing="2">TELEMETRY EVENTS</text>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Event 1: conversation.messageText -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 115)">
+    <rect x="0" y="0" width="530" height="130" rx="8" fill="#1e1b4b" stroke="#a78bfa" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="530" height="36" rx="8" fill="#7c3aed"/>
+    <rect x="0" y="18" width="530" height="18" fill="#7c3aed"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">conversation.messageText</text>
+    <text x="350" y="24" font-size="11" fill="#e9d5ff">← User/model message content</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <circle cx="8" cy="6" r="4" fill="#a78bfa"/>
+      <text x="20" y="10" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">conversationId</text>
+      
+      <circle cx="8" cy="28" r="4" fill="#a78bfa"/>
+      <text x="20" y="32" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messageId</text>
+      
+      <circle cx="8" cy="50" r="4" fill="#a78bfa"/>
+      <text x="20" y="54" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">source (user/model)</text>
+      
+      <circle cx="8" cy="72" r="4" fill="#a78bfa"/>
+      <text x="20" y="76" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messageText</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Event 2: engine.messages.length (INPUT) -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 260)">
+    <rect x="0" y="0" width="530" height="115" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="530" height="36" rx="8" fill="#2563eb"/>
+    <rect x="0" y="18" width="530" height="18" fill="#2563eb"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">engine.messages.length (INPUT)</text>
+    <text x="350" y="24" font-size="11" fill="#bfdbfe">← Before LLM API call</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <circle cx="8" cy="6" r="4" fill="#60a5fa"/>
+      <text x="20" y="10" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messageId (headerRequestId)</text>
+      
+      <circle cx="8" cy="28" r="4" fill="#60a5fa"/>
+      <text x="20" y="32" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messagesJson (token estimates)</text>
+      
+      <circle cx="8" cy="50" r="4" fill="#60a5fa"/>
+      <text x="20" y="54" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">message_direction = "input"</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Event 3: engine.messages.length (OUTPUT) -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 390)">
+    <rect x="0" y="0" width="530" height="155" rx="8" fill="#052e16" stroke="#4ade80" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="530" height="36" rx="8" fill="#16a34a"/>
+    <rect x="0" y="18" width="530" height="18" fill="#16a34a"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">engine.messages.length (OUTPUT)</text>
+    <text x="350" y="24" font-size="11" fill="#bbf7d0">← After LLM API call</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <circle cx="8" cy="6" r="4" fill="#4ade80"/>
+      <text x="20" y="10" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messageId (headerRequestId)</text>
+      
+      <circle cx="8" cy="28" r="4" fill="#4ade80"/>
+      <text x="20" y="32" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">promptTokens (actual)</text>
+      
+      <circle cx="8" cy="50" r="4" fill="#4ade80"/>
+      <text x="20" y="54" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">completionTokens (actual)</text>
+      
+      <circle cx="8" cy="72" r="4" fill="#4ade80"/>
+      <text x="20" y="76" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">maxTokenWindow</text>
+      
+      <circle cx="8" cy="94" r="4" fill="#4ade80"/>
+      <text x="20" y="98" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">message_direction = "output"</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Event 4: toolCallDetailsInternal -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 560)">
+    <rect x="0" y="0" width="530" height="155" rx="8" fill="#500724" stroke="#ec4899" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="530" height="36" rx="8" fill="#be185d"/>
+    <rect x="0" y="18" width="530" height="18" fill="#be185d"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">toolCallDetailsInternal</text>
+    <text x="350" y="24" font-size="11" fill="#fbcfe8">← After turn completes</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <circle cx="8" cy="6" r="4" fill="#f472b6"/>
+      <text x="20" y="10" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">messageId</text>
+      
+      <circle cx="8" cy="28" r="4" fill="#f472b6"/>
+      <text x="20" y="32" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">turnIndex</text>
+      
+      <circle cx="8" cy="50" r="4" fill="#f472b6"/>
+      <text x="20" y="54" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">numRequests (LLM call count)</text>
+      
+      <circle cx="8" cy="72" r="4" fill="#f472b6"/>
+      <text x="20" y="76" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">toolCounts (JSON)</text>
+      
+      <circle cx="8" cy="94" r="4" fill="#f472b6"/>
+      <text x="20" y="98" font-size="12" fill="#e5e7eb" font-family="'SF Mono', 'Fira Code', monospace">turnDuration</text>
+    </g>
+  </g>
+</svg>

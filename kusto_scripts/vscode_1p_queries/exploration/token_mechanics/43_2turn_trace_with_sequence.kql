@@ -1,0 +1,125 @@
+// =============================================================================
+// 2-Turn Trace with SEQUENCE NUMBERS (Fixed)
+// =============================================================================
+// FIX: Instead of joining on exact timestamp, we:
+// 1. Order INPUT events by time and assign sequence numbers
+// 2. Order OUTPUT events by time and assign sequence numbers
+// 3. Join on (messageId, sequence_number)
+//
+// This correctly pairs the Nth INPUT with the Nth OUTPUT for each turn
+// =============================================================================
+
+let timeStart = ago(24h);
+
+// Step 1: Find a complete 2-turn conversation
+let targetConvo = toscalar(
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | summarize 
+        turnCount = dcount(turnIndex), 
+        minT = min(turnIndex), 
+        maxT = max(turnIndex) 
+        by conversationId
+    | where turnCount == 2 and minT == 1 and maxT == 2
+    | take 1
+    | project conversationId
+);
+
+// Step 2: Get turn metadata
+let turnMeta = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | where conversationId == targetConvo
+    | project turnIndex, messageId, numRequests, toolCounts;
+
+// Step 3: OUTPUT events with sequence numbers
+let outputWithSeq = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, outputTime = TimeGenerated
+    // Assign sequence number per messageId
+    | order by messageId asc, outputTime asc
+    | serialize
+    | extend prevMessageId = prev(messageId)
+    | extend seqNum = row_cumsum(iif(messageId != prevMessageId or isnull(prevMessageId), 1, 0))
+    | extend callSeq = row_number() - seqNum + 1
+    // Recalculate sequence within each messageId
+    | order by messageId, outputTime asc
+    | partition by messageId (
+        serialize
+        | extend callSeq = row_number()
+    )
+    | project messageId, promptTokens, completionTokens, model, outputTime, callSeq;
+
+// Step 4: INPUT events with sequence numbers and role breakdown
+let inputWithSeq = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | extend inputTime = TimeGenerated
+    | where isnotempty(messagesJsonStr)
+    // Assign sequence number per messageId
+    | order by messageId, inputTime asc
+    | partition by messageId (
+        serialize
+        | extend callSeq = row_number()
+    )
+    // Parse role breakdown
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callSeq, inputTime;
+
+// Step 5: Join on (messageId, callSeq)
+turnMeta
+| join kind=inner outputWithSeq on messageId
+| join kind=leftouter inputWithSeq on messageId, callSeq
+| project 
+    turnIndex,
+    messageId,
+    callSeq,
+    numRequests,
+    toolCounts,
+    model,
+    // Times
+    outputTime,
+    inputTime,
+    // Actual API tokens
+    promptTokens,
+    completionTokens,
+    // Role breakdown (from INPUT)
+    systemTokens = coalesce(systemTokens, 0),
+    userTokens = coalesce(userTokens, 0),
+    assistantTokens = coalesce(assistantTokens, 0),
+    toolResultTokens = coalesce(toolResultTokens, 0),
+    trajectoryTotal = coalesce(trajectoryTotal, 0)
+| order by turnIndex asc, callSeq asc
+

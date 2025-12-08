@@ -1,0 +1,81 @@
+// =============================================================================
+// EXPLORATION: Token Growth Per LLM Call Within a Turn
+// =============================================================================
+// PURPOSE: See how tokens grow as tools are invoked within a single turn
+//
+// Each tool invocation adds tokens to the next LLM call:
+//   LLM Call 1: promptTokens = baseline (system + user + tools defs)
+//   → Tool executes → returns result (X tokens)
+//   LLM Call 2: promptTokens = baseline + X (tool result added)
+//   → Another tool → returns result (Y tokens)
+//   LLM Call 3: promptTokens = baseline + X + Y
+//   ... and so on
+// =============================================================================
+
+let timeStart = ago(1h);
+
+// Get token progression per messageId (turn)
+let tokenProgression = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend model = tostring(Properties["baseModel"])
+    | project messageId, promptTokens, completionTokens, model, llmCallTime = TimeGenerated
+    | order by messageId asc, llmCallTime asc;
+
+// Get tool info
+let toolInfo = 
+    AppEvents
+    | where TimeGenerated > timeStart
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend responseType = tostring(Properties["responseType"])
+    | where responseType == "success"
+    | project messageId, toolCounts, numRequests;
+
+// Build the progression view
+tokenProgression
+| summarize 
+    llmCallCount = count(),
+    tokenSequence = make_list(pack(
+        "time", llmCallTime,
+        "promptTokens", promptTokens,
+        "completionTokens", completionTokens
+    )),
+    firstPromptTokens = min(promptTokens),
+    lastPromptTokens = max(promptTokens),
+    model = take_any(model)
+    by messageId
+| where llmCallCount >= 2  // Only turns with multiple LLM calls (tool usage)
+| join kind=leftouter toolInfo on messageId
+| extend tokenGrowth = lastPromptTokens - firstPromptTokens
+| project 
+    messageId,
+    model,
+    llmCallCount,
+    numRequests,
+    toolCounts,
+    // Token metrics
+    firstPromptTokens,   // Baseline before any tools
+    lastPromptTokens,    // After all tools
+    tokenGrowth,         // How much tools added
+    // Detailed sequence
+    tokenSequence
+| order by tokenGrowth desc
+| take 30
+
+// =============================================================================
+// INTERPRETATION:
+// - firstPromptTokens: System + user + tool definitions (before any tool use)
+// - tokenGrowth: Total tokens added by tool results
+// - tokenSequence: Shows the step-by-step growth
+// - llmCallCount should match numRequests
+// =============================================================================
+

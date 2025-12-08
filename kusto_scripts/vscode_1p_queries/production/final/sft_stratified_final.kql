@@ -1,0 +1,388 @@
+// =============================================================================
+// SFT STRATIFIED SAMPLING - FINAL VERSION
+// =============================================================================
+// PURPOSE: Extract balanced conversations across turn count buckets with
+//          full token breakdown and correct truncation detection.
+//
+// BUCKET DEFINITIONS (Target: ~100k total for SFT):
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │  Bucket Name          │ Turn Range │ Sample Size │ Use Case                 │
+// │───────────────────────┼────────────┼─────────────┼──────────────────────────│
+// │  short_3_to_5_turns   │   3-5      │   40000     │ Quick interactions       │
+// │  medium_6_to_10_turns │   6-10     │   40000     │ Typical agentic tasks    │
+// │  long_11_to_20_turns  │   11-20    │   20000     │ Complex multi-step tasks │
+// └─────────────────────────────────────────────────────────────────────────────┘
+// TOTAL: 100,000 conversations
+//
+// ⚠️ MEMORY WARNING FOR 100K SAMPLES:
+// If you hit E_LOW_MEMORY_CONDITION, try one of these strategies:
+// 1. Run each bucket separately (comment out the other two in STEP 8)
+// 2. Extend timeStart to ago(14d) or ago(30d) for more data availability
+// 3. Use sft_stratified_final_optimized.kql with smaller sample sizes
+//
+// IMPORTANT - TRAJECTORY DATA:
+// - systemTokens, userTokens, etc. come from INPUT direction telemetry
+// - When these are ALL ZERO, it means hasTrajectory=false (telemetry gap)
+// - promptTokens (from OUTPUT) is ALWAYS available
+// - Not all conversations have trajectory data - this is expected!
+//
+// IMPROVEMENTS OVER PREVIOUS VERSIONS:
+// - Uses exceededWindow for truncation detection (NOT truncationDelta)
+// - Includes maxTokenWindow for context window analysis
+// - Includes availableTools list showing which tools were enabled for the turn
+// - systemTokens/userTokens are constant within turn (documented)
+// - assistantTokens/toolResultTokens grow within turn (documented)
+// - hasTrajectory flag indicates if token breakdown is available
+//
+// NOTE ON systemTokens:
+// - systemTokens includes BOTH the system prompt AND tool definitions bundled
+// - The telemetry does not separate these two components
+//
+// DOCUMENTATION: See ../docs/vscode_1p_data_team_docs/understand_data_schema.md
+// =============================================================================
+
+let timeStart = ago(7d);
+let timeEnd = now();
+
+// Bucket configuration with descriptive names
+// Target: ~100k total samples for SFT training
+let bucket_short_min = 3;   let bucket_short_max = 5;   let bucket_short_sample = 40000;
+let bucket_medium_min = 6;  let bucket_medium_max = 10; let bucket_medium_sample = 40000;
+let bucket_long_min = 11;   let bucket_long_max = 20;   let bucket_long_sample = 20000;
+
+// =============================================================================
+// STEP 1: Get deduplicated conversation messages
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction) with callIndex
+// =============================================================================
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, maxTokenWindow
+    | order by messageId, TimeGenerated asc;
+
+// Add callIndex within each messageId (1, 2, 3, ...)
+let tokenEvents = 
+    tokenEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// =============================================================================
+// STEP 3: Get trajectory (INPUT direction) with callIndex
+// =============================================================================
+let trajectoryEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | where strlen(messagesJsonStr) < 500000  // Skip extremely long trajectories (OOM protection)
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc;
+
+let trajectoryEvents = 
+    trajectoryEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// Parse trajectory breakdown per LLM call
+let trajectoryParsed = 
+    trajectoryEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// =============================================================================
+// STEP 4: Join OUTPUT with INPUT on (messageId, callIndex)
+// =============================================================================
+let tokenDataWithTrajectory = 
+    tokenEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    // Coalesce nulls
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+    // Calculate metrics
+    | extend hasTrajectory = trajectoryTotal > 0
+    | extend exceededWindow = trajectoryTotal > maxTokenWindow;  // TRUE = truncation!
+
+// Aggregate into llmCalls array per messageId (turn)
+let tokenData = 
+    tokenDataWithTrajectory
+    | summarize 
+        llmCalls = make_list(pack(
+            "callIndex", callIndex,
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "model", model,
+            "maxTokenWindow", maxTokenWindow,
+            // Trajectory breakdown (Copilot estimates)
+            // NOTE: systemTokens = system prompt + tool definitions (bundled)
+            "systemTokens", systemTokens,        // CONSTANT within turn
+            "userTokens", userTokens,            // CONSTANT within turn
+            "assistantTokens", assistantTokens,  // GROWS within turn
+            "toolResultTokens", toolResultTokens, // GROWS within turn
+            "trajectoryTotal", trajectoryTotal,
+            // Analysis fields
+            "hasTrajectory", hasTrajectory,
+            "exceededWindow", exceededWindow     // TRUE = truncation happened
+        )),
+        // Turn-level summary
+        turnMaxPromptTokens = max(promptTokens),
+        turnMaxTrajectoryTotal = max(trajectoryTotal),
+        turnMaxTokenWindow = max(maxTokenWindow),
+        turnHasTruncation = max(toint(exceededWindow)) > 0,
+        // Turn-level trajectory availability (ANY call has trajectory = turn has trajectory)
+        turnHasTrajectory = max(toint(hasTrajectory)) > 0
+        by messageId;
+
+// =============================================================================
+// STEP 5: Get tool metadata
+// =============================================================================
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration;
+
+// =============================================================================
+// STEP 5.5: Get available tools list per turn
+// This shows which tools were AVAILABLE (not just used) for each turn
+// =============================================================================
+let availableToolsData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot.chat/virtualTools.toolset"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend availableTools = tostring(Properties["availableTools"])
+    | where isnotempty(messageId) and isnotempty(availableTools)
+    | summarize availableTools = take_any(availableTools) by messageId;
+
+// =============================================================================
+// STEP 6: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | join kind=leftouter availableToolsData on messageId  // LEFT OUTER - may not always have this
+    | project-away conversationId1, messageId1, messageId2, messageId3, messageId4
+    | extend availableTools = coalesce(availableTools, "[]")
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnSummary = pack(
+            "maxPromptTokens", turnMaxPromptTokens,
+            "maxTrajectoryTotal", turnMaxTrajectoryTotal,
+            "maxTokenWindow", turnMaxTokenWindow,
+            "hasTruncation", turnHasTruncation,
+            "hasTrajectory", turnHasTrajectory,  // FALSE = all zeros are telemetry gaps!
+            "llmCallCount", array_length(llmCalls)
+        ),
+        availableTools,   // List of tools ENABLED for this turn (JSON array string)
+        toolCounts,       // Count of tools actually USED in this turn
+        numRequests,
+        turnDurationMs = turnDuration;
+
+// =============================================================================
+// STEP 7: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "availableTools", availableTools,  // Tools AVAILABLE for this turn
+            "toolCounts", toolCounts,          // Tools actually USED
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    )
+    // COMPLETENESS CHECK
+    | where minTurnIndex == 1
+    | where capturedTurnCount == maxTurnIndex
+    // Assign bucket with descriptive names
+    | extend bucket = case(
+        capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
+            strcat("short_", bucket_short_min, "_to_", bucket_short_max, "_turns"),
+        capturedTurnCount >= bucket_medium_min and capturedTurnCount <= bucket_medium_max, 
+            strcat("medium_", bucket_medium_min, "_to_", bucket_medium_max, "_turns"),
+        capturedTurnCount >= bucket_long_min and capturedTurnCount <= bucket_long_max, 
+            strcat("long_", bucket_long_min, "_to_", bucket_long_max, "_turns"),
+        "excluded"
+    )
+    | where bucket != "excluded";
+
+// =============================================================================
+// STEP 8: Sample from each bucket
+// =============================================================================
+let shortConvos = conversations | where bucket contains "short" | sample bucket_short_sample;
+let mediumConvos = conversations | where bucket contains "medium" | sample bucket_medium_sample;
+let longConvos = conversations | where bucket contains "long" | sample bucket_long_sample;
+
+// =============================================================================
+// STEP 9: Output
+// =============================================================================
+union shortConvos, mediumConvos, longConvos
+| project 
+    conversationId, 
+    userName, 
+    bucket,
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,
+    turns = turnsArray
+| order by bucket asc, capturedTurnCount asc
+
+// =============================================================================
+// OUTPUT SCHEMA:
+// {
+//   "conversationId": "...",
+//   "bucket": "short_3_to_5_turns",    // or "medium_6_to_10_turns", "long_11_to_20_turns"
+//   "capturedTurnCount": 4,
+//   "isComplete": true,
+//   "turns": [
+//     {
+//       "turnIndex": 1,
+//       "messageId": "...",
+//       "userMessage": "...",
+//       "modelMessage": "...",
+//       "llmCalls": [
+//         {
+//           "callIndex": 1,
+//           "promptTokens": 24958,        // ACTUAL (from LLM API) - ALWAYS available
+//           "completionTokens": 172,
+//           "model": "claude-opus-4.5",
+//           "maxTokenWindow": 127997,
+//           // Trajectory breakdown (Copilot ESTIMATES):
+//           // ⚠️ IF ALL ZEROS: hasTrajectory=false (telemetry gap - no INPUT event)
+//           // ⚠️ systemTokens = system prompt + tool definitions BUNDLED
+//           "systemTokens": 14722,        // CONSTANT within turn (includes tool defs!)
+//           "userTokens": 3916,           // CONSTANT within turn
+//           "assistantTokens": 0,         // GROWS within turn
+//           "toolResultTokens": 0,        // GROWS within turn
+//           "trajectoryTotal": 18638,     // Sum of above (estimate)
+//           // Analysis:
+//           "hasTrajectory": true,        // FALSE = zeros above are telemetry gaps!
+//           "exceededWindow": false       // TRUE = truncation happened!
+//         },
+//         // ... more LLM calls
+//       ],
+//       "turnSummary": {
+//         "maxPromptTokens": 78559,
+//         "maxTrajectoryTotal": 201547,   // 0 if no trajectory data
+//         "maxTokenWindow": 127997,
+//         "hasTruncation": true,
+//         "llmCallCount": 9
+//       },
+//       "availableTools": "[\"read_file\",\"list_dir\",\"grep_search\",...]",  // Tools AVAILABLE
+//       "toolCounts": "{\"read_file\":23,\"run_in_terminal\":2}",              // Tools USED
+//       "numRequests": 9,
+//       "turnDurationMs": 45000
+//     }
+//   ]
+// }
+//
+// FIELD EXPLANATIONS:
+// ───────────────────────────────────────────────────────────────────────────────
+// availableTools vs toolCounts:
+// - availableTools = JSON array of tool NAMES that were enabled for this turn
+//                    (e.g., ["read_file","list_dir","grep_search"])
+// - toolCounts     = JSON object showing how many times each tool was USED
+//                    (e.g., {"read_file":23,"run_in_terminal":2})
+//
+// systemTokens:
+// - This includes BOTH the system prompt AND all tool definitions bundled
+// - Telemetry does not separate these - that's why it's often 14K-28K tokens
+// - This is the "baseline" cost for every LLM call in agent mode
+//
+// WHY ALL ZEROS FOR systemTokens/userTokens/etc?
+// ───────────────────────────────────────────────────────────────────────────────
+// When you see all trajectory fields = 0, it means:
+// - hasTrajectory = false (check this field!)
+// - The INPUT direction telemetry event was not captured
+// - This is a TELEMETRY GAP, not a bug in the query
+// - promptTokens (from OUTPUT) is still valid and available
+//
+// Possible causes:
+// 1. Telemetry sampling - not all events are captured
+// 2. The messagesJson field was empty in the source
+// 3. The trajectory was too large (>500K chars) and was skipped
+// =============================================================================
+

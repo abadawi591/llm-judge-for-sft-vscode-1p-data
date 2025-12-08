@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 260">
+  <defs>
+    <marker id="arrowPri" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8b949e"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="650" height="260" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="325" y="30" fill="#e6edf3" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" text-anchor="middle">TRUNCATION PRIORITY</text>
+  <text x="325" y="50" fill="#8b949e" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">What gets dropped vs. preserved</text>
+  
+  <!-- Dropped section -->
+  <rect x="40" y="70" width="270" height="175" rx="10" fill="#1f0f0f" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="175" y="95" fill="#ef4444" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle" font-weight="600">DROPPED FIRST</text>
+  
+  <!-- Dropped items -->
+  <rect x="60" y="110" width="230" height="28" rx="5" fill="#450a0a" stroke="#7f1d1d" stroke-width="1"/>
+  <text x="80" y="128" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="11">• Old turn tool results</text>
+  
+  <rect x="60" y="145" width="230" height="28" rx="5" fill="#450a0a" stroke="#7f1d1d" stroke-width="1"/>
+  <text x="80" y="163" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="11">• Old turn assistant messages</text>
+  
+  <rect x="60" y="180" width="230" height="28" rx="5" fill="#450a0a" stroke="#7f1d1d" stroke-width="1"/>
+  <text x="80" y="198" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="11">• Earlier content in current turn</text>
+  
+  <text x="175" y="225" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-style="italic">← Oldest content first →</text>
+  
+  <!-- Arrow between -->
+  <path d="M 330 157 L 360 157" stroke="#8b949e" stroke-width="2" fill="none" marker-end="url(#arrowPri)"/>
+  
+  <!-- Kept section -->
+  <rect x="380" y="70" width="230" height="175" rx="10" fill="#0f1f0f" stroke="#10b981" stroke-width="1.5"/>
+  <text x="495" y="95" fill="#10b981" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle" font-weight="600">KEPT</text>
+  
+  <!-- Kept items -->
+  <rect x="400" y="110" width="190" height="28" rx="5" fill="#14532d" stroke="#166534" stroke-width="1"/>
+  <text x="410" y="128" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11">• System prompt (always)</text>
+  
+  <rect x="400" y="145" width="190" height="28" rx="5" fill="#14532d" stroke="#166534" stroke-width="1"/>
+  <text x="410" y="163" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11">• Current user message</text>
+  
+  <rect x="400" y="180" width="190" height="28" rx="5" fill="#14532d" stroke="#166534" stroke-width="1"/>
+  <text x="410" y="198" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11">• Recent tool results</text>
+  
+  <text x="495" y="225" fill="#10b981" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" font-style="italic">Most recent preserved</text>
+</svg>
