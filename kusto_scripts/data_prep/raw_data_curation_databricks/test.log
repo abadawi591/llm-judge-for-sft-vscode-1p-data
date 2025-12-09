@@ -1,0 +1,1641 @@
+Checking Azure authentication...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['test']
+
+Reading query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Connecting to Blob Storage...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Strategy: Gather ALL candidates via chunks, then stratified sample in Python
+
+Reading candidates query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_no_sampling.kql
+
+Gathering candidates (60 days / 2 day chunks)...
+
+🔀 CHUNKING ENABLED: Splitting 60 days into 30 chunks of 2 days each
+Processing chunks:   0%|          | 0/30 [00:00<?, ?chunk/s]Executing Kusto query (8608 chars)...
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1709 records in 90.1s
+Processing chunks:   3%|▎         | 1/30 [01:33<45:08, 93.40s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1596 records in 145.0s
+Processing chunks:   7%|▋         | 2/30 [04:01<58:37, 125.63s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+
+⚠️  Query failed (attempt 1/5)
+   Error: Failed to process network request for the endpoint: https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsight...
+   Retrying in 30s with jitter...
+Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1739 records in 91.8s
+Processing chunks:  10%|█         | 3/30 [20:50<3:57:59, 528.87s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1533 records in 88.8s
+Processing chunks:  13%|█▎        | 4/30 [22:22<2:34:26, 356.41s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1761 records in 68.3s
+Processing chunks:  17%|█▋        | 5/30 [23:34<1:45:46, 253.84s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1725 records in 153.6s
+Processing chunks:  20%|██        | 6/30 [26:11<1:28:23, 220.99s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1765 records in 119.7s
+Processing chunks:  23%|██▎       | 7/30 [28:14<1:12:25, 188.92s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1774 records in 84.2s
+Processing chunks:  27%|██▋       | 8/30 [29:42<57:28, 156.76s/chunk]  Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1660 records in 97.9s
+Processing chunks:  30%|███       | 9/30 [31:23<48:47, 139.41s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1782 records in 105.7s
+Processing chunks:  33%|███▎      | 10/30 [33:12<43:19, 129.98s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1625 records in 94.8s
+Processing chunks:  37%|███▋      | 11/30 [34:51<38:10, 120.57s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1709 records in 84.4s
+Processing chunks:  40%|████      | 12/30 [36:19<33:09, 110.55s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1780 records in 96.6s
+Processing chunks:  43%|████▎     | 13/30 [37:59<30:23, 107.29s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1817 records in 263.4s
+Processing chunks:  47%|████▋     | 14/30 [42:25<41:27, 155.44s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1761 records in 348.2s
+Processing chunks:  50%|█████     | 15/30 [48:17<53:37, 214.51s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1747 records in 248.5s
+Processing chunks:  53%|█████▎    | 16/30 [52:28<52:39, 225.70s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1872 records in 482.4s
+Processing chunks:  57%|█████▋    | 17/30 [1:00:35<1:05:52, 304.04s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1683 records in 349.4s
+Processing chunks:  60%|██████    | 18/30 [1:06:27<1:03:43, 318.63s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1621 records in 58.3s
+Processing chunks:  63%|██████▎   | 19/30 [1:07:29<44:15, 241.41s/chunk]  Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1879 records in 139.0s
+Processing chunks:  67%|██████▋   | 20/30 [1:09:51<35:16, 211.67s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1864 records in 224.1s
+Processing chunks:  70%|███████   | 21/30 [1:13:38<32:27, 216.37s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1862 records in 61.3s
+Processing chunks:  73%|███████▎  | 22/30 [1:14:43<22:46, 170.80s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1749 records in 185.9s
+Processing chunks:  77%|███████▋  | 23/30 [1:17:55<20:39, 177.07s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1843 records in 83.6s
+Processing chunks:  80%|████████  | 24/30 [1:19:21<14:59, 149.96s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1862 records in 60.6s
+Processing chunks:  83%|████████▎ | 25/30 [1:20:25<10:20, 124.12s/chunk]Executing Kusto query (8607 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1716 records in 64.4s
+Processing chunks:  87%|████████▋ | 26/30 [1:21:33<07:09, 107.34s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1921 records in 106.1s
+Processing chunks:  90%|█████████ | 27/30 [1:23:23<05:23, 107.93s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1933 records in 102.1s
+Processing chunks:  93%|█████████▎| 28/30 [1:25:09<03:35, 107.55s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1809 records in 61.2s
+Processing chunks:  97%|█████████▋| 29/30 [1:26:14<01:34, 94.60s/chunk] Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1855 records in 83.5s
+Processing chunks: 100%|██████████| 30/30 [1:27:38<00:00, 91.37s/chunk]Processing chunks: 100%|██████████| 30/30 [1:27:38<00:00, 175.27s/chunk]
+
+✅ All 30 chunks processed. Total records: 52,952
+
+📊 Total candidates gathered: 52,952
+
+📊 Candidate counts BEFORE sampling:
+  train: {'short': 0, 'medium': 0, 'long': 10770}
+  val: {'short': 0, 'medium': 0, 'long': 0}
+  test: {'short': 21575, 'medium': 12931, 'long': 7676}
+
+🎲 Stratified sampling...
+  ⚠️ train/short: Only 0 available (wanted 40000)
+  train/short: 0 sampled from 0
+  ⚠️ train/medium: Only 0 available (wanted 40000)
+  train/medium: 0 sampled from 0
+  ⚠️ train/long: Only 10770 available (wanted 20000)
+  train/long: 10,770 sampled from 10,770
+  ⚠️ val/short: Only 0 available (wanted 4000)
+  val/short: 0 sampled from 0
+  ⚠️ val/medium: Only 0 available (wanted 4000)
+  val/medium: 0 sampled from 0
+  ⚠️ val/long: Only 0 available (wanted 2000)
+  val/long: 0 sampled from 0
+  test/short: 4,000 sampled from 21,575
+  test/medium: 4,000 sampled from 12,931
+  test/long: 2,000 sampled from 7,676
+
+======================================================================
+DATA SUMMARY
+======================================================================
+
+TEST:
+  short_3_to_5_turns: 4,000 records
+  medium_6_to_10_turns: 4,000 records
+  long_11_to_20_turns: 2,000 records
+
+======================================================================
+VALIDATING DATA
+======================================================================
+Validating records:   0%|          | 0/10000 [00:00<?, ?it/s]Validating records:  82%|████████▏ | 8203/10000 [00:00<00:00, 81950.56it/s]Validating records: 100%|██████████| 10000/10000 [00:00<00:00, 72809.18it/s]
+
+==================================================
+DATA VALIDATION REPORT
+==================================================
+Total records:    10,000
+Valid records:    0 (0.0%)
+Invalid records:  10,000
+
+Error Summary:
+  • Invalid bucket: short: 4000
+  • Invalid bucket: medium: 4000
+  • Invalid bucket: long: 2000
+
+Sample Invalid Records:
+  • 6bd4756e-4821-4607-8887-3ffc7bf3b7ad: ['Invalid bucket: short']
+  • 5a9b3bd8-80a1-4c3a-b7e7-da871735fa82: ['Invalid bucket: short']
+  • 8240c503-5e6d-4acf-bbb9-e9c6e674dedf: ['Invalid bucket: short']
+==================================================
+
+⚠️  WARNING: Validation passed but with <95% valid records
+   Continuing with upload anyway...
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:725: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  # =============================================================================
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:961: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  for split2 in splits[i+1:]:
+
+======================================================================
+UPLOADING TO BLOB STORAGE
+======================================================================
+Container: github-copilot-sft-data-all-languages
+Path: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/
+
+Uploading 3 files...
+Uploading:   0%|          | 0/3 [00:00<?, ?it/s]INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/short_3_to_5_turns.json'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '60662724'
+    'x-ms-blob-type': 'REDACTED'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '04920e46-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Content-MD5': 'REDACTED'
+    'Last-Modified': 'Tue, 09 Dec 2025 18:44:03 GMT'
+    'ETag': '"0x8DE3752ED2C04C4"'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9c49f-301e-0077-663b-690901000000'
+    'x-ms-client-request-id': '04920e46-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:03 GMT'
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/short_3_to_5_turns.json (60,662,724 bytes)
+Uploading:  33%|███▎      | 1/3 [00:08<00:17,  8.74s/it]INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0abf5fbc-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9dc21-301e-0077-313b-690901000000'
+    'x-ms-client-request-id': '0abf5fbc-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:07 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0b9bcbd2-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9df43-301e-0077-313b-690901000000'
+    'x-ms-client-request-id': '0b9bcbd2-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:08 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0beee808-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e05c-301e-0077-3a3b-690901000000'
+    'x-ms-client-request-id': '0beee808-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:08 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0c2a63a6-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e12d-301e-0077-053b-690901000000'
+    'x-ms-client-request-id': '0c2a63a6-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:09 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0c6b14fa-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e241-301e-0077-0f3b-690901000000'
+    'x-ms-client-request-id': '0c6b14fa-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:09 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0caaf372-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e329-301e-0077-703b-690901000000'
+    'x-ms-client-request-id': '0caaf372-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:09 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0ce25a92-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e439-301e-0077-613b-690901000000'
+    'x-ms-client-request-id': '0ce25a92-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:10 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0d1c643a-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e505-301e-0077-243b-690901000000'
+    'x-ms-client-request-id': '0d1c643a-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:10 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0d5e809a-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e65f-301e-0077-693b-690901000000'
+    'x-ms-client-request-id': '0d5e809a-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:11 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0db0fafa-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9e88a-301e-0077-643b-690901000000'
+    'x-ms-client-request-id': '0db0fafa-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:11 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0df3be94-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9eaa4-301e-0077-603b-690901000000'
+    'x-ms-client-request-id': '0df3be94-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:12 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0e2c93d6-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9ec8e-301e-0077-323b-690901000000'
+    'x-ms-client-request-id': '0e2c93d6-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:12 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0e84bdea-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9f0ed-301e-0077-463b-690901000000'
+    'x-ms-client-request-id': '0e84bdea-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:13 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0ec91918-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9f496-301e-0077-3a3b-690901000000'
+    'x-ms-client-request-id': '0ec91918-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:13 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0f09472c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9f6ad-301e-0077-3e3b-690901000000'
+    'x-ms-client-request-id': '0f09472c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:13 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0f4a91fa-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9f8e7-301e-0077-603b-690901000000'
+    'x-ms-client-request-id': '0f4a91fa-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:14 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0f89cf6e-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9fab1-301e-0077-123b-690901000000'
+    'x-ms-client-request-id': '0f89cf6e-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:14 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0fc3b896-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9fc00-301e-0077-493b-690901000000'
+    'x-ms-client-request-id': '0fc3b896-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:15 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '10045b30-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9fd90-301e-0077-473b-690901000000'
+    'x-ms-client-request-id': '10045b30-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:16 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1099497a-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42f9ff8f-301e-0077-2c3b-690901000000'
+    'x-ms-client-request-id': '1099497a-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:16 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '10d32104-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0078-301e-0077-023b-690901000000'
+    'x-ms-client-request-id': '10d32104-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:16 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '110fde50-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa01a2-301e-0077-1a3b-690901000000'
+    'x-ms-client-request-id': '110fde50-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:17 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '114b1286-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa02ad-301e-0077-1e3b-690901000000'
+    'x-ms-client-request-id': '114b1286-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:17 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '11870502-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa036f-301e-0077-583b-690901000000'
+    'x-ms-client-request-id': '11870502-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:18 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '11c3ef6c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0422-301e-0077-023b-690901000000'
+    'x-ms-client-request-id': '11c3ef6c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:18 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '11ff8888-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa04ce-301e-0077-263b-690901000000'
+    'x-ms-client-request-id': '11ff8888-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:18 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '123fc3bc-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0585-301e-0077-503b-690901000000'
+    'x-ms-client-request-id': '123fc3bc-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:19 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '128527f4-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0671-301e-0077-263b-690901000000'
+    'x-ms-client-request-id': '128527f4-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:19 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '12c3d292-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0746-301e-0077-713b-690901000000'
+    'x-ms-client-request-id': '12c3d292-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:20 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '1753145'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1306cbc4-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa07e4-301e-0077-743b-690901000000'
+    'x-ms-client-request-id': '1306cbc4-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:20 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json?comp=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '2492'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/xml'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1328710c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Last-Modified': 'Tue, 09 Dec 2025 18:44:20 GMT'
+    'ETag': '"0x8DE3752F74F0339"'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa083a-301e-0077-453b-690901000000'
+    'x-ms-client-request-id': '1328710c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:20 GMT'
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/medium_6_to_10_turns.json (123,387,961 bytes)
+Uploading:  67%|██████▋   | 2/3 [00:25<00:13, 13.55s/it]INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '148450de-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa0d13-301e-0077-583b-690901000000'
+    'x-ms-client-request-id': '148450de-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:23 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1545027a-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa1549-301e-0077-613b-690901000000'
+    'x-ms-client-request-id': '1545027a-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:24 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '15872a1a-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa1904-301e-0077-3b3b-690901000000'
+    'x-ms-client-request-id': '15872a1a-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:24 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '15c17e90-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa1cda-301e-0077-423b-690901000000'
+    'x-ms-client-request-id': '15c17e90-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:25 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '15fc3b98-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa20e1-301e-0077-153b-690901000000'
+    'x-ms-client-request-id': '15fc3b98-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:25 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '163de020-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa24a3-301e-0077-243b-690901000000'
+    'x-ms-client-request-id': '163de020-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:25 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '167c2402-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2704-301e-0077-673b-690901000000'
+    'x-ms-client-request-id': '167c2402-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:26 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '16bc0766-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa282f-301e-0077-093b-690901000000'
+    'x-ms-client-request-id': '16bc0766-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:26 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '16fa23c0-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2914-301e-0077-643b-690901000000'
+    'x-ms-client-request-id': '16fa23c0-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:27 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1733ddf4-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa29d2-301e-0077-1d3b-690901000000'
+    'x-ms-client-request-id': '1733ddf4-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:27 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1771ad1e-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2a75-301e-0077-2e3b-690901000000'
+    'x-ms-client-request-id': '1771ad1e-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:28 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '17c31a46-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2b48-301e-0077-753b-690901000000'
+    'x-ms-client-request-id': '17c31a46-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:28 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '18244e88-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2c64-301e-0077-023b-690901000000'
+    'x-ms-client-request-id': '18244e88-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:29 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '185fc468-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2d3a-301e-0077-473b-690901000000'
+    'x-ms-client-request-id': '185fc468-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:29 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '189a6fdc-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2df7-301e-0077-793b-690901000000'
+    'x-ms-client-request-id': '189a6fdc-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:29 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '18d69e6c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2e8d-301e-0077-043b-690901000000'
+    'x-ms-client-request-id': '18d69e6c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:30 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1916ad40-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa2f74-301e-0077-283b-690901000000'
+    'x-ms-client-request-id': '1916ad40-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:30 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1957b416-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa301b-301e-0077-453b-690901000000'
+    'x-ms-client-request-id': '1957b416-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:31 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '199a5d52-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa3105-301e-0077-263b-690901000000'
+    'x-ms-client-request-id': '199a5d52-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:31 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '19d7e050-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa31ad-301e-0077-493b-690901000000'
+    'x-ms-client-request-id': '19d7e050-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:31 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1a1aba38-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa32eb-301e-0077-7e3b-690901000000'
+    'x-ms-client-request-id': '1a1aba38-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:32 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1a61f4b6-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa33ff-301e-0077-033b-690901000000'
+    'x-ms-client-request-id': '1a61f4b6-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:32 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1aa2a6dc-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa35b9-301e-0077-243b-690901000000'
+    'x-ms-client-request-id': '1aa2a6dc-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:33 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1adcd5d2-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa3730-301e-0077-083b-690901000000'
+    'x-ms-client-request-id': '1adcd5d2-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:33 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1b1bba7c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa39ba-301e-0077-723b-690901000000'
+    'x-ms-client-request-id': '1b1bba7c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:34 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1b7e13b6-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa4003-301e-0077-603b-690901000000'
+    'x-ms-client-request-id': '1b7e13b6-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:34 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '4194304'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1bbfecaa-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa455b-301e-0077-783b-690901000000'
+    'x-ms-client-request-id': '1bbfecaa-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:35 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED&blockid=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '3164193'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1c090066-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa4921-301e-0077-1b3b-690901000000'
+    'x-ms-client-request-id': '1c090066-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:35 GMT'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json?comp=REDACTED'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '2330'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/xml'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1c54f87c-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Last-Modified': 'Tue, 09 Dec 2025 18:44:36 GMT'
+    'ETag': '"0x8DE3753006BBFA5"'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa4d83-301e-0077-5c3b-690901000000'
+    'x-ms-client-request-id': '1c54f87c-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:35 GMT'
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/test/long_11_to_20_turns.json (116,410,401 bytes)
+Uploading: 100%|██████████| 3/3 [00:41<00:00, 14.42s/it]Uploading: 100%|██████████| 3/3 [00:41<00:00, 13.71s/it]
+
+Uploading metadata...
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/metadata.json'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '2968'
+    'x-ms-blob-type': 'REDACTED'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1c8080a0-d52f-11f0-b5c7-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Content-MD5': 'REDACTED'
+    'Last-Modified': 'Tue, 09 Dec 2025 18:44:36 GMT'
+    'ETag': '"0x8DE375300992020"'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '42fa5086-301e-0077-483b-690901000000'
+    'x-ms-client-request-id': '1c8080a0-d52f-11f0-b5c7-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:36 GMT'
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/metadata.json (2,968 bytes)
+
+======================================================================
+EXPORT COMPLETE
+======================================================================
+Total records: 10,000
+Location: https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/
+
+Structure:
+  test/ (10,000 records)
+    └── short_3_to_5_turns.json (4,000)
+    └── medium_6_to_10_turns.json (4,000)
+    └── long_11_to_20_turns.json (2,000)
+  metadata.json

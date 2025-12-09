@@ -1,0 +1,366 @@
+// =============================================================================
+// SFT 120K PRODUCTION QUERY WITH TRAIN/VAL/TEST SPLITS
+// =============================================================================
+// PURPOSE: Extract 120,000 complete conversations for SFT training
+//          Split into mutually exclusive Train/Val/Test sets
+//
+// SPLIT SIZES:
+// - Train: 100,000 conversations (40k short + 40k medium + 20k long)
+// - Val:    10,000 conversations (4k short + 4k medium + 2k long)
+// - Test:   10,000 conversations (4k short + 4k medium + 2k long)
+// - TOTAL: 120,000 conversations
+//
+// MUTUAL EXCLUSIVITY:
+// Uses hash(conversationId) % 100 for deterministic, reproducible splits:
+// - hash % 100 < 83  → Train (~83%)
+// - hash % 100 < 92  → Val   (~9%)
+// - hash % 100 >= 92 → Test  (~8%)
+//
+// PARAMETERS:
+// - Time window: ago(60d) to now()
+// - Sample sizes per split:
+//   - Train: 40k / 40k / 20k (100k total)
+//   - Val:   4k / 4k / 2k (10k total)
+//   - Test:  4k / 4k / 2k (10k total)
+//
+// OUTPUT DESTINATION:
+// Azure Blob: github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/
+//   └── vscodedata_120k_complete_stratified_deduped_60d_YYYYMMDD/
+//       ├── train/
+//       │   ├── short_3_to_5_turns.json   (40k)
+//       │   ├── medium_6_to_10_turns.json (40k)
+//       │   └── long_11_to_20_turns.json  (20k)
+//       ├── val/
+//       │   ├── short_3_to_5_turns.json   (4k)
+//       │   ├── medium_6_to_10_turns.json (4k)
+//       │   └── long_11_to_20_turns.json  (2k)
+//       ├── test/
+//       │   ├── short_3_to_5_turns.json   (4k)
+//       │   ├── medium_6_to_10_turns.json (4k)
+//       │   └── long_11_to_20_turns.json  (2k)
+//       └── metadata.json
+//
+// ⚠️ NOTE: Run this query 3 times, uncommenting ONE split at a time in STEP 7
+// =============================================================================
+
+let timeStart = ago(60d);
+let timeEnd = now();
+
+// BUCKET CONFIGURATION
+let bucket_short_min = 3;   let bucket_short_max = 5;
+let bucket_medium_min = 6;  let bucket_medium_max = 10;
+let bucket_long_min = 11;   let bucket_long_max = 20;
+
+// SAMPLE SIZES BY SPLIT
+// Train (80%): 32k + 32k + 16k = 80k
+// Val (10%):   4k + 4k + 2k = 10k
+// Test (10%):  4k + 4k + 2k = 10k
+
+// =============================================================================
+// STEP 1: Get deduplicated conversation messages
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction)
+// =============================================================================
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend totalTokens = toint(Measurements["totalTokens"])
+    // NOTE: maxTokenWindow doesn't exist in this cluster's Measurements
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, totalTokens
+    | order by messageId, TimeGenerated asc;
+
+let tokenEvents = 
+    tokenEventsRaw
+    | serialize 
+    | extend callIndex = row_number(1, prev(messageId) != messageId)
+    | project messageId, callIndex, model, promptTokens, completionTokens, totalTokens;
+
+// =============================================================================
+// STEP 2.5: Get TRAJECTORY data (INPUT direction with messagesJson)
+// ⚠️ WARNING: This step can cause OOM with large time windows. 
+//    If OOM occurs, reduce timeStart or use the LITE version.
+// =============================================================================
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc
+    | serialize
+    | extend callIndex = row_number(1, prev(messageId) != messageId);
+
+// Parse messagesJson to extract token breakdown by role
+let trajectoryParsed = 
+    trajectoryEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// Join OUTPUT with INPUT on (messageId, callIndex)
+let tokenDataWithTrajectory = 
+    tokenEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+    | extend hasTrajectory = trajectoryTotal > 0;
+
+let tokenData = 
+    tokenDataWithTrajectory
+    | summarize 
+        llmCalls = make_list(pack(
+            "callIndex", callIndex,
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "totalTokens", totalTokens,
+            "model", model,
+            // Trajectory breakdown (Copilot estimates)
+            // NOTE: systemTokens = system prompt + tool definitions (bundled together)
+            "systemTokens", systemTokens,        // CONSTANT within turn
+            "userTokens", userTokens,            // CONSTANT within turn  
+            "assistantTokens", assistantTokens,  // GROWS within turn
+            "toolResultTokens", toolResultTokens, // GROWS within turn
+            "trajectoryTotal", trajectoryTotal,
+            "hasTrajectory", hasTrajectory
+        )),
+        turnMaxPromptTokens = max(promptTokens),
+        turnTotalCompletionTokens = sum(completionTokens),
+        turnHasTrajectory = max(toint(hasTrajectory)) > 0
+        by messageId;
+
+// =============================================================================
+// STEP 3: Get tool metadata (including availableTools)
+// =============================================================================
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend availableTools = tostring(Properties["availableTools"])  // JSON array of tool names
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | extend availableToolCount = toint(Measurements["availableToolCount"])
+    | where responseType == "success"
+    | project messageId, toolCounts, availableTools, availableToolCount, turnIndex, numRequests, turnDuration;
+
+// =============================================================================
+// STEP 4: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | extend availableTools = coalesce(availableTools, "[]")
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnSummary = pack(
+            "maxPromptTokens", turnMaxPromptTokens,
+            "totalCompletionTokens", turnTotalCompletionTokens,
+            "llmCallCount", array_length(llmCalls),
+            "hasTrajectory", turnHasTrajectory
+        ),
+        toolCounts,
+        availableTools,
+        availableToolCount,
+        numRequests,
+        turnDurationMs = turnDuration;
+
+// =============================================================================
+// STEP 5: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "availableTools", availableTools,
+            "availableToolCount", availableToolCount,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    )
+    // COMPLETENESS CHECK
+    | where minTurnIndex == 1
+    | where capturedTurnCount == maxTurnIndex
+    // Assign bucket
+    | extend bucket = case(
+        capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
+            strcat("short_", bucket_short_min, "_to_", bucket_short_max, "_turns"),
+        capturedTurnCount >= bucket_medium_min and capturedTurnCount <= bucket_medium_max, 
+            strcat("medium_", bucket_medium_min, "_to_", bucket_medium_max, "_turns"),
+        capturedTurnCount >= bucket_long_min and capturedTurnCount <= bucket_long_max, 
+            strcat("long_", bucket_long_min, "_to_", bucket_long_max, "_turns"),
+        "excluded"
+    )
+    | where bucket != "excluded"
+    // ASSIGN SPLIT using hash for deterministic, reproducible partitioning
+    // Train: 100k, Val: 10k, Test: 10k → Total 120k
+    // Ratio: 83% / 9% / 8%
+    | extend splitHash = hash(conversationId) % 100
+    | extend split = case(
+        splitHash < 83, "train",   // 0-82 → Train (83%)
+        splitHash < 92, "val",     // 83-91 → Val (9%)
+        "test"                      // 92-99 → Test (8%)
+    );
+
+// =============================================================================
+// STEP 6: Sample from each bucket BY SPLIT
+// =============================================================================
+
+// ===================== TRAIN SPLIT (100k total) =====================
+let trainShort = conversations | where split == "train" and bucket contains "short" | sample 40000;
+let trainMedium = conversations | where split == "train" and bucket contains "medium" | sample 40000;
+let trainLong = conversations | where split == "train" and bucket contains "long" | sample 20000;
+
+// ===================== VAL SPLIT (10k total) =====================
+let valShort = conversations | where split == "val" and bucket contains "short" | sample 4000;
+let valMedium = conversations | where split == "val" and bucket contains "medium" | sample 4000;
+let valLong = conversations | where split == "val" and bucket contains "long" | sample 2000;
+
+// ===================== TEST SPLIT (10k total) =====================
+let testShort = conversations | where split == "test" and bucket contains "short" | sample 4000;
+let testMedium = conversations | where split == "test" and bucket contains "medium" | sample 4000;
+let testLong = conversations | where split == "test" and bucket contains "long" | sample 2000;
+
+// =============================================================================
+// STEP 7: Output - UNCOMMENT ONE SECTION AT A TIME
+// =============================================================================
+
+// ===================== UNCOMMENT FOR TRAIN =====================
+union trainShort, trainMedium, trainLong
+| project 
+    conversationId, userName, bucket, split,
+    capturedTurnCount, minTurnIndex, maxTurnIndex,
+    isComplete = true, turns = turnsArray
+| order by bucket asc, capturedTurnCount asc
+
+// ===================== UNCOMMENT FOR VAL =====================
+// union valShort, valMedium, valLong
+// | project 
+//     conversationId, userName, bucket, split,
+//     capturedTurnCount, minTurnIndex, maxTurnIndex,
+//     isComplete = true, turns = turnsArray
+// | order by bucket asc, capturedTurnCount asc
+
+// ===================== UNCOMMENT FOR TEST =====================
+// union testShort, testMedium, testLong
+// | project 
+//     conversationId, userName, bucket, split,
+//     capturedTurnCount, minTurnIndex, maxTurnIndex,
+//     isComplete = true, turns = turnsArray
+// | order by bucket asc, capturedTurnCount asc
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// 
+// TRAIN (100k total):
+// - short_3_to_5_turns:   ~40,000 records
+// - medium_6_to_10_turns: ~40,000 records
+// - long_11_to_20_turns:  ~20,000 records
+//
+// VAL (10k total):
+// - short_3_to_5_turns:   ~4,000 records
+// - medium_6_to_10_turns: ~4,000 records
+// - long_11_to_20_turns:  ~2,000 records
+//
+// TEST (10k total):
+// - short_3_to_5_turns:   ~4,000 records
+// - medium_6_to_10_turns: ~4,000 records
+// - long_11_to_20_turns:  ~2,000 records
+//
+// GRAND TOTAL: 120,000 records
+//
+// FIELDS PER llmCall:
+// - promptTokens, completionTokens, totalTokens (actual API tokens)
+// - systemTokens (system prompt + tool definitions bundled) - Copilot estimate
+// - userTokens - Copilot estimate (CONSTANT within turn)
+// - assistantTokens - Copilot estimate (GROWS within turn)
+// - toolResultTokens - Copilot estimate (GROWS within turn)
+// - trajectoryTotal - Copilot estimate
+// - hasTrajectory (true if trajectory data was captured)
+//
+// FIELDS PER turn:
+// - availableTools (JSON array) - CAN CHANGE between turns
+// - availableToolCount
+// - toolCounts (tools actually invoked in this turn)
+//
+// NOTE: maxTokenWindow is NOT available in this cluster's telemetry
+// =============================================================================
+

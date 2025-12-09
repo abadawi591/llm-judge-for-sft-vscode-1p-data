@@ -1,0 +1,278 @@
+// =============================================================================
+// SFT 100K PRODUCTION QUERY
+// =============================================================================
+// PURPOSE: Extract 100,000 complete conversations for SFT training
+//
+// PARAMETERS:
+// - Time window: ago(60d) to now()
+// - Sample sizes: 40k / 40k / 20k (100k total)
+//
+// DATA QUALITY:
+// ✅ Complete conversations only (minTurnIndex=1, no gaps)
+// ✅ Deduplicated by (conversationId, messageId, source)
+// ✅ Agent mode only
+// ✅ Stratified sampling across turn counts
+//
+// OUTPUT DESTINATION:
+// Azure Blob: github-copilot-sft-data-all-languages
+// Path: experiments/testvscode_test/v4/vscodedata_100k_complete_stratified_deduped_60d_YYYYMMDD/
+//
+// ⚠️ MEMORY WARNING:
+// This query may hit E_LOW_MEMORY_CONDITION in ADX Web UI.
+// Run via Databricks notebook instead (see notebooks/export_sft_to_blob.py)
+//
+// KUSTO CLUSTER:
+// https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/
+// resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsights/workspaces/
+// d0c05057-7972-46ff-9bcf-3c932250155e-CopilotChatEval-EUS2
+// =============================================================================
+
+let timeStart = ago(60d);
+let timeEnd = now();
+
+// PRODUCTION BUCKET SIZES (100k total)
+let bucket_short_min = 3;   let bucket_short_max = 5;   let bucket_short_sample = 40000;
+let bucket_medium_min = 6;  let bucket_medium_max = 10; let bucket_medium_sample = 40000;
+let bucket_long_min = 11;   let bucket_long_max = 20;   let bucket_long_sample = 20000;
+
+// =============================================================================
+// STEP 1: Get deduplicated conversation messages
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user" 
+    | project conversationId, messageId, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction) with callIndex
+// =============================================================================
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend model = tostring(Properties["baseModel"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, maxTokenWindow
+    | order by messageId, TimeGenerated asc;
+
+let tokenEvents = 
+    tokenEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+// =============================================================================
+// STEP 3: Get trajectory (INPUT direction) with callIndex
+// =============================================================================
+let trajectoryEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | where strlen(messagesJsonStr) < 500000  // OOM protection
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc;
+
+let trajectoryEvents = 
+    trajectoryEventsRaw
+    | extend callIndex = row_number(1, messageId != prev(messageId));
+
+let trajectoryParsed = 
+    trajectoryEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
+    | summarize 
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// =============================================================================
+// STEP 4: Join OUTPUT with INPUT
+// =============================================================================
+let tokenDataWithTrajectory = 
+    tokenEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+    | extend hasTrajectory = trajectoryTotal > 0
+    | extend exceededWindow = trajectoryTotal > maxTokenWindow;
+
+let tokenData = 
+    tokenDataWithTrajectory
+    | summarize 
+        llmCalls = make_list(pack(
+            "callIndex", callIndex,
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "model", model,
+            "maxTokenWindow", maxTokenWindow,
+            "systemTokens", systemTokens,
+            "userTokens", userTokens,
+            "assistantTokens", assistantTokens,
+            "toolResultTokens", toolResultTokens,
+            "trajectoryTotal", trajectoryTotal,
+            "hasTrajectory", hasTrajectory,
+            "exceededWindow", exceededWindow
+        )),
+        turnMaxPromptTokens = max(promptTokens),
+        turnMaxTrajectoryTotal = max(trajectoryTotal),
+        turnMaxTokenWindow = max(maxTokenWindow),
+        turnHasTruncation = max(toint(exceededWindow)) > 0,
+        turnHasTrajectory = max(toint(hasTrajectory)) > 0
+        by messageId;
+
+// =============================================================================
+// STEP 5: Get tool metadata
+// =============================================================================
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | where responseType == "success"
+    | project messageId, toolCounts, turnIndex, numRequests, turnDuration;
+
+// =============================================================================
+// STEP 6: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=inner tokenData on messageId
+    | join kind=inner toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnSummary = pack(
+            "maxPromptTokens", turnMaxPromptTokens,
+            "maxTrajectoryTotal", turnMaxTrajectoryTotal,
+            "maxTokenWindow", turnMaxTokenWindow,
+            "hasTruncation", turnHasTruncation,
+            "hasTrajectory", turnHasTrajectory,
+            "llmCallCount", array_length(llmCalls)
+        ),
+        toolCounts,
+        numRequests,
+        turnDurationMs = turnDuration;
+
+// =============================================================================
+// STEP 7: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    )
+    // COMPLETENESS CHECK
+    | where minTurnIndex == 1
+    | where capturedTurnCount == maxTurnIndex
+    // Assign bucket
+    | extend bucket = case(
+        capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
+            strcat("short_", bucket_short_min, "_to_", bucket_short_max, "_turns"),
+        capturedTurnCount >= bucket_medium_min and capturedTurnCount <= bucket_medium_max, 
+            strcat("medium_", bucket_medium_min, "_to_", bucket_medium_max, "_turns"),
+        capturedTurnCount >= bucket_long_min and capturedTurnCount <= bucket_long_max, 
+            strcat("long_", bucket_long_min, "_to_", bucket_long_max, "_turns"),
+        "excluded"
+    )
+    | where bucket != "excluded";
+
+// =============================================================================
+// STEP 8: Sample from each bucket (PRODUCTION SIZES)
+// =============================================================================
+let shortConvos = conversations | where bucket contains "short" | sample bucket_short_sample;
+let mediumConvos = conversations | where bucket contains "medium" | sample bucket_medium_sample;
+let longConvos = conversations | where bucket contains "long" | sample bucket_long_sample;
+
+// =============================================================================
+// STEP 9: Output
+// =============================================================================
+union shortConvos, mediumConvos, longConvos
+| project 
+    conversationId, 
+    userName, 
+    bucket,
+    capturedTurnCount,
+    minTurnIndex,
+    maxTurnIndex,
+    isComplete = true,
+    turns = turnsArray
+| order by bucket asc, capturedTurnCount asc
+
+// =============================================================================
+// EXPECTED OUTPUT:
+// - short_3_to_5_turns:   ~40,000 records
+// - medium_6_to_10_turns: ~40,000 records
+// - long_11_to_20_turns:  ~20,000 records
+// - TOTAL:               ~100,000 records
+// =============================================================================
+

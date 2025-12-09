@@ -1,0 +1,90 @@
+Checking Azure authentication...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Azure authentication OK
+⚠️  Chunking DISABLED - running single full-window query
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train']
+
+Reading query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Connecting to Blob Storage...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+
+======================================================================
+SPLIT 1/1: TRAIN
+======================================================================
+Executing Kusto query (16256 chars)...
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+
+⚠️  Query failed (attempt 1/5)
+   Error: Failed to process network request for the endpoint: https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsight...
+   Retrying in 30s with jitter...
+Executing Kusto query (16256 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+
+⚠️  Query failed (attempt 2/5)
+   Error: Failed to process network request for the endpoint: https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsight...
+   Retrying in 30s with jitter...
+Executing Kusto query (16256 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+
+⚠️  Query failed (attempt 3/5)
+   Error: Failed to process network request for the endpoint: https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsight...
+   Retrying in 30s with jitter...
+Executing Kusto query (16256 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 0 records in 604.2s
+
+✅ TRAIN complete: 0 records
+
+======================================================================
+DATA SUMMARY
+======================================================================
+
+TRAIN:
+  short_3_to_5_turns: 0 records
+  medium_6_to_10_turns: 0 records
+  long_11_to_20_turns: 0 records
+
+======================================================================
+VALIDATING DATA
+======================================================================
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:725: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  # =============================================================================
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:962: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  intersection = split_conversation_ids[split1] & split_conversation_ids[split2]
+
+======================================================================
+DRY RUN - SKIPPING BLOB UPLOAD
+======================================================================
+✅ Query succeeded! Would upload to: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/
+
+This test shows OOM is NOT a problem for the full query.
+Re-run without --dry-run to actually upload data.
+
+======================================================================
+DRY RUN COMPLETE
+======================================================================
+Total records fetched: 0
+  train: 0 records

@@ -1,0 +1,45 @@
+Checking Azure authentication...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train']
+
+Reading query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Connecting to Blob Storage...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Method: HASH-BASED CHUNKING (Recommended)
+  ✅ Guarantees: Each conversation fully in ONE chunk
+  ✅ Guarantees: Conversation completeness preserved
+Strategy: Gather ALL candidates via hash chunks, then stratified sample in Python
+
+Reading hash-chunked query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_hash_chunked.kql
+
+🔀 HASH-BASED CHUNKING: Splitting by hash(conversationId) % 20
+   ✅ Guarantees: Each conversation fully in ONE chunk
+   ✅ Guarantees: Conversation completeness preserved
+Processing hash chunks:   0%|          | 0/20 [00:00<?, ?chunk/s]Executing Kusto query (7490 chars)...
+⏱️  Query running... 0s elapsedINFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed

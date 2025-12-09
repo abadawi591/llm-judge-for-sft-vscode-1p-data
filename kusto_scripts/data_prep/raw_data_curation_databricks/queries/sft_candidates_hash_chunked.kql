@@ -1,0 +1,181 @@
+// =============================================================================
+// SFT CANDIDATES - HASH-BASED CHUNKING (NO SAMPLING)
+// =============================================================================
+// 
+// PURPOSE: Fetch ALL conversation candidates using hash-based chunking.
+//          Guarantees conversation completeness by ensuring each conversation
+//          is fully contained in exactly ONE chunk.
+//
+// CHUNKING: hash(conversationId) % {NUM_CHUNKS} == {CHUNK_NUM}
+//           Replace {NUM_CHUNKS} and {CHUNK_NUM} in Python before execution.
+//
+// OUTPUT: All complete conversations matching criteria (no sampling).
+//         Sampling is done in Python after aggregating all chunks.
+//
+// =============================================================================
+
+let timeStart = ago(60d);
+let timeEnd = now();
+
+// Hash-based chunking parameters (replaced by Python)
+let numChunks = {NUM_CHUNKS};  // Total number of chunks (e.g., 20)
+let chunkNum = {CHUNK_NUM};    // Current chunk (0 to numChunks-1)
+
+// BUCKET CONFIGURATION
+let bucket_short_min = 3;
+let bucket_short_max = 5;
+let bucket_medium_min = 6;
+let bucket_medium_max = 10;
+let bucket_long_min = 11;
+let bucket_long_max = 20;
+
+// =============================================================================
+// STEP 1: Get raw conversation messages WITH HASH FILTER
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    // HASH-BASED CHUNKING: ensures entire conversation in one chunk
+    | where hash(conversationId) % numChunks == chunkNum
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+// Compute turnIndex using row_number() on user messages
+let userMsgs = dedupedByMessageId 
+    | where source == "user"
+    | summarize turnIndex = count() by conversationId, messageId, messageText, userName
+    | order by conversationId asc, messageId asc
+    | serialize
+    | extend turnIndex = row_number(1, prev(conversationId) != conversationId)
+    | project conversationId, messageId, turnIndex, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction - actual API tokens)
+// =============================================================================
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend conversationId = tostring(Properties["conversationId"])
+    // Apply hash filter to token events too
+    | where isnotempty(conversationId) and hash(conversationId) % numChunks == chunkNum
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "OUTPUT"
+    | extend model = tostring(Properties["model"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend totalTokens = toint(Measurements["totalTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, totalTokens
+    | order by messageId, TimeGenerated asc;
+
+let tokenEvents = 
+    tokenEventsRaw
+    | serialize
+    | extend callIndex = row_number(1, prev(messageId) != messageId);
+
+// Aggregate token events to turn level
+let tokenData = 
+    tokenEvents
+    | summarize 
+        turnMaxPromptTokens = max(promptTokens),
+        turnTotalCompletionTokens = sum(completionTokens),
+        llmCalls = make_list(pack(
+            "callIndex", callIndex,
+            "model", model,
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "totalTokens", totalTokens
+        ))
+        by messageId;
+
+// =============================================================================
+// STEP 3: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=leftouter tokenData on messageId
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls = coalesce(llmCalls, dynamic([])),
+        turnMaxPromptTokens = coalesce(turnMaxPromptTokens, 0),
+        turnTotalCompletionTokens = coalesce(turnTotalCompletionTokens, 0);
+
+// =============================================================================
+// STEP 4: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        totalPromptTokens = sum(turnMaxPromptTokens),
+        totalCompletionTokens = sum(turnTotalCompletionTokens),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "promptTokens", turnMaxPromptTokens,
+            "completionTokens", turnTotalCompletionTokens
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    )
+    // COMPLETENESS CHECK
+    | where minTurnIndex == 1
+    | where capturedTurnCount == maxTurnIndex
+    // Assign bucket
+    | extend bucket = case(
+        capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
+            "short_3_to_5_turns",
+        capturedTurnCount >= bucket_medium_min and capturedTurnCount <= bucket_medium_max, 
+            "medium_6_to_10_turns",
+        capturedTurnCount >= bucket_long_min and capturedTurnCount <= bucket_long_max, 
+            "long_11_to_20_turns",
+        "excluded"
+    )
+    | where bucket != "excluded";
+
+// =============================================================================
+// RETURN ALL CANDIDATES (NO SAMPLING - done in Python)
+// =============================================================================
+conversations
+| project 
+    conversationId,
+    userName,
+    bucket,
+    turnCount = capturedTurnCount,
+    totalPromptTokens,
+    totalCompletionTokens,
+    turnsArray

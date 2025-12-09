@@ -1,0 +1,266 @@
+Checking Azure authentication...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['val']
+
+Reading query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Connecting to Blob Storage...
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Strategy: Gather ALL candidates via chunks, then stratified sample in Python
+
+Reading candidates query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_no_sampling.kql
+
+Gathering candidates (60 days / 2 day chunks)...
+
+🔀 CHUNKING ENABLED: Splitting 60 days into 30 chunks of 2 days each
+Processing chunks:   0%|          | 0/30 [00:00<?, ?chunk/s]Executing Kusto query (8608 chars)...
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1714 records in 99.6s
+Processing chunks:   3%|▎         | 1/30 [01:42<49:45, 102.95s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1597 records in 150.9s
+Processing chunks:   7%|▋         | 2/30 [04:17<1:02:05, 133.04s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+
+⚠️  Query failed (attempt 1/5)
+   Error: Failed to process network request for the endpoint: https://ade.loganalytics.io/subscriptions/d0c05057-7972-46ff-9bcf-3c932250155e/resourceGroups/CopilotChatEval/providers/Microsoft.OperationalInsight...
+   Retrying in 30s with jitter...
+Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1739 records in 91.4s
+Processing chunks:  10%|█         | 3/30 [21:02<3:59:06, 531.35s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1533 records in 87.3s
+Processing chunks:  13%|█▎        | 4/30 [22:32<2:34:49, 357.28s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1762 records in 66.8s
+Processing chunks:  17%|█▋        | 5/30 [23:43<1:45:44, 253.76s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1726 records in 155.1s
+Processing chunks:  20%|██        | 6/30 [26:21<1:28:32, 221.37s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1766 records in 118.9s
+Processing chunks:  23%|██▎       | 7/30 [28:23<1:12:24, 188.90s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1774 records in 88.4s
+Processing chunks:  27%|██▋       | 8/30 [29:55<57:57, 158.08s/chunk]  Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1657 records in 97.1s
+Processing chunks:  30%|███       | 9/30 [31:36<49:00, 140.04s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1784 records in 105.9s
+Processing chunks:  33%|███▎      | 10/30 [33:25<43:29, 130.49s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1625 records in 92.9s
+Processing chunks:  37%|███▋      | 11/30 [35:02<38:04, 120.22s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1706 records in 73.6s
+Processing chunks:  40%|████      | 12/30 [36:18<32:06, 107.02s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1778 records in 106.7s
+Processing chunks:  43%|████▎     | 13/30 [38:08<30:34, 107.90s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1818 records in 160.8s
+Processing chunks:  47%|████▋     | 14/30 [40:53<33:18, 124.90s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1758 records in 213.6s
+Processing chunks:  50%|█████     | 15/30 [44:29<38:09, 152.61s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1749 records in 410.2s
+Processing chunks:  53%|█████▎    | 16/30 [51:23<53:55, 231.10s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1874 records in 541.6s
+Processing chunks:  57%|█████▋    | 17/30 [1:00:28<1:10:33, 325.66s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1685 records in 364.1s
+Processing chunks:  60%|██████    | 18/30 [1:06:36<1:07:37, 338.15s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1621 records in 59.5s
+Processing chunks:  63%|██████▎   | 19/30 [1:07:38<46:49, 255.43s/chunk]  Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1878 records in 145.2s
+Processing chunks:  67%|██████▋   | 20/30 [1:10:07<37:13, 223.40s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1864 records in 220.3s
+Processing chunks:  70%|███████   | 21/30 [1:13:51<33:30, 223.43s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1862 records in 56.5s
+Processing chunks:  73%|███████▎  | 22/30 [1:14:50<23:14, 174.30s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1749 records in 191.6s
+Processing chunks:  77%|███████▋  | 23/30 [1:18:07<21:08, 181.16s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1843 records in 85.6s
+Processing chunks:  80%|████████  | 24/30 [1:19:36<15:20, 153.43s/chunk]Executing Kusto query (8608 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1861 records in 119.6s
+Processing chunks:  83%|████████▎ | 25/30 [1:21:39<12:01, 144.38s/chunk]Executing Kusto query (8607 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1718 records in 62.6s
+Processing chunks:  87%|████████▋ | 26/30 [1:22:45<08:03, 120.89s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1922 records in 91.6s
+Processing chunks:  90%|█████████ | 27/30 [1:24:20<05:39, 113.05s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1934 records in 99.6s
+Processing chunks:  93%|█████████▎| 28/30 [1:26:04<03:40, 110.23s/chunk]Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1808 records in 54.7s
+Processing chunks:  97%|█████████▋| 29/30 [1:27:02<01:34, 94.54s/chunk] Executing Kusto query (8606 chars)...
+INFO:azure.identity._internal.decorators:AzureCliCredential.get_token succeeded
+INFO:azure.identity._credentials.default:DefaultAzureCredential acquired a token from AzureCliCredential
+Query returned 1856 records in 87.5s
+Processing chunks: 100%|██████████| 30/30 [1:28:30<00:00, 92.51s/chunk]Processing chunks: 100%|██████████| 30/30 [1:28:30<00:00, 177.00s/chunk]
+
+✅ All 30 chunks processed. Total records: 52,961
+
+📊 Total candidates gathered: 52,961
+
+📊 Candidate counts BEFORE sampling:
+  train: {'short': 0, 'medium': 0, 'long': 10770}
+  val: {'short': 0, 'medium': 0, 'long': 0}
+  test: {'short': 21585, 'medium': 12930, 'long': 7676}
+
+🎲 Stratified sampling...
+  ⚠️ train/short: Only 0 available (wanted 40000)
+  train/short: 0 sampled from 0
+  ⚠️ train/medium: Only 0 available (wanted 40000)
+  train/medium: 0 sampled from 0
+  ⚠️ train/long: Only 10770 available (wanted 20000)
+  train/long: 10,770 sampled from 10,770
+  ⚠️ val/short: Only 0 available (wanted 4000)
+  val/short: 0 sampled from 0
+  ⚠️ val/medium: Only 0 available (wanted 4000)
+  val/medium: 0 sampled from 0
+  ⚠️ val/long: Only 0 available (wanted 2000)
+  val/long: 0 sampled from 0
+  test/short: 4,000 sampled from 21,585
+  test/medium: 4,000 sampled from 12,930
+  test/long: 2,000 sampled from 7,676
+
+======================================================================
+DATA SUMMARY
+======================================================================
+
+VAL:
+  short_3_to_5_turns: 0 records
+  medium_6_to_10_turns: 0 records
+  long_11_to_20_turns: 0 records
+
+======================================================================
+VALIDATING DATA
+======================================================================
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:725: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  # =============================================================================
+/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:961: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  for split2 in splits[i+1:]:
+
+======================================================================
+UPLOADING TO BLOB STORAGE
+======================================================================
+Container: github-copilot-sft-data-all-languages
+Path: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/
+
+Uploading 0 files...
+Uploading: 0it [00:00, ?it/s]Uploading: 0it [00:00, ?it/s]
+
+Uploading metadata...
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/metadata.json'
+Request method: 'PUT'
+Request headers:
+    'Content-Length': '2951'
+    'x-ms-blob-type': 'REDACTED'
+    'x-ms-version': 'REDACTED'
+    'Content-Type': 'application/octet-stream'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.27.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1b8b682c-d52f-11f0-8910-00155d39c707'
+    'Authorization': 'REDACTED'
+A body is sent with the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
+Response headers:
+    'Content-Length': '0'
+    'Content-MD5': 'REDACTED'
+    'Last-Modified': 'Tue, 09 Dec 2025 18:44:38 GMT'
+    'ETag': '"0x8DE37530186DB84"'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '57675a12-a01e-0075-413b-69b7b9000000'
+    'x-ms-client-request-id': '1b8b682c-d52f-11f0-8910-00155d39c707'
+    'x-ms-version': 'REDACTED'
+    'x-ms-content-crc64': 'REDACTED'
+    'x-ms-request-server-encrypted': 'REDACTED'
+    'Date': 'Tue, 09 Dec 2025 18:44:37 GMT'
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/metadata.json (2,951 bytes)
+
+======================================================================
+EXPORT COMPLETE
+======================================================================
+Total records: 0
+Location: https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251209/
+
+Structure:
+  val/ (0 records)
+    └── short_3_to_5_turns.json (0)
+    └── medium_6_to_10_turns.json (0)
+    └── long_11_to_20_turns.json (0)
+  metadata.json

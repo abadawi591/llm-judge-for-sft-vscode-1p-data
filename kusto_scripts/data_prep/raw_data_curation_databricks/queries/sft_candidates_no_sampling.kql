@@ -1,0 +1,216 @@
+// =============================================================================
+// SFT CANDIDATES QUERY - NO SAMPLING (for chunked aggregation)
+// =============================================================================
+// PURPOSE: Get ALL candidate conversations without sampling
+//          Sampling will be done in Python after aggregating all chunks
+//
+// This query returns all complete conversations with:
+// - bucket assignment (short/medium/long)
+// - split assignment (train/val/test)
+// - full turn data
+//
+// The caller should:
+// 1. Run this query in time chunks
+// 2. Aggregate all results
+// 3. Do stratified sampling in Python
+// =============================================================================
+
+let timeStart = ago(60d);
+let timeEnd = now();
+
+// BUCKET CONFIGURATION
+let bucket_short_min = 3;
+let bucket_short_max = 5;
+let bucket_medium_min = 6;
+let bucket_medium_max = 10;
+let bucket_long_min = 11;
+let bucket_long_max = 20;
+
+// =============================================================================
+// STEP 1: Get raw conversation messages
+// =============================================================================
+let rawMessages = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/conversation.messageText"
+    | extend mode = tostring(Properties["mode"])
+    | where mode == "agent"
+    | extend conversationId = tostring(Properties["conversationId"])
+    | extend messageId = tostring(Properties["messageId"])
+    | extend source = tostring(Properties["source"])
+    | extend messageText = tostring(Properties["messageText"])
+    | extend userName = tostring(Properties["common.userName"])
+    | project TimeGenerated, conversationId, messageId, source, messageText, userName;
+
+let dedupedByMessageId = 
+    rawMessages
+    | summarize arg_max(strlen(messageText), TimeGenerated, messageText, userName)
+        by conversationId, messageId, source
+    | where isnotempty(messageText);
+
+let userMsgs = dedupedByMessageId 
+    | where source == "user"
+    | summarize turnIndex = count() by conversationId, messageId, messageText, userName
+    | order by conversationId asc, messageId asc
+    | serialize
+    | extend turnIndex = row_number(1, prev(conversationId) != conversationId)
+    | project conversationId, messageId, turnIndex, userMessage = messageText, userName;
+
+let modelMsgs = dedupedByMessageId 
+    | where source == "model"
+    | summarize arg_min(TimeGenerated, messageText) by conversationId, messageId
+    | project conversationId, messageId, modelMessage = messageText;
+
+// =============================================================================
+// STEP 2: Get token data (OUTPUT direction - actual API tokens)
+// =============================================================================
+let tokenEventsRaw = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "OUTPUT"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend model = tostring(Properties["model"])
+    | extend promptTokens = toint(Measurements["promptTokens"])
+    | extend completionTokens = toint(Measurements["completionTokens"])
+    | extend totalTokens = toint(Measurements["totalTokens"])
+    | project TimeGenerated, messageId, model, promptTokens, completionTokens, totalTokens
+    | order by messageId, TimeGenerated asc;
+
+let tokenEvents = 
+    tokenEventsRaw
+    | serialize
+    | extend callIndex = row_number(1, prev(messageId) != messageId);
+
+// =============================================================================
+// STEP 3: Get tool call data
+// =============================================================================
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend toolName = tostring(Properties["toolName"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | extend availableTools = tostring(Properties["availableTools"])
+    | extend availableToolCount = toint(Measurements["availableToolCount"])
+    | summarize 
+        toolCounts = make_bag(pack(toolName, 1)),
+        numRequests = sum(numRequests),
+        turnDuration = max(turnDuration),
+        availableTools = take_any(availableTools),
+        availableToolCount = max(availableToolCount)
+        by messageId;
+
+// Aggregate token events to turn level
+let tokenData = 
+    tokenEvents
+    | summarize 
+        turnMaxPromptTokens = max(promptTokens),
+        turnTotalCompletionTokens = sum(completionTokens),
+        llmCalls = make_list(pack(
+            "callIndex", callIndex,
+            "model", model,
+            "promptTokens", promptTokens,
+            "completionTokens", completionTokens,
+            "totalTokens", totalTokens
+        )),
+        turnHasTrajectory = false  // Simplified for chunking
+        by messageId;
+
+// =============================================================================
+// STEP 4: Build turns
+// =============================================================================
+let turns = 
+    userMsgs
+    | join kind=inner modelMsgs on conversationId, messageId
+    | join kind=leftouter tokenData on messageId
+    | join kind=leftouter toolData on messageId
+    | project-away conversationId1, messageId1, messageId2, messageId3
+    | extend availableTools = coalesce(availableTools, "[]")
+    | project 
+        conversationId,
+        userName,
+        turnIndex,
+        messageId,
+        userMessage,
+        modelMessage,
+        llmCalls,
+        turnSummary = pack(
+            "maxPromptTokens", turnMaxPromptTokens,
+            "totalCompletionTokens", turnTotalCompletionTokens,
+            "llmCallCount", array_length(llmCalls),
+            "hasTrajectory", turnHasTrajectory
+        ),
+        toolCounts,
+        availableTools,
+        availableToolCount,
+        numRequests,
+        turnDurationMs = turnDuration;
+
+// =============================================================================
+// STEP 5: Aggregate to conversations with completeness check
+// =============================================================================
+let conversations = 
+    turns
+    | order by conversationId asc, turnIndex asc
+    | summarize 
+        userName = take_any(userName),
+        capturedTurnCount = count(),
+        minTurnIndex = min(turnIndex),
+        maxTurnIndex = max(turnIndex),
+        turnsArray = make_list(pack(
+            "turnIndex", turnIndex,
+            "messageId", messageId,
+            "userMessage", userMessage,
+            "modelMessage", modelMessage,
+            "llmCalls", llmCalls,
+            "turnSummary", turnSummary,
+            "toolCounts", toolCounts,
+            "availableTools", availableTools,
+            "availableToolCount", availableToolCount,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
+        ))
+        by conversationId
+    | mv-apply turnsArray on (
+        order by toint(turnsArray.turnIndex) asc
+        | summarize turnsArray = make_list(turnsArray)
+    )
+    // COMPLETENESS CHECK
+    | where minTurnIndex == 1
+    | where capturedTurnCount == maxTurnIndex
+    // Assign bucket
+    | extend bucket = case(
+        capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
+            "short",
+        capturedTurnCount >= bucket_medium_min and capturedTurnCount <= bucket_medium_max, 
+            "medium",
+        capturedTurnCount >= bucket_long_min and capturedTurnCount <= bucket_long_max, 
+            "long",
+        "excluded"
+    )
+    | where bucket != "excluded"
+    // ASSIGN SPLIT using hash for deterministic, reproducible partitioning
+    | extend splitHash = hash(conversationId) % 100
+    | extend split = case(
+        splitHash < 83, "train",
+        splitHash < 92, "val",
+        "test"
+    );
+
+// =============================================================================
+// RETURN ALL CANDIDATES (NO SAMPLING - done in Python)
+// =============================================================================
+conversations
+| project 
+    conversationId,
+    userName,
+    bucket,
+    split,
+    capturedTurnCount,
+    turnsArray
+| order by split asc, bucket asc, capturedTurnCount asc
+
