@@ -14,7 +14,10 @@
 //
 // =============================================================================
 
-let timeStart = ago(60d);
+// 15 days chosen for safe buffer (Dec 2024):
+// - Provides ~335k bucketed conversations (2.8× the 120k target)
+// - All buckets have 2× or more buffer for stratified sampling
+let timeStart = ago(15d);
 let timeEnd = now();
 
 // Hash-based chunking parameters (replaced by Python)

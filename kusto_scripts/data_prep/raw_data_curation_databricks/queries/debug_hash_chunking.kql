@@ -1,0 +1,110 @@
+// DEBUG: Test hash-based chunking
+// Run each step separately to find where data is lost
+
+let timeStart = ago(7d);  // Shorter window for quick testing
+let timeEnd = now();
+let numChunks = 20;
+let chunkNum = 0;  // Test chunk 0
+
+// STEP 1: Do we have ANY agent mode messages?
+print "=== STEP 1: Total agent mode messages (7 days) ===" 
+| project Message = column1;
+
+AppEvents
+| where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| count
+
+// STEP 2: How many in chunk 0?
+// Run this SEPARATELY after step 1
+/*
+print "=== STEP 2: Messages in chunk 0 ===" 
+| project Message = column1;
+
+AppEvents
+| where TimeGenerated > ago(7d) and TimeGenerated <= now()
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| extend conversationId = tostring(Properties["conversationId"])
+| where hash(conversationId) % 20 == 0
+| count
+*/
+
+// STEP 3: Check hash distribution
+// Run this SEPARATELY
+/*
+print "=== STEP 3: Hash distribution across chunks ===" 
+| project Message = column1;
+
+AppEvents
+| where TimeGenerated > ago(7d) and TimeGenerated <= now()
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| extend conversationId = tostring(Properties["conversationId"])
+| summarize convCount = dcount(conversationId) by chunk = hash(conversationId) % 20
+| order by chunk asc
+*/
+
+// STEP 4: Check user vs model messages in chunk 0
+// Run this SEPARATELY
+/*
+print "=== STEP 4: User vs Model messages in chunk 0 ===" 
+| project Message = column1;
+
+AppEvents
+| where TimeGenerated > ago(7d) and TimeGenerated <= now()
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| extend conversationId = tostring(Properties["conversationId"])
+| where hash(conversationId) % 20 == 0
+| extend source = tostring(Properties["source"])
+| summarize count() by source
+*/
+
+// STEP 5: Check complete conversations in chunk 0
+// Run this SEPARATELY
+/*
+print "=== STEP 5: Complete conversations (minTurnIndex==1, no gaps) in chunk 0 ===" 
+| project Message = column1;
+
+let rawMessages = AppEvents
+| where TimeGenerated > ago(7d) and TimeGenerated <= now()
+| where Name == "GitHub.copilot-chat/conversation.messageText"
+| extend mode = tostring(Properties["mode"])
+| where mode == "agent"
+| extend conversationId = tostring(Properties["conversationId"])
+| where hash(conversationId) % 20 == 0
+| extend messageId = tostring(Properties["messageId"])
+| extend source = tostring(Properties["source"])
+| extend messageText = tostring(Properties["messageText"]);
+
+let userTurns = rawMessages
+| where source == "user"
+| where isnotempty(messageText)
+| summarize arg_max(strlen(messageText), messageText) by conversationId, messageId
+| order by conversationId asc, messageId asc
+| serialize
+| extend turnIndex = row_number(1, prev(conversationId) != conversationId);
+
+let convStats = userTurns
+| summarize 
+    turnCount = count(),
+    minTurn = min(turnIndex),
+    maxTurn = max(turnIndex)
+    by conversationId;
+
+convStats
+| extend isComplete = (minTurn == 1 and turnCount == maxTurn)
+| summarize 
+    totalConvos = count(),
+    completeConvos = countif(isComplete),
+    inBucket3_5 = countif(isComplete and turnCount >= 3 and turnCount <= 5),
+    inBucket6_10 = countif(isComplete and turnCount >= 6 and turnCount <= 10),
+    inBucket11_20 = countif(isComplete and turnCount >= 11 and turnCount <= 20)
+*/
+

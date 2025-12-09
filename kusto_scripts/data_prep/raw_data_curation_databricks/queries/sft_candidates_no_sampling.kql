@@ -15,7 +15,9 @@
 // 3. Do stratified sampling in Python
 // =============================================================================
 
-let timeStart = ago(60d);
+// 15 days chosen for safe buffer (Dec 2024):
+// - Provides ~335k bucketed conversations (2.8× the 120k target)
+let timeStart = ago(15d);
 let timeEnd = now();
 
 // BUCKET CONFIGURATION

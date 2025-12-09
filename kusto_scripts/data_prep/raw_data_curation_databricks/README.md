@@ -6,6 +6,27 @@
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Ensure you're logged in to Azure
+az login
+
+# 2. Run the export (ALL splits at once - recommended)
+cd ~/coreai/llm_judge
+python3 telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py
+
+# Or run in tmux for long-running export:
+tmux new-session -d -s sft_export 'cd ~/coreai/llm_judge && python3 telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py 2>&1 | tee sft_export.log; exec bash'
+tmux attach -t sft_export
+```
+
+**⚠️ Important:** Run WITHOUT `--split` flag to export all splits (train/val/test) in ONE run. This is 3× faster and puts 3× less load on the server than running splits separately.
+
+**Expected time:** ~1.5-2 hours (40 chunks × ~2-3 min each)
+
+---
+
 ## Pipeline Overview
 
 ```
@@ -20,7 +41,7 @@
 │         │                     │                    │                    │               │
 │         ▼                     ▼                    ▼                    ▼               │
 │   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐      │
-│   │ 20 Kusto     │     │ ~500K unique │     │ 120K sampled │     │ Azure Blob   │      │
+│   │ 40 Kusto     │     │ ~300K unique │     │ 120K sampled │     │ Azure Blob   │      │
 │   │ queries      │     │ conversations│     │ conversations│     │ Storage      │      │
 │   └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘      │
 │                                                                                          │
@@ -40,22 +61,23 @@
 │                           HASH-BASED CHUNKING                                            │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                          │
-│   KQL Filter: where hash(conversationId) % 20 == {chunk_num}                            │
+│   KQL Filter: where hash(conversationId) % 40 == {chunk_num}                            │
+│   Time Window: 15 days (provides ~335k convos, 2.8× the 120k target)                    │
 │                                                                                          │
 │   ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│   │  Chunk 0: hash % 20 == 0                                                        │   │
+│   │  Chunk 0: hash % 40 == 0   (~2.5% of conversations)                             │   │
 │   │  ├── Conv_A (all 7 turns) ✅                                                    │   │
 │   │  ├── Conv_F (all 3 turns) ✅                                                    │   │
 │   │  └── Conv_K (all 12 turns) ✅                                                   │   │
 │   ├─────────────────────────────────────────────────────────────────────────────────┤   │
-│   │  Chunk 1: hash % 20 == 1                                                        │   │
+│   │  Chunk 1: hash % 40 == 1                                                        │   │
 │   │  ├── Conv_B (all 5 turns) ✅                                                    │   │
 │   │  ├── Conv_G (all 9 turns) ✅                                                    │   │
 │   │  └── Conv_L (all 4 turns) ✅                                                    │   │
 │   ├─────────────────────────────────────────────────────────────────────────────────┤   │
 │   │  ...                                                                            │   │
 │   ├─────────────────────────────────────────────────────────────────────────────────┤   │
-│   │  Chunk 19: hash % 20 == 19                                                      │   │
+│   │  Chunk 39: hash % 40 == 39                                                      │   │
 │   │  └── ...                                                                        │   │
 │   └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                          │
@@ -79,9 +101,9 @@
 │                                                                                          │
 │   Chunk 0 results ─────┐                                                                │
 │   Chunk 1 results ─────┤                                                                │
-│   Chunk 2 results ─────┼───▶  [ AGGREGATE ]  ───▶  [ DEDUPLICATE ]  ───▶  500K unique  │
+│   Chunk 2 results ─────┼───▶  [ AGGREGATE ]  ───▶  [ DEDUPLICATE ]  ───▶  300K unique  │
 │   ...                  │           │                     │               conversations  │
-│   Chunk 19 results ────┘           │                     │                              │
+│   Chunk 39 results ────┘           │                     │                              │
 │                                    ▼                     ▼                              │
 │                            Combine all             Remove duplicates                    │
 │                            chunk results           by conversationId                    │
@@ -249,8 +271,17 @@ raw_data_curation_databricks/
 Key settings in `export_sft_to_blob.py`:
 
 ```python
+# Time window
+# 15 days chosen for safe buffer (Dec 2024):
+#   - 15 days yields ~335k bucketed convos total (2.8× the 120k target)
+#   - All buckets have 2× or more buffer for stratified sampling
+#   - 60 days caused server timeouts (>10 min per chunk)
+TIME_WINDOW = "ago(15d)"
+
 # Chunking
-NUM_HASH_CHUNKS = 20          # Number of hash buckets
+# 40 chunks to reduce per-chunk data size and avoid server timeouts
+# Each chunk = 2.5% of all conversations (hash % 40)
+NUM_HASH_CHUNKS = 40
 
 # Sample sizes
 SAMPLE_SIZES = {
@@ -266,6 +297,10 @@ SAMPLE_SIZES = {
 #   < 83  → train
 #   < 92  → val
 #   >= 92 → test
+
+# Timeouts
+SERVER_TIMEOUT_SECONDS = 1800  # 30 minutes per chunk
+CLIENT_TIMEOUT_SECONDS = 2100  # 35 minutes client-side
 ```
 
 ---

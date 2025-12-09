@@ -113,7 +113,8 @@ ENABLE_CHUNKING = True
 CHUNKING_METHOD = "hash"  # "hash" (recommended) or "time"
 
 # Hash-based chunking (RECOMMENDED): Guarantees conversation completeness
-NUM_HASH_CHUNKS = 20  # Number of hash buckets (20 chunks)
+# Increased to 40 chunks to reduce per-chunk data size and avoid timeouts
+NUM_HASH_CHUNKS = 40  # Number of hash buckets (40 chunks = ~2.5% data per chunk)
 HASH_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 
 # Time-based chunking (legacy): May split conversations across chunks
@@ -123,8 +124,8 @@ TIME_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 # =============================================================================
 # TIMEOUT CONFIGURATION
 # =============================================================================
-SERVER_TIMEOUT_SECONDS = 600  # 10 minutes - Kusto server-side timeout
-CLIENT_TIMEOUT_SECONDS = 900  # 15 minutes - Client-side network timeout
+SERVER_TIMEOUT_SECONDS = 1800  # 30 minutes - Kusto server-side timeout (increased for large 60d queries)
+CLIENT_TIMEOUT_SECONDS = 2100  # 35 minutes - Client-side network timeout
 
 # =============================================================================
 # CONFIGURATION
@@ -309,7 +310,16 @@ def _execute_kusto_query_inner(client, query: str, properties, show_elapsed: boo
     else:
         elapsed_str = f"{elapsed:.1f}s"
     
-    print(f"✅ Query returned {len(results):,} records in {elapsed_str}")
+    # Warn if query returned 0 results and ran close to timeout (possible timeout)
+    if len(results) == 0 and elapsed >= (SERVER_TIMEOUT_SECONDS * 0.95):
+        print(f"⚠️  Query returned 0 records in {elapsed_str} (near timeout limit of {SERVER_TIMEOUT_SECONDS}s)")
+        print(f"   This may indicate a server-side timeout. Consider:")
+        print(f"   1. Reducing time window (e.g., 30d instead of 60d)")
+        print(f"   2. Increasing NUM_HASH_CHUNKS to reduce per-chunk data")
+        print(f"   3. Increasing SERVER_TIMEOUT_SECONDS")
+    else:
+        print(f"✅ Query returned {len(results):,} records in {elapsed_str}")
+    
     return results
 
 
