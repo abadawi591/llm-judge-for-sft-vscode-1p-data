@@ -1,0 +1,80 @@
+// =============================================================================
+// DEBUG: Why is availableTools empty?
+// =============================================================================
+// The query returns availableToolCount = 75-116 but availableTools = "[]"
+// The virtualTools.toolset event has "groups" but the join isn't working
+// =============================================================================
+
+// Query 1: Check what fields are in virtualTools.toolset
+AppEvents
+| where TimeGenerated > ago(30m)
+| where Name == "GitHub.copilot-chat/virtualTools.toolset"
+| take 1
+| mv-expand bagexpansion=array Properties
+| extend propKey = tostring(Properties[0])
+| summarize count() by propKey
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Check if messageId exists in virtualTools.toolset
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(30m)
+// | where Name == "GitHub.copilot-chat/virtualTools.toolset"
+// | extend messageId = tostring(Properties["messageId"])
+// | extend hasMessageId = isnotempty(messageId)
+// | summarize 
+//     total = count(),
+//     withMessageId = countif(hasMessageId),
+//     withoutMessageId = countif(not(hasMessageId))
+
+// =============================================================================
+// Query 3: What ID fields does virtualTools.toolset have?
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(30m)
+// | where Name == "GitHub.copilot-chat/virtualTools.toolset"
+// | take 5
+// | project 
+//     messageId = tostring(Properties["messageId"]),
+//     conversationId = tostring(Properties["conversationId"]),
+//     headerRequestId = tostring(Properties["headerRequestId"]),
+//     sessionId = tostring(Properties["sessionId"]),
+//     groups = tostring(Properties["groups"])
+
+// =============================================================================
+// Query 4: Check if availableTools is in toolCallDetailsInternal instead
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(30m)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend availableTools = tostring(Properties["availableTools"])
+// | where isnotempty(availableTools)
+// | take 1
+// | project availableTools
+
+// =============================================================================
+// Query 5: Get a sample of toolCallDetailsInternal to see availableTools
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(30m)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | take 1
+// | project Properties
+
+// =============================================================================
+// Query 6: Check maxTokenWindow in engine.messages.length
+// Why is it null?
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(30m)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend direction = tostring(Properties["message_direction"])
+// | where direction == "output"
+// | extend maxTokenWindow = toint(Measurements["maxTokenWindow"])
+// | summarize 
+//     total = count(),
+//     hasMaxTokenWindow = countif(isnotnull(maxTokenWindow)),
+//     nullMaxTokenWindow = countif(isnull(maxTokenWindow)),
+//     avgMaxTokenWindow = avg(maxTokenWindow)
+

@@ -1,1 +1,7 @@
 *:Zone.Identifier
+# Large data files
+kusto_scripts/data_prep/sft_example_pareesa/*.jsonl
+kusto_scripts/data_prep/sft_example_pareesa/*.json
+# Large data files
+kusto_scripts/data_prep/sft_example_pareesa/*.jsonl
+kusto_scripts/data_prep/sft_example_pareesa/*.json

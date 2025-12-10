@@ -1,0 +1,76 @@
+// =============================================================================
+// EXPLORATION: Check if tool definitions are in messagesJson
+// =============================================================================
+// PURPOSE: The messagesJson in engine.messages.length has system/user/assistant 
+//          messages with token counts. Check if "system" includes tool definitions
+//          or if they're tracked separately.
+//
+// QUESTION TO ANSWER:
+//   Is systemTokens = system_prompt_tokens + tool_definition_tokens?
+//   Or are tool definitions tracked elsewhere?
+// =============================================================================
+
+// Query 1: Look at the raw messagesJson structure for INPUT direction
+// Check if there's a "tools" role or if tools are bundled with "system"
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/engine.messages.length"
+| extend direction = tostring(Properties["message_direction"])
+| where direction == "input"
+| extend messagesJson = tostring(Properties["messagesJson"])
+| extend messageSource = tostring(Properties["messageSource"])
+| where messageSource == "chat.editAgent"  // Agent mode
+| take 1
+| project messagesJson
+
+// =============================================================================
+// Query 2: Parse messagesJson and look at all roles present
+// =============================================================================
+// Are there any roles beyond system/user/assistant/tool?
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend direction = tostring(Properties["message_direction"])
+// | where direction == "input"
+// | extend messagesJsonStr = tostring(Properties["messagesJson"])
+// | where isnotempty(messagesJsonStr)
+// | take 1000
+// | mv-expand message = parse_json(messagesJsonStr)
+// | extend role = tostring(message.role)
+// | summarize count() by role
+// | order by count_ desc
+
+// =============================================================================
+// Query 3: Check if "tools" key exists at the message level
+// =============================================================================
+// Maybe tool definitions are not a "role" but a separate key
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend direction = tostring(Properties["message_direction"])
+// | where direction == "input"
+// | extend messagesJsonStr = tostring(Properties["messagesJson"])
+// | where isnotempty(messagesJsonStr)
+// | take 10
+// | project 
+//     messagesJsonLength = strlen(messagesJsonStr),
+//     hasToolsWord = messagesJsonStr contains "tools",
+//     hasFunctionWord = messagesJsonStr contains "function",
+//     hasSchemaWord = messagesJsonStr contains "schema",
+//     sample = substring(messagesJsonStr, 0, 2000)
+
+// =============================================================================
+// Query 4: Look for availableToolCount in the same event
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend direction = tostring(Properties["message_direction"])
+// | where direction == "input"
+// | extend messageSource = tostring(Properties["messageSource"])
+// | where messageSource == "chat.editAgent"
+// | mv-expand bagexpansion=array Measurements
+// | extend measureKey = tostring(Measurements[0])
+// | summarize count() by measureKey
+// | order by count_ desc
+

@@ -1,0 +1,123 @@
+// =============================================================================
+// EXPLORATION: model.modelCall.input.requestOptions for tool definitions
+// =============================================================================
+// PURPOSE: The msft_trajectories.kql query suggests tool definitions are in
+//          request.option.tools within model.modelCall.input.requestOptions events
+//
+// This event contains the FULL request payload sent to the LLM, which should
+// include the tool schemas/definitions.
+// =============================================================================
+
+// Query 1: Check if model.modelCall.input.requestOptions exists
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot-chat/model.modelCall.input"
+| summarize count() by Name
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Check the structure of requestOptions events
+// =============================================================================
+// Run one at a time - uncomment to execute
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | take 1
+// | mv-expand bagexpansion=array Properties
+// | extend propKey = tostring(Properties[0])
+// | summarize count() by propKey
+// | order by count_ desc
+
+// =============================================================================
+// Query 3: Get the request.option.tools structure
+// =============================================================================
+// This event is CHUNKED (chunkIndex, totalChunks) so we need to reassemble
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend requestOptionsId = tostring(Properties["requestOptionsId"])
+// | extend chunkIndex = toint(Properties["chunkIndex"])
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | extend requestOptionsJson = tostring(Properties["requestOptionsJson"])
+// | where totalChunks == 1  // Start with non-chunked for simplicity
+// | take 5
+// | extend parsedOptions = parse_json(requestOptionsJson)
+// | extend hasTools = bag_has_key(parsedOptions, "request.option.tools")
+// | project hasTools, requestOptionsJson
+
+// =============================================================================
+// Query 4: Get actual tool definitions (if present)
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | where isnotempty(toolsJson) and toolsJson != "[]"
+// | take 1
+// | project 
+//     toolsJsonLength = strlen(toolsJson),
+//     toolsSample = substring(toolsJson, 0, 2000)
+
+// =============================================================================
+// Query 5: Count tools and estimate definition size
+// =============================================================================
+// This gives us: tool count, total tool definitions JSON length
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | where isnotempty(toolsJson) and toolsJson != "[]"
+// | extend toolCount = array_length(parse_json(toolsJson))
+// | extend toolsJsonLength = strlen(toolsJson)
+// | summarize 
+//     avgToolCount = avg(toolCount),
+//     avgToolsJsonLength = avg(toolsJsonLength),
+//     minToolsJsonLength = min(toolsJsonLength),
+//     maxToolsJsonLength = max(toolsJsonLength),
+//     count = count()
+// | extend estimatedToolDefinitionTokens = avgToolsJsonLength / 4  // ~4 chars per token rough estimate
+
+// =============================================================================
+// Query 6: Correlate tool count with systemTokens
+// =============================================================================
+// Compare systemTokens between different tool counts to estimate per-tool token cost
+// This requires joining with engine.messages.length events
+// 
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1
+// | extend messageId = tostring(Properties["headerRequestId"])
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | extend toolCount = array_length(parse_json(toolsJson))
+// | project messageId, toolCount
+// | join kind=inner (
+//     AppEvents
+//     | where TimeGenerated > ago(1h)
+//     | where Name == "GitHub.copilot-chat/engine.messages.length"
+//     | extend direction = tostring(Properties["message_direction"])
+//     | where direction == "input"
+//     | extend messageId = tostring(Properties["headerRequestId"])
+//     | extend messagesJsonStr = tostring(Properties["messagesJson"])
+//     | where isnotempty(messagesJsonStr)
+//     | mv-expand message = parse_json(messagesJsonStr)
+//     | extend role = tostring(message.role)
+//     | extend tokenCount = toint(message.content)
+//     | where role == "system"
+//     | project messageId, systemTokens = tokenCount
+// ) on messageId
+// | summarize 
+//     avgSystemTokens = avg(systemTokens),
+//     count = count()
+//     by toolCount
+// | order by toolCount asc
+// | extend tokensPerTool = (avgSystemTokens - prev(avgSystemTokens)) / (toolCount - prev(toolCount))
+

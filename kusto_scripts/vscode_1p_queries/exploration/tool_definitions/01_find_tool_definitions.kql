@@ -1,0 +1,59 @@
+// =============================================================================
+// EXPLORATION: Where are tool definitions stored?
+// =============================================================================
+// PURPOSE: Find where tool schemas/definitions are stored in telemetry
+//          and how to extract their token counts
+//
+// KEY INSIGHT FROM msft_trajectories.kql:
+//   tools = array_length(parse_json(requestOptionsJson["request.option.tools"]))
+//   This suggests tool definitions exist in model.modelCall.input.requestOptions events
+// =============================================================================
+
+// Query 1: Find events that might contain tool definitions
+// Looking for requestOptions events that have tool schemas
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name startswith "GitHub.copilot-chat/model.modelCall.input"
+| summarize count() by Name
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Check structure of model.modelCall.input.requestOptions
+// =============================================================================
+// This event type seems to contain the full request payload including tool definitions
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | take 5
+// | project Properties, Measurements
+
+// =============================================================================
+// Query 3: Check if request.option.tools contains tool definitions
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend hasTools = bag_has_key(requestOptionsJson, "request.option.tools")
+// | summarize 
+//     total = count(),
+//     withTools = countif(hasTools == true),
+//     withoutTools = countif(hasTools == false)
+
+// =============================================================================
+// Query 4: Get tool count and see if definitions are present
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | take 100
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | extend toolCount = array_length(parse_json(toolsJson))
+// | where toolCount > 0
+// | project 
+//     toolCount,
+//     toolsJsonLength = strlen(toolsJson),
+//     toolsJsonSample = substring(toolsJson, 0, 500)
+// | take 10
+

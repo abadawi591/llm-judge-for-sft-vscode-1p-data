@@ -1,0 +1,92 @@
+// =============================================================================
+// EXPLORATION: Analyze availableTools and availableToolCount
+// =============================================================================
+// PURPOSE: We know availableTools is a JSON array of tool NAMES
+//          Can we correlate this with token counts?
+//
+// FROM tool_tokens.kql:
+//   toolCallDetailsInternal has: availableTools, availableToolCount, promptTokenCount
+// =============================================================================
+
+// Query 1: Check toolCallDetailsInternal structure
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+| take 1
+| project Properties, Measurements
+
+// =============================================================================
+// Query 2: Get availableTools and correlate with promptTokenCount
+// =============================================================================
+// Hypothesis: More available tools = higher promptTokenCount (due to tool definitions)
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend availableTools = tostring(Properties["availableTools"])
+// | extend availableToolCount = toint(Measurements["availableToolCount"])
+// | extend promptTokenCount = toint(Measurements["promptTokenCount"])
+// | where availableToolCount > 0
+// | project availableToolCount, promptTokenCount, availableTools
+// | summarize 
+//     avgPromptTokens = avg(promptTokenCount),
+//     minPromptTokens = min(promptTokenCount),
+//     maxPromptTokens = max(promptTokenCount),
+//     count = count()
+//     by availableToolCount
+// | order by availableToolCount asc
+
+// =============================================================================
+// Query 3: List unique tool names that appear in availableTools
+// =============================================================================
+// This tells us what tools are being offered to the model
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+// | extend availableTools = tostring(Properties["availableTools"])
+// | where isnotempty(availableTools) and availableTools != "[]"
+// | take 100
+// | mv-expand toolName = parse_json(availableTools)
+// | extend toolName = tostring(toolName)
+// | summarize count() by toolName
+// | order by count_ desc
+
+// =============================================================================
+// Query 4: Can we estimate tokens per tool by correlating?
+// =============================================================================
+// Compare systemTokens between different availableToolCount values
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/engine.messages.length"
+// | extend direction = tostring(Properties["message_direction"])
+// | where direction == "input"
+// | extend messagesJsonStr = tostring(Properties["messagesJson"])
+// | where isnotempty(messagesJsonStr)
+// | mv-expand message = parse_json(messagesJsonStr)
+// | extend role = tostring(message.role)
+// | extend tokenCount = toint(message.content)
+// | where role == "system"
+// | extend messageId = tostring(Properties["headerRequestId"])
+// | project messageId, systemTokens = tokenCount
+// | join kind=inner (
+//     AppEvents
+//     | where TimeGenerated > ago(1h)
+//     | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+//     | extend messageId = tostring(Properties["messageId"])
+//     | extend availableToolCount = toint(Measurements["availableToolCount"])
+//     | project messageId, availableToolCount
+// ) on messageId
+// | summarize 
+//     avgSystemTokens = avg(systemTokens),
+//     count = count()
+//     by availableToolCount
+// | order by availableToolCount asc
+
+// =============================================================================
+// Query 5: Check virtualTools.toolset event for tool definitions
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/virtualTools.toolset"
+// | take 5
+// | project Properties
+

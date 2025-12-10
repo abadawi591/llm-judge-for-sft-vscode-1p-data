@@ -1,0 +1,169 @@
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.2 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35)'
+No body was attached to the request
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Checking Azure authentication...
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train', 'val', 'test']
+
+Reading query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+Connecting to Blob Storage...
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Method: HASH-BASED CHUNKING (Recommended)
+  ✅ Guarantees: Each conversation fully in ONE chunk
+  ✅ Guarantees: Conversation completeness preserved
+Strategy: Gather ALL candidates via hash chunks, then stratified sample in Python
+
+Reading hash-chunked query from: /home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_hash_chunked.kql
+
+======================================================================
+🔀 HASH-BASED CHUNKING: hash(conversationId) % 40
+======================================================================
+   ✅ Guarantees: Each conversation fully in ONE chunk
+   ✅ Guarantees: Conversation completeness preserved
+   📊 Target: ~120k conversations across all chunks
+======================================================================
+
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 1/40 (0% complete)
+──────────────────────────────────────────────────────────────────────
+   🔍 Query: hash(conversationId) % 40 == 0
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed/home/abadawix/coreai/llm_judge/telemetry-main/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:210: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat() + "Z"
+                                                  ✅ Query returned 0 records in 6m 16s
+
+   📊 CHUNK 1 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 377.0s
+   💾 Checkpoint saved: 0 records, chunk 1
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 2/40 (2% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 377s | ETA: 245m 2s
+   🔍 Query: hash(conversationId) % 40 == 1
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed                                                  ✅ Query returned 0 records in 3m 35s
+
+   📊 CHUNK 2 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 215.9s
+   💾 Checkpoint saved: 0 records, chunk 2
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 3/40 (5% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 296s | ETA: 187m 44s
+   🔍 Query: hash(conversationId) % 40 == 2
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed                                                  ✅ Query returned 0 records in 6m 43s
+
+   📊 CHUNK 3 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 403.1s
+   💾 Checkpoint saved: 0 records, chunk 3
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 4/40 (8% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 332s | ETA: 204m 43s
+   🔍 Query: hash(conversationId) % 40 == 3
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 0 records in 4m 7s
+
+   📊 CHUNK 4 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 247.7s
+   💾 Checkpoint saved: 0 records, chunk 4
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 5/40 (10% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 311s | ETA: 186m 32s
+   🔍 Query: hash(conversationId) % 40 == 4
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed                                                  ✅ Query returned 0 records in 3m 35s
+
+   📊 CHUNK 5 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 215.4s
+
+   📈 RUNNING TOTALS (after 5 chunks):
+      Buckets: short=0 | medium=0 | long=0
+      Splits:  train=0 | val=0 | test=0
+   💾 Checkpoint saved: 0 records, chunk 5
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 6/40 (12% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 292s | ETA: 170m 13s
+   🔍 Query: hash(conversationId) % 40 == 5
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 18m 41s elapsed                                                  ⚠️  Query returned 0 records in 18m 41s (near timeout limit of 500s)
+   This may indicate a server-side timeout. Consider:
+   1. Reducing time window (e.g., 30d instead of 60d)
+   2. Increasing NUM_HASH_CHUNKS to reduce per-chunk data
+   3. Increasing SERVER_TIMEOUT_SECONDS
+
+   📊 CHUNK 6 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 1121.7s
+   💾 Checkpoint saved: 0 records, chunk 6
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 7/40 (15% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 430s | ETA: 243m 44s
+   🔍 Query: hash(conversationId) % 40 == 6
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 14s elapsed⏱️  Query running... 24s elapsed⏱️  Query running... 34s elapsed⏱️  Query running... 44s elapsed⏱️  Query running... 54s elapsed⏱️  Query running... 1m 4s elapsed⏱️  Query running... 1m 14s elapsed⏱️  Query running... 1m 24s elapsed⏱️  Query running... 1m 34s elapsed⏱️  Query running... 1m 44s elapsed⏱️  Query running... 1m 54s elapsed⏱️  Query running... 2m 4s elapsed⏱️  Query running... 2m 14s elapsed⏱️  Query running... 2m 24s elapsed⏱️  Query running... 2m 34s elapsed⏱️  Query running... 2m 44s elapsed⏱️  Query running... 2m 54s elapsed⏱️  Query running... 3m 4s elapsed⏱️  Query running... 3m 14s elapsed⏱️  Query running... 3m 24s elapsed⏱️  Query running... 3m 34s elapsed⏱️  Query running... 3m 44s elapsed⏱️  Query running... 3m 54s elapsed⏱️  Query running... 4m 4s elapsed⏱️  Query running... 4m 14s elapsed⏱️  Query running... 4m 24s elapsed⏱️  Query running... 4m 34s elapsed⏱️  Query running... 4m 44s elapsed⏱️  Query running... 4m 54s elapsed⏱️  Query running... 5m 4s elapsed⏱️  Query running... 5m 14s elapsed⏱️  Query running... 5m 24s elapsed⏱️  Query running... 5m 34s elapsed⏱️  Query running... 5m 44s elapsed⏱️  Query running... 5m 54s elapsed⏱️  Query running... 6m 4s elapsed⏱️  Query running... 6m 14s elapsed⏱️  Query running... 6m 24s elapsed⏱️  Query running... 6m 34s elapsed⏱️  Query running... 6m 44s elapsed⏱️  Query running... 6m 54s elapsed⏱️  Query running... 7m 4s elapsed⏱️  Query running... 7m 14s elapsed⏱️  Query running... 7m 24s elapsed⏱️  Query running... 7m 34s elapsed⏱️  Query running... 7m 44s elapsed⏱️  Query running... 7m 54s elapsed⏱️  Query running... 8m 4s elapsed                                                  
+⚠️  Query failed (attempt 1/5)
+   Error: Client-side timeout after 500s. The server may still be processing. Consider reducing query scope....
+   Retrying in 30s with jitter...
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed                                                  ✅ Query returned 0 records in 3m 27s
+
+   📊 CHUNK 7 SUMMARY:
+      • Records this chunk: 0
+      • New unique records: 0
+      • Total accumulated:  0
+      • Chunk time: 2011.5s
+   💾 Checkpoint saved: 0 records, chunk 7
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 8/40 (18% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 656s | ETA: 360m 49s
+   🔍 Query: hash(conversationId) % 40 == 7
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed

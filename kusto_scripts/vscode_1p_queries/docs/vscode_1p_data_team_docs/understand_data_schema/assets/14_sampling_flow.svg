@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="600" height="750" fill="#0d1117"/>
+  
+  <!-- Outer container -->
+  <rect x="25" y="20" width="550" height="710" rx="10" fill="#111827" stroke="#22d3ee" stroke-width="2"/>
+  
+  <!-- Container header -->
+  <rect x="25" y="20" width="550" height="40" rx="10" fill="#164e63"/>
+  <rect x="25" y="40" width="550" height="20" fill="#164e63"/>
+  <text x="300" y="47" font-size="13" font-weight="600" fill="#22d3ee" text-anchor="middle" letter-spacing="2">STRATIFIED SAMPLING FLOW</text>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ALL CONVERSATIONS -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 80)">
+    <text x="0" y="0" font-size="13" font-weight="600" fill="#e5e7eb">ALL CONVERSATIONS</text>
+    <text x="185" y="0" font-size="11" fill="#6b7280">(from telemetry)</text>
+  </g>
+  
+  <!-- Arrow down -->
+  <path d="M 130 95 L 130 120" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="130,125 125,115 135,115" fill="#6b7280"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- FILTER Box -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 135)">
+    <rect x="0" y="0" width="420" height="95" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+    
+    <!-- Header -->
+    <text x="15" y="25" font-size="12" font-weight="600" fill="#93c5fd">FILTER:</text>
+    <text x="75" y="25" font-size="12" fill="#e5e7eb">Complete conversations only</text>
+    
+    <!-- Criteria -->
+    <g transform="translate(15, 45)">
+      <circle cx="8" cy="6" r="3" fill="#60a5fa"/>
+      <text x="20" y="10" font-size="11" fill="#9ca3af" font-family="'SF Mono', 'Fira Code', monospace">minTurnIndex == 1</text>
+      
+      <circle cx="8" cy="30" r="3" fill="#60a5fa"/>
+      <text x="20" y="34" font-size="11" fill="#9ca3af" font-family="'SF Mono', 'Fira Code', monospace">capturedTurnCount == maxTurnIndex</text>
+    </g>
+  </g>
+  
+  <!-- Arrow down -->
+  <path d="M 130 230 L 130 260" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="130,265 125,255 135,255" fill="#6b7280"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ASSIGN BUCKET Box -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(50, 275)">
+    <rect x="0" y="0" width="420" height="130" rx="8" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+    
+    <!-- Header -->
+    <text x="15" y="25" font-size="12" font-weight="600" fill="#fcd34d">ASSIGN BUCKET</text>
+    <text x="145" y="25" font-size="12" fill="#e5e7eb">based on turn count</text>
+    
+    <!-- Mappings -->
+    <g transform="translate(15, 45)">
+      <circle cx="8" cy="6" r="3" fill="#fbbf24"/>
+      <text x="20" y="10" font-size="11" fill="#9ca3af">3-5 turns</text>
+      <text x="110" y="10" font-size="11" fill="#6b7280">→</text>
+      <text x="130" y="10" font-size="11" fill="#3b82f6" font-family="'SF Mono', 'Fira Code', monospace">short_3_to_5_turns</text>
+      
+      <circle cx="8" cy="30" r="3" fill="#fbbf24"/>
+      <text x="20" y="34" font-size="11" fill="#9ca3af">6-10 turns</text>
+      <text x="110" y="34" font-size="11" fill="#6b7280">→</text>
+      <text x="130" y="34" font-size="11" fill="#fbbf24" font-family="'SF Mono', 'Fira Code', monospace">medium_6_to_10_turns</text>
+      
+      <circle cx="8" cy="54" r="3" fill="#fbbf24"/>
+      <text x="20" y="58" font-size="11" fill="#9ca3af">11-20 turns</text>
+      <text x="110" y="58" font-size="11" fill="#6b7280">→</text>
+      <text x="130" y="58" font-size="11" fill="#ec4899" font-family="'SF Mono', 'Fira Code', monospace">long_11_to_20_turns</text>
+      
+      <circle cx="8" cy="78" r="3" fill="#4b5563"/>
+      <text x="20" y="82" font-size="11" fill="#6b7280">Others</text>
+      <text x="110" y="82" font-size="11" fill="#6b7280">→</text>
+      <text x="130" y="82" font-size="11" fill="#4b5563" font-family="'SF Mono', 'Fira Code', monospace">excluded</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Arrows to three buckets -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Vertical line down from ASSIGN BUCKET -->
+  <path d="M 260 405 L 260 435" stroke="#6b7280" stroke-width="2" fill="none"/>
+  
+  <!-- Horizontal line -->
+  <path d="M 110 435 L 410 435" stroke="#6b7280" stroke-width="2" fill="none"/>
+  
+  <!-- Three arrows down -->
+  <path d="M 110 435 L 110 465" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="110,470 105,460 115,460" fill="#6b7280"/>
+  
+  <path d="M 260 435 L 260 465" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="260,470 255,460 265,460" fill="#6b7280"/>
+  
+  <path d="M 410 435 L 410 465" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="410,470 405,460 415,460" fill="#6b7280"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- THREE SAMPLE BOXES -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  
+  <!-- SHORT -->
+  <g transform="translate(50, 480)">
+    <rect x="0" y="0" width="120" height="80" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+    <text x="60" y="25" font-size="12" font-weight="600" fill="#3b82f6" text-anchor="middle">SHORT</text>
+    <text x="60" y="45" font-size="11" fill="#9ca3af" text-anchor="middle">sample</text>
+    <text x="60" y="68" font-size="16" font-weight="700" fill="#4ade80" text-anchor="middle">40,000</text>
+  </g>
+  
+  <!-- MEDIUM -->
+  <g transform="translate(200, 480)">
+    <rect x="0" y="0" width="120" height="80" rx="8" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+    <text x="60" y="25" font-size="12" font-weight="600" fill="#fbbf24" text-anchor="middle">MEDIUM</text>
+    <text x="60" y="45" font-size="11" fill="#9ca3af" text-anchor="middle">sample</text>
+    <text x="60" y="68" font-size="16" font-weight="700" fill="#4ade80" text-anchor="middle">40,000</text>
+  </g>
+  
+  <!-- LONG -->
+  <g transform="translate(350, 480)">
+    <rect x="0" y="0" width="120" height="80" rx="8" fill="#500724" stroke="#ec4899" stroke-width="2"/>
+    <text x="60" y="25" font-size="12" font-weight="600" fill="#ec4899" text-anchor="middle">LONG</text>
+    <text x="60" y="45" font-size="11" fill="#9ca3af" text-anchor="middle">sample</text>
+    <text x="60" y="68" font-size="16" font-weight="700" fill="#4ade80" text-anchor="middle">20,000</text>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Arrows merging to UNION -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Three lines down -->
+  <path d="M 110 560 L 110 590" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <path d="M 260 560 L 260 590" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <path d="M 410 560 L 410 590" stroke="#6b7280" stroke-width="2" fill="none"/>
+  
+  <!-- Horizontal line -->
+  <path d="M 110 590 L 410 590" stroke="#6b7280" stroke-width="2" fill="none"/>
+  
+  <!-- Single arrow down -->
+  <path d="M 260 590 L 260 625" stroke="#6b7280" stroke-width="2" fill="none"/>
+  <polygon points="260,630 255,620 265,620" fill="#6b7280"/>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- UNION Box -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(170, 640)">
+    <rect x="0" y="0" width="180" height="70" rx="8" fill="#052e16" stroke="#4ade80" stroke-width="2"/>
+    <text x="90" y="28" font-size="12" font-weight="600" fill="#e5e7eb" text-anchor="middle">UNION: <tspan fill="#4ade80" font-weight="700">100,000</tspan></text>
+    <text x="90" y="52" font-size="13" fill="#e5e7eb" text-anchor="middle">conversations</text>
+  </g>
+</svg>

@@ -71,9 +71,9 @@ let tokenEventsRaw =
     | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
     | where Name == "GitHub.copilot-chat/engine.messages.length"
     | extend message_direction = tostring(Properties["message_direction"])
-    | where message_direction == "OUTPUT"
-    | extend messageId = tostring(Properties["messageId"])
-    | extend model = tostring(Properties["model"])
+    | where message_direction == "output"  // IMPORTANT: lowercase "output"
+    | extend messageId = tostring(Properties["headerRequestId"])  // IMPORTANT: use headerRequestId, not messageId
+    | extend model = tostring(Properties["baseModel"])  // IMPORTANT: use baseModel, not model
     | extend promptTokens = toint(Measurements["promptTokens"])
     | extend completionTokens = toint(Measurements["completionTokens"])
     | extend totalTokens = toint(Measurements["totalTokens"])

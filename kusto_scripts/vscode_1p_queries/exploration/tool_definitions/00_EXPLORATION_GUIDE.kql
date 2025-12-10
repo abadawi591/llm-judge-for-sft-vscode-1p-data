@@ -1,0 +1,128 @@
+// =============================================================================
+// TOOL DEFINITIONS & TOOL TOKENS - EXPLORATION GUIDE
+// =============================================================================
+// 
+// CURRENT STATE:
+// - toolResultTokens: AVAILABLE in sft_stratified_final.kql (but excluded from 
+//                     data curation queries to avoid OOM)
+// - availableTools:   AVAILABLE from virtualTools.toolset event
+// - toolDefinitionTokens: NOT tracked separately (bundled into systemTokens)
+//
+// GOAL: Find if we can extract or estimate tool definition tokens
+//
+// RUN THESE QUERIES IN ORDER AND REPORT RESULTS:
+// =============================================================================
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 1: Verify what events exist for tools                              │
+// └─────────────────────────────────────────────────────────────────────────┘
+// RUN THIS FIRST
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name contains "tool" or Name contains "Tool"
+| summarize count() by Name
+| order by count_ desc
+
+// EXPECTED OUTPUT:
+// - GitHub.copilot-chat/toolCallDetailsInternal: ~16,000+
+// - GitHub.copilot-chat/virtualTools.toolset: ~100+
+// - Possibly others?
+//
+// PLEASE REPORT: What event names do you see?
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 2: Check model.modelCall.input events (may have tool definitions)  │
+// └─────────────────────────────────────────────────────────────────────────┘
+// UNCOMMENT AND RUN:
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name startswith "GitHub.copilot-chat/model.modelCall.input"
+// | summarize count() by Name
+// | order by count_ desc
+
+// PLEASE REPORT: What events do you see? Do you see model.modelCall.input.requestOptions?
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 3: Check if request.option.tools contains tool schemas             │
+// └─────────────────────────────────────────────────────────────────────────┘
+// UNCOMMENT AND RUN:
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1  // Non-chunked for simplicity
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend hasTools = bag_has_key(requestOptionsJson, "request.option.tools")
+// | summarize 
+//     total = count(),
+//     withTools = countif(hasTools == true)
+
+// PLEASE REPORT: How many have tools? (withTools count)
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 4: Get sample tool definition to see structure                     │
+// └─────────────────────────────────────────────────────────────────────────┘
+// UNCOMMENT AND RUN:
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | where isnotempty(toolsJson) and toolsJson != "[]"
+// | take 1
+// | project toolsSample = substring(toolsJson, 0, 3000)
+
+// PLEASE REPORT: Can you see tool schemas (name, description, parameters)?
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 5: Estimate tool definition size (chars → tokens approximation)    │
+// └─────────────────────────────────────────────────────────────────────────┘
+// UNCOMMENT AND RUN:
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input.requestOptions"
+// | extend totalChunks = toint(Properties["totalChunks"])
+// | where totalChunks == 1
+// | extend requestOptionsJson = parse_json(tostring(Properties["requestOptionsJson"]))
+// | extend toolsJson = tostring(requestOptionsJson["request.option.tools"])
+// | where isnotempty(toolsJson) and toolsJson != "[]"
+// | extend toolCount = array_length(parse_json(toolsJson))
+// | extend toolsJsonLength = strlen(toolsJson)
+// | summarize 
+//     avgToolCount = avg(toolCount),
+//     avgToolsJsonChars = avg(toolsJsonLength),
+//     minToolsJsonChars = min(toolsJsonLength),
+//     maxToolsJsonChars = max(toolsJsonLength),
+//     samples = count()
+// | extend estimatedToolDefTokens_rough = avgToolsJsonChars / 4  // ~4 chars per token
+
+// PLEASE REPORT: What's the average tool count and estimated tokens?
+
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ STEP 6: Check virtualTools.toolset event structure                      │
+// └─────────────────────────────────────────────────────────────────────────┘
+// UNCOMMENT AND RUN:
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/virtualTools.toolset"
+// | take 1
+// | project Properties, Measurements
+
+// PLEASE REPORT: What fields are available? Is there a "groups" or "tools" property?
+
+// =============================================================================
+// SUMMARY: WHAT WE NEED TO KNOW
+// =============================================================================
+// 1. Can we get tool SCHEMAS from requestOptionsJson["request.option.tools"]?
+// 2. How big (in chars/tokens) are the tool definitions on average?
+// 3. Is there a separate field for availableToolCount or toolDefinitionTokens?
+//
+// Based on your findings, we can:
+// - Add availableTools (tool names) to data curation queries
+// - Add availableToolCount 
+// - Potentially add toolDefinitionsJson (the actual schemas)
+// - Estimate toolDefinitionTokens from JSON length
+// =============================================================================
+

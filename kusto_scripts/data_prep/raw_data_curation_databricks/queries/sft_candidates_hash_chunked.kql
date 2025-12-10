@@ -12,6 +12,16 @@
 // OUTPUT: All complete conversations matching criteria (no sampling).
 //         Sampling is done in Python after aggregating all chunks.
 //
+// QUALITY FILTERS:
+//   1. Completeness: minTurnIndex == 1 AND capturedTurnCount == maxTurnIndex
+//   2. No failures: Excludes conversations with failed/cancelled/networkError turns
+//   3. Token data: Only includes turns with valid LLM call data
+//
+// INCLUDES:
+//   - Trajectory breakdown (systemTokens, userTokens, assistantTokens, toolResultTokens)
+//   - Tool metadata (availableTools, toolCounts, numRequests, turnDurationMs)
+//   - Turn summary (maxPromptTokens, totalCompletionTokens, llmCallCount, hasTrajectory)
+//
 // =============================================================================
 
 // 15 days chosen for safe buffer (Dec 2024):
@@ -21,7 +31,7 @@ let timeStart = ago(15d);
 let timeEnd = now();
 
 // Hash-based chunking parameters (replaced by Python)
-let numChunks = {NUM_CHUNKS};  // Total number of chunks (e.g., 20)
+let numChunks = {NUM_CHUNKS};  // Total number of chunks (e.g., 40)
 let chunkNum = {CHUNK_NUM};    // Current chunk (0 to numChunks-1)
 
 // BUCKET CONFIGURATION
@@ -77,13 +87,13 @@ let tokenEventsRaw =
     AppEvents
     | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
     | where Name == "GitHub.copilot-chat/engine.messages.length"
-    | extend messageId = tostring(Properties["messageId"])
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "output"  // IMPORTANT: lowercase "output"
+    | extend messageId = tostring(Properties["headerRequestId"])  // IMPORTANT: use headerRequestId
     | extend conversationId = tostring(Properties["conversationId"])
     // Apply hash filter to token events too
     | where isnotempty(conversationId) and hash(conversationId) % numChunks == chunkNum
-    | extend message_direction = tostring(Properties["message_direction"])
-    | where message_direction == "OUTPUT"
-    | extend model = tostring(Properties["model"])
+    | extend model = tostring(Properties["baseModel"])  // IMPORTANT: use baseModel
     | extend promptTokens = toint(Measurements["promptTokens"])
     | extend completionTokens = toint(Measurements["completionTokens"])
     | extend totalTokens = toint(Measurements["totalTokens"])
@@ -95,28 +105,140 @@ let tokenEvents =
     | serialize
     | extend callIndex = row_number(1, prev(messageId) != messageId);
 
-// Aggregate token events to turn level
-let tokenData = 
-    tokenEvents
+// =============================================================================
+// STEP 2.5: Get TRAJECTORY data (INPUT direction with messagesJson)
+// Provides token breakdown by role (system, user, assistant, tool)
+// =============================================================================
+let trajectoryEvents = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/engine.messages.length"
+    | extend message_direction = tostring(Properties["message_direction"])
+    | where message_direction == "input"
+    | extend messageId = tostring(Properties["headerRequestId"])
+    | extend conversationId = tostring(Properties["conversationId"])
+    | where isnotempty(conversationId) and hash(conversationId) % numChunks == chunkNum
+    | extend messagesJsonStr = tostring(Properties["messagesJson"])
+    | where isnotempty(messagesJsonStr)
+    | project TimeGenerated, messageId, messagesJsonStr
+    | order by messageId, TimeGenerated asc
+    | serialize
+    | extend callIndex = row_number(1, prev(messageId) != messageId);
+
+// Parse messagesJson to extract token breakdown by role
+let trajectoryParsed = 
+    trajectoryEvents
+    | mv-expand message = parse_json(messagesJsonStr)
+    | extend role = tostring(message.role)
+    | extend tokenCount = toint(message.content)
     | summarize 
-        turnMaxPromptTokens = max(promptTokens),
-        turnTotalCompletionTokens = sum(completionTokens),
+        systemTokens = sumif(tokenCount, role == "system"),
+        userTokens = sumif(tokenCount, role == "user"),
+        assistantTokens = sumif(tokenCount, role == "assistant"),
+        toolResultTokens = sumif(tokenCount, role == "tool"),
+        trajectoryTotal = sum(tokenCount)
+        by messageId, callIndex;
+
+// Join OUTPUT with INPUT on (messageId, callIndex)
+let tokenDataWithTrajectory = 
+    tokenEvents
+    | join kind=leftouter trajectoryParsed on messageId, callIndex
+    | project-away messageId1, callIndex1
+    | extend systemTokens = coalesce(systemTokens, 0)
+    | extend userTokens = coalesce(userTokens, 0)
+    | extend assistantTokens = coalesce(assistantTokens, 0)
+    | extend toolResultTokens = coalesce(toolResultTokens, 0)
+    | extend trajectoryTotal = coalesce(trajectoryTotal, 0)
+    | extend hasTrajectory = trajectoryTotal > 0;
+
+// Aggregate token events to turn level with trajectory
+// ─────────────────────────────────────────────────────────────────────────────
+// TOKEN DATA STRUCTURE - Two separate objects per llmCall:
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 1. actual_API: BILLED tokens from LLM API (OUTPUT direction)
+//    - promptTokens: Input tokens charged (= system + user + assistant + toolResults)
+//    - completionTokens: Output tokens from model
+//    - totalTokens: promptTokens + completionTokens
+//
+// 2. estimates_Copilot: Client-side ESTIMATES (INPUT direction) - for truncation
+//    - systemTokens: System prompt + tool definitions (CONSTANT within turn)
+//    - userTokens: User message tokens (CONSTANT within turn)
+//    - assistantTokens: Model's previous responses (GROWS within turn)
+//    - toolResultTokens: Tool outputs accumulated (GROWS within turn)
+//    - trajectoryTotal: Sum of all role estimates
+//    - hasTrajectory: true if trajectory data was captured
+//
+// RELATIONSHIP:
+//   actual_API.promptTokens ≈ estimates_Copilot.trajectoryTotal
+//   (10-40% difference due to tokenizer mismatch - NOT truncation)
+//
+// FOR COST ANALYSIS: Use actual_API fields
+// FOR COMPOSITION BREAKDOWN: Use estimates_Copilot fields
+// ─────────────────────────────────────────────────────────────────────────────
+let tokenData = 
+    tokenDataWithTrajectory
+    | summarize 
         llmCalls = make_list(pack(
             "callIndex", callIndex,
             "model", model,
-            "promptTokens", promptTokens,
-            "completionTokens", completionTokens,
-            "totalTokens", totalTokens
-        ))
+            // ACTUAL tokens from LLM API (billed)
+            "actual_API", pack(
+                "promptTokens_(system+user+assistant+toolResults)", promptTokens,
+                "completionTokens", completionTokens,
+                "totalTokens", totalTokens
+            ),
+            // ESTIMATE tokens from Copilot client (trajectory breakdown)
+            "estimates_Copilot", pack(
+                "systemTokens", systemTokens,           // system prompt + tool definitions (CONSTANT within turn)
+                "userTokens", userTokens,               // user message (CONSTANT within turn)
+                "assistantTokens", assistantTokens,     // model responses (GROWS within turn)
+                "toolResultTokens", toolResultTokens,   // tool outputs (GROWS within turn)
+                "trajectoryTotal", trajectoryTotal,     // sum of all estimates
+                "hasTrajectory", hasTrajectory
+            )
+        )),
+        turnMaxPromptTokens = max(promptTokens),
+        turnTotalCompletionTokens = sum(completionTokens),
+        turnHasTrajectory = max(toint(hasTrajectory)) > 0
         by messageId;
 
 // =============================================================================
-// STEP 3: Build turns
+// STEP 3: Get tool metadata (including availableTools - tool definitions)
+// =============================================================================
+// turnEndReason values:
+//   - "stopped" (63.2%) ← ✅ Normal completion
+//   - "toolUse" (28.0%) ← ✅ Tool was used, normal
+//   - "cancelled" (5.2%) ← ❌ User cancelled - EXCLUDE
+//   - "maxToolCalls" (3.1%) ← ⚠️ Hit tool limit - keep (still complete)
+//   - "failed" (0.4%) ← ❌ LLM call failed - EXCLUDE
+//   - "networkError" (0.2%) ← ❌ Network error - EXCLUDE
+let toolData = 
+    AppEvents
+    | where TimeGenerated > timeStart and TimeGenerated <= timeEnd
+    | where Name == "GitHub.copilot-chat/toolCallDetailsInternal"
+    | extend messageId = tostring(Properties["messageId"])
+    | extend conversationId = tostring(Properties["conversationId"])
+    | where isnotempty(conversationId) and hash(conversationId) % numChunks == chunkNum
+    | extend toolCounts = tostring(Properties["toolCounts"])
+    | extend availableTools = tostring(Properties["availableTools"])  // JSON array of tool names (definitions available)
+    | extend responseType = tostring(Properties["responseType"])
+    | extend turnEndReason = tostring(Properties["turnEndReason"])
+    | extend turnIndex = toint(Measurements["turnIndex"])
+    | extend numRequests = toint(Measurements["numRequests"])
+    | extend turnDuration = toint(Measurements["turnDuration"])
+    | extend availableToolCount = toint(Measurements["availableToolCount"])
+    | where responseType == "success"  // Only successful responses
+    | project messageId, toolCounts, availableTools, availableToolCount, numRequests, turnDuration, turnEndReason;
+
+// =============================================================================
+// STEP 4: Build turns with all data
 // =============================================================================
 let turns = 
     userMsgs
     | join kind=inner modelMsgs on conversationId, messageId
     | join kind=leftouter tokenData on messageId
+    | join kind=leftouter toolData on messageId
     | project 
         conversationId,
         userName,
@@ -125,11 +247,35 @@ let turns =
         userMessage,
         modelMessage,
         llmCalls = coalesce(llmCalls, dynamic([])),
-        turnMaxPromptTokens = coalesce(turnMaxPromptTokens, 0),
-        turnTotalCompletionTokens = coalesce(turnTotalCompletionTokens, 0);
+        turnSummary = pack(
+            // ACTUAL tokens from LLM API (billed)
+            "actual_API", pack(
+                "maxPromptTokens_(system+user+assistant+toolResults)", coalesce(turnMaxPromptTokens, 0),
+                "totalCompletionTokens", coalesce(turnTotalCompletionTokens, 0)
+            ),
+            "llmCallCount", array_length(coalesce(llmCalls, dynamic([]))),
+            "hasTrajectory", coalesce(turnHasTrajectory, false)
+        ),
+        // Tools object - metadata about tool usage in this turn
+        tools = pack(
+            // Tool DEFINITIONS available (sent in system message each LLM call)
+            "definitions", pack(
+                "names", coalesce(availableTools, "[]"),
+                "count", coalesce(availableToolCount, 0)
+            ),
+            // Tool INVOCATIONS (tools actually called during this turn)
+            "invocations", pack(
+                "withFrequency", coalesce(toolCounts, "{}")
+            )
+        ),
+        availableToolCount = coalesce(availableToolCount, 0),
+        numRequests = coalesce(numRequests, 0),
+        turnDurationMs = coalesce(turnDuration, 0),
+        turnEndReason = coalesce(turnEndReason, "unknown"),
+        turnMaxPromptTokens = coalesce(turnMaxPromptTokens, 0);
 
 // =============================================================================
-// STEP 4: Aggregate to conversations with completeness check
+// STEP 5: Aggregate to conversations with completeness & quality checks
 // =============================================================================
 let conversations = 
     turns
@@ -139,25 +285,47 @@ let conversations =
         capturedTurnCount = count(),
         minTurnIndex = min(turnIndex),
         maxTurnIndex = max(turnIndex),
-        totalPromptTokens = sum(turnMaxPromptTokens),
-        totalCompletionTokens = sum(turnTotalCompletionTokens),
+        // ACTUAL tokens from LLM API (billed)
+        // totalPromptTokens = sum of all turns' max promptTokens (includes: system + user + assistant + toolResults)
+        totalPromptTokens_actual = sum(turnMaxPromptTokens),
+        totalCompletionTokens_actual = sum(toint(turnSummary.actual_API.totalCompletionTokens)),
+        // Track failed/cancelled/error turns for filtering
+        hasFailedTurn = countif(turnEndReason == "failed") > 0,
+        hasCancelledTurn = countif(turnEndReason == "cancelled") > 0,
+        hasNetworkErrorTurn = countif(turnEndReason == "networkError") > 0,
+        // Count turns with missing token data
+        turnsWithEmptyLlmCalls = countif(array_length(llmCalls) == 0),
+        turnsWithZeroTokens = countif(turnMaxPromptTokens == 0),
         turnsArray = make_list(pack(
             "turnIndex", turnIndex,
             "messageId", messageId,
             "userMessage", userMessage,
             "modelMessage", modelMessage,
             "llmCalls", llmCalls,
-            "promptTokens", turnMaxPromptTokens,
-            "completionTokens", turnTotalCompletionTokens
+            "turnSummary", turnSummary,
+            "tools", tools,
+            "numRequests", numRequests,
+            "turnDurationMs", turnDurationMs
         ))
         by conversationId
     | mv-apply turnsArray on (
         order by toint(turnsArray.turnIndex) asc
         | summarize turnsArray = make_list(turnsArray)
     )
-    // COMPLETENESS CHECK
+    // ==========================================================================
+    // QUALITY FILTERS
+    // ==========================================================================
+    // 1. COMPLETENESS CHECK: All turns must be present
     | where minTurnIndex == 1
     | where capturedTurnCount == maxTurnIndex
+    // 2. NO FAILURES: Exclude conversations with any failed/cancelled/error turns
+    | where hasFailedTurn == false
+    | where hasCancelledTurn == false
+    | where hasNetworkErrorTurn == false
+    // 3. VALID TOKEN DATA: All turns must have LLM call data
+    | where turnsWithEmptyLlmCalls == 0
+    | where turnsWithZeroTokens == 0
+    // ==========================================================================
     // Assign bucket
     | extend bucket = case(
         capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
@@ -179,6 +347,53 @@ conversations
     userName,
     bucket,
     turnCount = capturedTurnCount,
-    totalPromptTokens,
-    totalCompletionTokens,
+    // Conversation-level token totals (ACTUAL from LLM API - billed)
+    // totalPromptTokens = sum of (system + user + assistant + toolResults) across all turns
+    totalPromptTokens_actual,
+    totalCompletionTokens_actual,
     turnsArray
+// ─────────────────────────────────────────────────────────────────────────────
+// OUTPUT SCHEMA:
+// ─────────────────────────────────────────────────────────────────────────────
+// 
+// Per llmCall (inside turnsArray[].llmCalls[]):
+//
+//   actual_API: {                          ← BILLED tokens from LLM API
+//     promptTokens_(system+user+assistant+toolResults),  ← Input tokens (combined)
+//     completionTokens,                    ← Output tokens from model
+//     totalTokens                          ← promptTokens + completionTokens
+//   }
+//
+//   estimates_Copilot: {                   ← Client-side ESTIMATES (for truncation decisions)
+//     systemTokens,                        ← System prompt + tool definitions (CONSTANT in turn)
+//     userTokens,                          ← User message (CONSTANT in turn)
+//     assistantTokens,                     ← Model responses (GROWS in turn)
+//     toolResultTokens,                    ← Tool outputs (GROWS in turn)
+//     trajectoryTotal,                     ← Sum of all estimates
+//     hasTrajectory                        ← true if trajectory data was captured
+//   }
+//
+// Per turn (inside turnsArray[]):
+//   turnSummary: {
+//     actual_API: {
+//       maxPromptTokens_(system+user+assistant+toolResults),  ← Max prompt tokens
+//       totalCompletionTokens              ← Sum of completion tokens
+//     },
+//     llmCallCount,                        ← Number of LLM calls in this turn
+//     hasTrajectory                        ← true if any call has trajectory
+//   }
+//
+//   tools: {                               ← Tool metadata (from toolCallDetailsInternal event)
+//     definitions: {                       ← Tools available in system message
+//       names,                             ← JSON array: ["create_file","read_file",...]
+//       count                              ← Number of tools (e.g., 78)
+//     },
+//     invocations: {                       ← Tools actually called in this turn
+//       withFrequency                      ← JSON object: {"read_file":2,"write_file":1}
+//     }
+//   }
+//
+// COST ANALYSIS: Use actual_API fields (billed by LLM)
+// COMPOSITION BREAKDOWN: Use estimates_Copilot fields (Copilot's tokenizer estimates)
+// TOOL METADATA: See 03_TOOL_TELEMETRY.md for details
+// ─────────────────────────────────────────────────────────────────────────────

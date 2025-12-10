@@ -1,0 +1,20 @@
+# LLM-as-Judge Dependencies
+
+# Anthropic SDK for Claude models (includes async support)
+anthropic>=0.25.0
+
+# Azure Authentication
+azure-identity>=1.15.0
+azure-keyvault-secrets>=4.8.0
+
+# Retry logic
+tenacity>=8.2.0
+
+# Progress bars (sync and async)
+tqdm>=4.66.0
+
+# Async HTTP (for future extensions)
+aiohttp>=3.9.0
+
+# Data processing
+pandas>=2.0.0

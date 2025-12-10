@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "total_invalid": 1,
+    "error_summary": {
+      "Conversation incomplete: first turn has index None (expected 1)": 1,
+      "Turn index gap: expected 1, got None": 1
+    },
+    "generated_at": "2025-12-10T19:58:59.526343Z",
+    "split": "test"
+  },
+  "invalid_records": [
+    {
+      "conversationId": "61d1e7b8-2040-4ede-ae61-ccfd90c9667c",
+      "bucket": "short_3_to_5_turns",
+      "turnCount": 4,
+      "errors": [
+        "Conversation incomplete: first turn has index None (expected 1)",
+        "Turn index gap: expected 1, got None"
+      ]
+    }
+  ]
+}

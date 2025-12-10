@@ -97,6 +97,7 @@ from azure.kusto.data.helpers import dataframe_from_result_table
 from azure.kusto.data.exceptions import KustoApiError, KustoServiceError
 from azure.storage.blob import BlobServiceClient
 from requests.exceptions import RequestException, ConnectionError, Timeout
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 # =============================================================================
 # RETRY CONFIGURATION (used by tenacity)
@@ -113,7 +114,7 @@ ENABLE_CHUNKING = True
 CHUNKING_METHOD = "hash"  # "hash" (recommended) or "time"
 
 # Hash-based chunking (RECOMMENDED): Guarantees conversation completeness
-# Increased to 40 chunks to reduce per-chunk data size and avoid timeouts
+# 40 chunks to balance data size and query count
 NUM_HASH_CHUNKS = 40  # Number of hash buckets (40 chunks = ~2.5% data per chunk)
 HASH_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 
@@ -124,8 +125,8 @@ TIME_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 # =============================================================================
 # TIMEOUT CONFIGURATION
 # =============================================================================
-SERVER_TIMEOUT_SECONDS = 1800  # 30 minutes - Kusto server-side timeout (increased for large 60d queries)
-CLIENT_TIMEOUT_SECONDS = 2100  # 35 minutes - Client-side network timeout
+SERVER_TIMEOUT_SECONDS = 500   # ~8 minutes - Kusto server-side timeout
+CLIENT_TIMEOUT_SECONDS = 500   # ~8 minutes - Client-side timeout (most chunks complete in 1-3 min)
 
 # =============================================================================
 # CONFIGURATION
@@ -146,6 +147,9 @@ PROD_QUERY_FILE = SCRIPT_DIR / "queries" / "sft_100k_production_with_splits.kql"
 CANDIDATES_QUERY_FILE = SCRIPT_DIR / "queries" / "sft_candidates_no_sampling.kql"
 # Hash-based chunking query (RECOMMENDED) - guarantees conversation completeness
 HASH_CHUNKED_QUERY_FILE = SCRIPT_DIR / "queries" / "sft_candidates_hash_chunked.kql"
+
+# Checkpoint file for resumable exports
+CHECKPOINT_FILE = SCRIPT_DIR / "notebooks" / "checkpoint.json"
 
 # Split configuration
 # Train: 100k, Val: 10k, Test: 10k → Total 120k
@@ -193,6 +197,72 @@ def get_split(conversation_id: str) -> str:
 
 
 # =============================================================================
+# CHECKPOINT FUNCTIONS (for resumable exports)
+# =============================================================================
+
+def save_checkpoint(results: list, last_completed_chunk: int, seen_ids: set):
+    """Save intermediate results to checkpoint file."""
+    checkpoint_data = {
+        "last_completed_chunk": last_completed_chunk,
+        "total_records": len(results),
+        "seen_conversation_ids": list(seen_ids),
+        "results": results,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+    
+    # Write to temp file first, then rename (atomic operation)
+    temp_file = CHECKPOINT_FILE.with_suffix('.tmp')
+    with open(temp_file, 'w') as f:
+        json.dump(checkpoint_data, f)
+    temp_file.rename(CHECKPOINT_FILE)
+    
+    print(f"   💾 Checkpoint saved: {len(results):,} records, chunk {last_completed_chunk + 1}")
+
+
+def load_checkpoint() -> tuple:
+    """
+    Load checkpoint if exists.
+    
+    Returns:
+        (results, last_completed_chunk, seen_ids) or ([], -1, set()) if no checkpoint
+    """
+    if not CHECKPOINT_FILE.exists():
+        return [], -1, set()
+    
+    try:
+        with open(CHECKPOINT_FILE, 'r') as f:
+            data = json.load(f)
+        
+        results = data.get("results", [])
+        last_chunk = data.get("last_completed_chunk", -1)
+        seen_ids = set(data.get("seen_conversation_ids", []))
+        timestamp = data.get("timestamp", "unknown")
+        
+        print(f"\n{'='*70}")
+        print(f"📂 CHECKPOINT FOUND!")
+        print(f"{'='*70}")
+        print(f"   Last completed chunk: {last_chunk + 1}")
+        print(f"   Records saved: {len(results):,}")
+        print(f"   Saved at: {timestamp}")
+        print(f"   Resuming from chunk {last_chunk + 2}...")
+        print(f"{'='*70}\n")
+        
+        return results, last_chunk, seen_ids
+        
+    except Exception as e:
+        print(f"⚠️  Failed to load checkpoint: {e}")
+        print(f"   Starting from scratch...")
+        return [], -1, set()
+
+
+def clear_checkpoint():
+    """Remove checkpoint file after successful completion."""
+    if CHECKPOINT_FILE.exists():
+        CHECKPOINT_FILE.unlink()
+        print(f"   🗑️  Checkpoint cleared")
+
+
+# =============================================================================
 # KUSTO CLIENT
 # =============================================================================
 
@@ -231,6 +301,7 @@ def _is_retryable_error(exception: Exception) -> bool:
     retryable_patterns = [
         "network",
         "timeout",
+        "client-side timeout",  # Our custom ClientTimeoutError
         "connection",
         "failed to process",
         "service unavailable",
@@ -262,9 +333,15 @@ def _elapsed_time_display(start_time: float, stop_event, interval: int = 10):
         stop_event.wait(interval)  # Update every 10 seconds
 
 
+class ClientTimeoutError(Exception):
+    """Raised when client-side timeout is exceeded."""
+    pass
+
+
 def _execute_kusto_query_inner(client, query: str, properties, show_elapsed: bool = True) -> list:
     """Inner function that executes the query - separated for tenacity decorator."""
     import threading
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
     
     start_time = time.time()
     stop_event = threading.Event()
@@ -279,8 +356,27 @@ def _execute_kusto_query_inner(client, query: str, properties, show_elapsed: boo
         )
         elapsed_thread.start()
     
+    def execute_query():
+        """Wrapper for query execution to run in thread pool."""
+        return client.execute(KUSTO_DATABASE, query, properties=properties)
+    
     try:
-        response = client.execute(KUSTO_DATABASE, query, properties=properties)
+        # Use ThreadPoolExecutor for client-side timeout
+        # IMPORTANT: Don't use context manager - it waits for threads on exit!
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(execute_query)
+        try:
+            response = future.result(timeout=CLIENT_TIMEOUT_SECONDS)
+        except FuturesTimeoutError:
+            # Shutdown without waiting - don't block on stuck query!
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise ClientTimeoutError(
+                f"Client-side timeout after {CLIENT_TIMEOUT_SECONDS}s. "
+                f"The server may still be processing. Consider reducing query scope."
+            )
+        finally:
+            # Normal cleanup - shutdown without waiting
+            executor.shutdown(wait=False)
     finally:
         # Stop the elapsed time display
         stop_event.set()
@@ -348,7 +444,7 @@ def run_kusto_query(client, query: str, max_retries: int = MAX_RETRIES) -> list:
         @retry(
             stop=stop_after_attempt(max_retries),
             wait=wait_random_exponential(multiplier=RETRY_MULTIPLIER, min=RETRY_MIN_WAIT, max=RETRY_MAX_WAIT),
-            retry=retry_if_exception_type((RequestException, ConnectionError, Timeout, KustoServiceError)),
+            retry=retry_if_exception_type((RequestException, ConnectionError, Timeout, KustoServiceError, ClientTimeoutError)),
             before_sleep=lambda retry_state: print(
                 f"\n⚠️  Query failed (attempt {retry_state.attempt_number}/{max_retries})\n"
                 f"   Error: {str(retry_state.outcome.exception())[:200]}...\n"
@@ -580,26 +676,54 @@ def run_hash_chunked_query(client, num_chunks: int = NUM_HASH_CHUNKS) -> list:
     Returns:
         Combined results from all chunks (complete conversations only)
     """
+    # Suppress verbose Azure logging
+    import logging
+    logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
+    logging.getLogger('azure.identity').setLevel(logging.WARNING)
+    
     # Read the hash-chunked query template
     print(f"\nReading hash-chunked query from: {HASH_CHUNKED_QUERY_FILE}")
     with open(HASH_CHUNKED_QUERY_FILE, 'r') as f:
         base_query = f.read()
     
-    all_results = []
-    seen_conversation_ids = set()
+    # Try to load checkpoint for resume
+    all_results, last_completed_chunk, seen_conversation_ids = load_checkpoint()
+    start_chunk = last_completed_chunk + 1
     
-    print(f"\n🔀 HASH-BASED CHUNKING: Splitting by hash(conversationId) % {num_chunks}")
+    chunk_times = []  # Track timing for ETA
+    
+    print(f"\n{'='*70}")
+    print(f"🔀 HASH-BASED CHUNKING: hash(conversationId) % {num_chunks}")
+    print(f"{'='*70}")
     print(f"   ✅ Guarantees: Each conversation fully in ONE chunk")
     print(f"   ✅ Guarantees: Conversation completeness preserved")
+    print(f"   📊 Target: ~120k conversations across all chunks")
+    if start_chunk > 0:
+        print(f"   🔄 RESUMING from chunk {start_chunk + 1} (skipping {start_chunk} completed chunks)")
+        print(f"   📂 Loaded {len(all_results):,} records from checkpoint")
+    print(f"{'='*70}\n")
     
-    # Create progress bar if available
-    chunk_range = range(num_chunks)
-    if TQDM_AVAILABLE:
-        chunk_range = tqdm(chunk_range, desc="Processing hash chunks", unit="chunk")
+    overall_start = time.time()
     
-    for chunk_num in chunk_range:
-        if not TQDM_AVAILABLE:
-            print(f"\n📦 Hash chunk {chunk_num + 1}/{num_chunks}: hash(conversationId) % {num_chunks} == {chunk_num}")
+    for chunk_num in range(start_chunk, num_chunks):
+        chunk_start = time.time()
+        
+        # Progress header
+        pct_complete = (chunk_num / num_chunks) * 100
+        print(f"\n{'─'*70}")
+        print(f"📦 CHUNK {chunk_num + 1}/{num_chunks} ({pct_complete:.0f}% complete)")
+        print(f"{'─'*70}")
+        
+        # ETA calculation
+        if chunk_times:
+            avg_chunk_time = sum(chunk_times) / len(chunk_times)
+            remaining_chunks = num_chunks - chunk_num
+            eta_seconds = avg_chunk_time * remaining_chunks
+            eta_minutes = int(eta_seconds // 60)
+            eta_secs = int(eta_seconds % 60)
+            print(f"   ⏱️  Avg chunk time: {avg_chunk_time:.0f}s | ETA: {eta_minutes}m {eta_secs}s")
+        
+        print(f"   🔍 Query: hash(conversationId) % {num_chunks} == {chunk_num}")
         
         # Replace placeholders in query
         chunk_query = base_query.replace("{NUM_CHUNKS}", str(num_chunks))
@@ -607,7 +731,44 @@ def run_hash_chunked_query(client, num_chunks: int = NUM_HASH_CHUNKS) -> list:
         
         try:
             chunk_results = run_kusto_query(client, chunk_query)
+            chunk_elapsed = time.time() - chunk_start
+            chunk_times.append(chunk_elapsed)
             
+            # =====================================================================
+            # TOKEN VALIDATION (early detection of query bugs)
+            # =====================================================================
+            # Validate token data BEFORE processing - this catches query bugs early
+            # where token fields are not being extracted correctly (e.g., wrong
+            # field names, wrong case in filters, etc.)
+            if chunk_results:
+                try:
+                    token_validation = validate_chunk_tokens(chunk_results, chunk_num)
+                    
+                    if token_validation["invalid"] > 0:
+                        print(f"\n   ⚠️  TOKEN VALIDATION WARNING:")
+                        print(f"      • Valid records: {token_validation['valid']:,}")
+                        print(f"      • Invalid records: {token_validation['invalid']:,} ({token_validation['invalid_percentage']:.1f}%)")
+                        if token_validation["sample_errors"]:
+                            print(f"      • Sample errors:")
+                            for err in token_validation["sample_errors"][:2]:
+                                print(f"        - {err}")
+                        
+                        if token_validation["is_critical"]:
+                            print(f"\n   🚨 CRITICAL: >10% of records have token issues!")
+                            print(f"      This may indicate a data quality problem.")
+                    else:
+                        print(f"   ✅ Token validation passed ({token_validation['valid']:,} records)")
+                        
+                except TokenValidationError as e:
+                    # ALL records have token issues - this is a query bug, fail fast!
+                    print(f"\n{'='*70}")
+                    print(f"🚨 CRITICAL TOKEN VALIDATION FAILURE")
+                    print(f"{'='*70}")
+                    print(str(e))
+                    print(f"{'='*70}")
+                    raise
+            
+            new_records = 0
             if chunk_results:
                 # Deduplicate by conversationId (shouldn't happen with hash chunking, but safety)
                 for record in chunk_results:
@@ -617,25 +778,70 @@ def run_hash_chunked_query(client, num_chunks: int = NUM_HASH_CHUNKS) -> list:
                         # Assign split based on conversationId hash
                         record["split"] = get_split(conv_id)
                         all_results.append(record)
+                        new_records += 1
+            
+            # Chunk summary
+            print(f"\n   📊 CHUNK {chunk_num + 1} SUMMARY:")
+            print(f"      • Records this chunk: {len(chunk_results) if chunk_results else 0:,}")
+            print(f"      • New unique records: {new_records:,}")
+            print(f"      • Total accumulated:  {len(all_results):,}")
+            print(f"      • Chunk time: {chunk_elapsed:.1f}s")
+            
+            # Bucket distribution so far (every 5 chunks)
+            if (chunk_num + 1) % 5 == 0 or chunk_num == num_chunks - 1:
+                bucket_counts = {"short": 0, "medium": 0, "long": 0}
+                split_counts = {"train": 0, "val": 0, "test": 0}
+                for r in all_results:
+                    bucket = r.get("bucket", "")
+                    split = r.get("split", "")
+                    if "short" in bucket:
+                        bucket_counts["short"] += 1
+                    elif "medium" in bucket:
+                        bucket_counts["medium"] += 1
+                    elif "long" in bucket:
+                        bucket_counts["long"] += 1
+                    if split in split_counts:
+                        split_counts[split] += 1
                 
-                if not TQDM_AVAILABLE:
-                    print(f"   ✅ Chunk {chunk_num + 1}: {len(chunk_results):,} records (total unique: {len(all_results):,})")
-            else:
-                if not TQDM_AVAILABLE:
-                    print(f"   ℹ️  Chunk {chunk_num + 1}: No data")
+                print(f"\n   📈 RUNNING TOTALS (after {chunk_num + 1} chunks):")
+                print(f"      Buckets: short={bucket_counts['short']:,} | medium={bucket_counts['medium']:,} | long={bucket_counts['long']:,}")
+                print(f"      Splits:  train={split_counts['train']:,} | val={split_counts['val']:,} | test={split_counts['test']:,}")
+            
+            # SAVE CHECKPOINT after each successful chunk
+            save_checkpoint(all_results, chunk_num, seen_conversation_ids)
             
             # Small delay between chunks to avoid rate limiting
             if chunk_num < num_chunks - 1:
                 time.sleep(HASH_CHUNK_DELAY_SECONDS)
                 
         except Exception as e:
-            print(f"\n❌ Hash chunk {chunk_num + 1} failed: {e}")
-            print(f"   Progress saved: {len(all_results):,} records from {chunk_num} chunks")
-            print(f"   You can resume by starting from chunk {chunk_num}")
+            # Save checkpoint before failing so we can resume
+            if all_results:
+                save_checkpoint(all_results, chunk_num - 1, seen_conversation_ids)
+            
+            print(f"\n{'='*70}")
+            print(f"❌ CHUNK {chunk_num + 1} FAILED")
+            print(f"{'='*70}")
+            print(f"   Error: {str(e)[:200]}")
+            print(f"   Progress: {len(all_results):,} records from {chunk_num} chunks")
+            print(f"   💾 Checkpoint saved! Restart to resume from chunk {chunk_num + 1}")
+            print(f"{'='*70}")
             raise
     
-    print(f"\n✅ All {num_chunks} hash chunks processed.")
-    print(f"   Total unique conversations: {len(all_results):,}")
+    # Final summary
+    total_elapsed = time.time() - overall_start
+    total_minutes = int(total_elapsed // 60)
+    total_secs = int(total_elapsed % 60)
+    
+    # Clear checkpoint on successful completion
+    clear_checkpoint()
+    
+    print(f"\n{'='*70}")
+    print(f"✅ ALL {num_chunks} CHUNKS COMPLETE!")
+    print(f"{'='*70}")
+    print(f"   Total conversations: {len(all_results):,}")
+    print(f"   Total time: {total_minutes}m {total_secs}s")
+    print(f"   Avg per chunk: {total_elapsed/(num_chunks - start_chunk):.1f}s")
     
     # Print bucket distribution
     bucket_counts = {"short_3_to_5_turns": 0, "medium_6_to_10_turns": 0, "long_11_to_20_turns": 0}
@@ -755,6 +961,142 @@ def upload_json_to_blob(blob_service_client, container_name: str, blob_path: str
 # =============================================================================
 # DATA VALIDATION
 # =============================================================================
+
+class TokenValidationError(Exception):
+    """Raised when token validation fails critically (indicates query bug)."""
+    pass
+
+
+def validate_record_tokens(record: dict) -> tuple[bool, list[str]]:
+    """
+    Validate token data in a record (called during fetch for early detection).
+    
+    This validation is critical for detecting query bugs where token data
+    is not being extracted correctly.
+    
+    Returns:
+        (is_valid, list_of_errors)
+    
+    Checks:
+        1. totalPromptTokens > 0 (at conversation level)
+        2. totalCompletionTokens > 0 (at conversation level)  
+        3. Each turn has non-empty llmCalls list
+        4. Each llmCall has promptTokens > 0
+    """
+    errors = []
+    conversation_id = record.get("conversationId", "unknown")[:20]
+    
+    # Check conversation-level token totals
+    total_prompt = record.get("totalPromptTokens", 0)
+    total_completion = record.get("totalCompletionTokens", 0)
+    
+    if total_prompt == 0:
+        errors.append(f"totalPromptTokens=0")
+    if total_completion == 0:
+        errors.append(f"totalCompletionTokens=0")
+    
+    # Check turns for llmCalls
+    turns = record.get("turnsArray", [])
+    if isinstance(turns, list):
+        turns_with_empty_llm_calls = 0
+        turns_with_zero_tokens = 0
+        
+        for i, turn in enumerate(turns):
+            turn_idx = turn.get("turnIndex", i + 1)
+            llm_calls = turn.get("llmCalls", [])
+            
+            # Check llmCalls is non-empty
+            if not llm_calls or len(llm_calls) == 0:
+                turns_with_empty_llm_calls += 1
+            else:
+                # Check each llmCall has tokens
+                for j, call in enumerate(llm_calls):
+                    prompt_tokens = call.get("promptTokens", 0)
+                    if prompt_tokens == 0:
+                        turns_with_zero_tokens += 1
+                        break  # Only count once per turn
+        
+        if turns_with_empty_llm_calls > 0:
+            errors.append(f"{turns_with_empty_llm_calls}/{len(turns)} turns have empty llmCalls")
+        
+        if turns_with_zero_tokens > 0:
+            errors.append(f"{turns_with_zero_tokens}/{len(turns)} turns have zero promptTokens in llmCalls")
+    
+    return len(errors) == 0, errors
+
+
+def validate_chunk_tokens(records: list, chunk_num: int, threshold: float = 0.1) -> dict:
+    """
+    Validate token data for an entire chunk of records.
+    
+    Args:
+        records: List of conversation records
+        chunk_num: Chunk number (for reporting)
+        threshold: Fraction of invalid records that triggers a critical error (default 10%)
+    
+    Returns:
+        Dict with validation results:
+        {
+            "total": int,
+            "valid": int,
+            "invalid": int,
+            "invalid_percentage": float,
+            "is_critical": bool,  # True if invalid% > threshold
+            "sample_errors": list  # Sample of error messages
+        }
+    
+    Raises:
+        TokenValidationError: If ALL records have token issues (indicates query bug)
+    """
+    total = len(records)
+    if total == 0:
+        return {
+            "total": 0,
+            "valid": 0,
+            "invalid": 0,
+            "invalid_percentage": 0.0,
+            "is_critical": False,
+            "sample_errors": []
+        }
+    
+    valid = 0
+    invalid = 0
+    sample_errors = []
+    
+    for record in records:
+        is_valid, errors = validate_record_tokens(record)
+        if is_valid:
+            valid += 1
+        else:
+            invalid += 1
+            if len(sample_errors) < 3:  # Keep first 3 error samples
+                conv_id = record.get("conversationId", "unknown")[:20]
+                sample_errors.append(f"{conv_id}...: {errors}")
+    
+    invalid_pct = (invalid / total) * 100 if total > 0 else 0
+    is_critical = (invalid / total) > threshold if total > 0 else False
+    
+    # If ALL records have token issues, this is a query bug - fail fast!
+    if invalid == total and total > 0:
+        raise TokenValidationError(
+            f"CRITICAL: ALL {total} records in chunk {chunk_num + 1} have token validation errors!\n"
+            f"This indicates a query bug - token data is not being extracted correctly.\n"
+            f"Sample errors: {sample_errors[:3]}\n\n"
+            f"Check that the query uses:\n"
+            f"  - message_direction == 'output' (lowercase)\n"
+            f"  - Properties['headerRequestId'] for messageId\n"
+            f"  - Properties['baseModel'] for model"
+        )
+    
+    return {
+        "total": total,
+        "valid": valid,
+        "invalid": invalid,
+        "invalid_percentage": invalid_pct,
+        "is_critical": is_critical,
+        "sample_errors": sample_errors
+    }
+
 
 def validate_record(record: dict, expected_split: str = None) -> tuple[bool, list[str]]:
     """
@@ -1247,6 +1589,37 @@ def export_sft_data(is_test: bool = False, target_split: str = None, dry_run: bo
     if is_test:
         print("\nRunning test query...")
         results = run_kusto_query(kusto_client, base_query)
+        
+        # =====================================================================
+        # TOKEN VALIDATION (early detection of query bugs)
+        # =====================================================================
+        if results:
+            print("\n🔍 Validating token data...")
+            try:
+                token_validation = validate_chunk_tokens(results, chunk_num=0)
+                
+                if token_validation["invalid"] > 0:
+                    print(f"\n   ⚠️  TOKEN VALIDATION WARNING:")
+                    print(f"      • Valid records: {token_validation['valid']:,}")
+                    print(f"      • Invalid records: {token_validation['invalid']:,} ({token_validation['invalid_percentage']:.1f}%)")
+                    if token_validation["sample_errors"]:
+                        print(f"      • Sample errors:")
+                        for err in token_validation["sample_errors"][:3]:
+                            print(f"        - {err}")
+                    
+                    if token_validation["is_critical"]:
+                        print(f"\n   🚨 CRITICAL: >10% of records have token issues!")
+                else:
+                    print(f"   ✅ Token validation passed ({token_validation['valid']:,} records)")
+                    
+            except TokenValidationError as e:
+                # ALL records have token issues - this is a query bug, fail fast!
+                print(f"\n{'='*70}")
+                print(f"🚨 CRITICAL TOKEN VALIDATION FAILURE")
+                print(f"{'='*70}")
+                print(str(e))
+                print(f"{'='*70}")
+                raise
         
         # Assign splits based on hash
         for record in results:

@@ -41,7 +41,10 @@
 // DOCUMENTATION: See ../docs/vscode_1p_data_team_docs/understand_data_schema.md
 // =============================================================================
 
-let timeStart = ago(7d);
+// ⚠️ TIME WINDOW: Adjust based on data availability
+// - ago(7d):  For quick testing, may not have enough data for 100k
+// - ago(60d): Recommended for 100k production run
+let timeStart = ago(60d);
 let timeEnd = now();
 
 // Bucket configuration with descriptive names

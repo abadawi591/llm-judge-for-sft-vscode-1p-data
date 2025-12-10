@@ -1,0 +1,49 @@
+// =============================================================================
+// EXPLORATION: Check model.modelCall.input for tool definitions
+// =============================================================================
+// The requestOptions event doesn't exist, but model.modelCall.input does (109k events)
+// Let's check if tool definitions are in there
+// =============================================================================
+
+// Query 1: Check structure of model.modelCall.input
+AppEvents
+| where TimeGenerated > ago(1h)
+| where Name == "GitHub.copilot-chat/model.modelCall.input"
+| take 1
+| mv-expand bagexpansion=array Properties
+| extend propKey = tostring(Properties[0])
+| summarize count() by propKey
+| order by count_ desc
+
+// =============================================================================
+// Query 2: Check if there's a "tools" property
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input"
+// | take 100
+// | extend hasToolsProp = Properties has "tools"
+// | summarize 
+//     total = count(),
+//     withTools = countif(hasToolsProp)
+
+// =============================================================================
+// Query 3: Get sample Properties to see structure
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input"
+// | take 1
+// | project Properties
+
+// =============================================================================
+// Query 4: Look for any mention of "tools" in the raw Properties
+// =============================================================================
+// AppEvents
+// | where TimeGenerated > ago(1h)
+// | where Name == "GitHub.copilot-chat/model.modelCall.input"
+// | extend propsStr = tostring(Properties)
+// | where propsStr contains "tool"
+// | take 1
+// | project propsStr
+

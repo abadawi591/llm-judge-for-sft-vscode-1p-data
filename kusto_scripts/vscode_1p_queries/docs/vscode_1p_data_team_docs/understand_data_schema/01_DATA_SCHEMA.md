@@ -2,7 +2,9 @@
 
 This document explains the structure and composition of GitHub Copilot (VS Code) agent mode telemetry data.
 
-**Related Document:** [Token Telemetry](./02_TOKEN_TELEMETRY.md) — Deep dive into token tracking and measurement
+**Related Documents:**
+- [Token Telemetry](./02_TOKEN_TELEMETRY.md) — Deep dive into token tracking and measurement
+- [Tool Telemetry](./03_TOOL_TELEMETRY.md) — Tool definitions, invocations, and turn end reasons
 
 ---
 
@@ -24,25 +26,7 @@ A Copilot agent mode interaction follows a clear hierarchical structure. Underst
 
 ### Key Relationships
 
-```
-1 Conversation  →  N Turns  →  M LLM Calls per Turn
 
-Example:
-┌─────────────────────────────────────────────────────────────────┐
-│  Conversation: abc-123                                          │
-│  ├── Turn 1 (messageId: msg-001)                                │
-│  │   ├── LLM Call 1 (callIndex: 1) → Tool: read_file            │
-│  │   ├── LLM Call 2 (callIndex: 2) → Tool: grep                 │
-│  │   └── LLM Call 3 (callIndex: 3) → Final response             |
-|  |                                                              |
-│  ├── Turn 2 (messageId: msg-002)                                │
-│  │   ├── LLM Call 1 (callIndex: 1) → Tool: write_file           │
-│  │   └── LLM Call 2 (callIndex: 2) → Final response             |
-|  |                                                              │
-│  └── Turn 3 (messageId: msg-003)                                │
-│      └── LLM Call 1 (callIndex: 1) → Final response (no tools)  │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 <p align="center">
   <img src="./assets/00_conversation_hierarchy (1).svg" alt="Conversation Hierarchy" width="100%">
@@ -54,12 +38,12 @@ Example:
 
 ## 3. Detailed Conversation Structure
 
-<p align="center">
+<!-- <p align="center">
   <img src="./assets/conversation_summary.svg" alt="Conversation Summary" width="100%">
-</p>
+</p> -->
 
 <p align="center">
-  <img src="./assets/conversation_enhanced (1).svg" alt="Conversation Structure Detail" width="100%">
+  <img src="./assets/conversation_enhanced (2).svg" alt="Conversation Structure Detail" width="100%">
 </p>
 
 ### Why Multiple LLM Calls Per Turn?
@@ -163,112 +147,34 @@ Not all LLM calls have trajectory data (token breakdown). Check `hasTrajectory`:
 
 Production queries use **stratified sampling** to ensure balanced representation across conversation lengths. Target: **~100,000 conversations** for SFT training.
 
-### Bucket Definitions (Total: 100k)
+<p align="center">
+  <img src="./assets/13_stratified_buckets.svg" alt="Stratified Sampling Buckets" width="100%">
+</p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          STRATIFIED BUCKETS                                      │
-│                                                                                  │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │  BUCKET: short_3_to_5_turns                                                │  │
-│  │  ────────────────────────────────────────────────────────────────────────  │  │
-│  │  Turn Range:  3-5 turns                                                    │  │
-│  │  Sample Size: 40,000 conversations                                         │  │
-│  │  Use Case:    Quick interactions, simple questions                         │  │
-│  │                                                                            │  │
-│  │  Example: "Fix this bug" → model reads file, edits, confirms              │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                  │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │  BUCKET: medium_6_to_10_turns                                              │  │
-│  │  ────────────────────────────────────────────────────────────────────────  │  │
-│  │  Turn Range:  6-10 turns                                                   │  │
-│  │  Sample Size: 40,000 conversations                                         │  │
-│  │  Use Case:    Typical agentic tasks with follow-ups                        │  │
-│  │                                                                            │  │
-│  │  Example: "Implement feature X" → multiple iterations and refinements     │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                  │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │  BUCKET: long_11_to_20_turns                                               │  │
-│  │  ────────────────────────────────────────────────────────────────────────  │  │
-│  │  Turn Range:  11-20 turns                                                  │  │
-│  │  Sample Size: 20,000 conversations                                         │  │
-│  │  Use Case:    Complex multi-step tasks, extended debugging sessions        │  │
-│  │                                                                            │  │
-│  │  Example: "Build entire module from scratch" → many files, iterations     │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+### Bucket Definitions
+
+| Bucket | Turn Range | Sample Size | Use Case |
+|--------|------------|-------------|----------|
+| `short_3_to_5_turns` | 3-5 turns | 40,000 | Quick interactions, simple questions |
+| `medium_6_to_10_turns` | 6-10 turns | 40,000 | Typical agentic tasks with follow-ups |
+| `long_11_to_20_turns` | 11-20 turns | 20,000 | Complex multi-step tasks, extended debugging |
+
+**Total: 100,000 conversations**
 
 ### Why Stratify?
 
-Without stratification, random sampling would heavily favor short conversations (more common) and under-represent long conversations:
-
-```
-UNSTRATIFIED (random) sampling:
-┌─────────────────────────────────────────────────────────────────────┐
-│  Short (3-5):   ████████████████████████████████████  (~80%)       │
-│  Medium (6-10): ████████                              (~15%)       │
-│  Long (11-20):  ██                                    (~5%)        │
-│                                                                      │
-│  Problem: Long conversations under-represented!                      │
-└─────────────────────────────────────────────────────────────────────┘
-
-STRATIFIED sampling (Target: ~100k for SFT):
-┌─────────────────────────────────────────────────────────────────────┐
-│  Short (3-5):   ██████████████████████████████████████  40,000     │
-│  Medium (6-10): ██████████████████████████████████████  40,000     │
-│  Long (11-20):  ████████████████████████                20,000     │
-│                                                                      │
-│  Balanced representation across all conversation lengths            │
-│  TOTAL: 100,000 conversations for SFT training                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Without stratification, random sampling would heavily favor short conversations (more common) and under-represent long conversations. Stratified sampling ensures balanced representation across all conversation lengths for effective SFT training.
 
 ### Sampling Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          STRATIFIED SAMPLING FLOW                                │
-│                                                                                  │
-│  ALL CONVERSATIONS (from telemetry)                                             │
-│         │                                                                        │
-│         ▼                                                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │  FILTER: Complete conversations only                                     │   │
-│  │  • minTurnIndex == 1                                                     │   │
-│  │  • capturedTurnCount == maxTurnIndex                                     │   │
-│  └─────────────────────────────────────────────────────────────────────────┘   │
-│         │                                                                        │
-│         ▼                                                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │  ASSIGN BUCKET based on turn count                                       │   │
-│  │  • 3-5 turns   → short_3_to_5_turns                                      │   │
-│  │  • 6-10 turns  → medium_6_to_10_turns                                    │   │
-│  │  • 11-20 turns → long_11_to_20_turns                                     │   │
-│  │  • Others      → excluded                                                 │   │
-│  └─────────────────────────────────────────────────────────────────────────┘   │
-│         │                                                                        │
-│         ├───────────────────┬───────────────────┬───────────────────┐           │
-│         ▼                   ▼                   ▼                   │           │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐           │           │
-│  │   SHORT     │     │   MEDIUM    │     │    LONG     │           │           │
-│  │  sample     │     │   sample    │     │   sample    │           │           │
-│  │   40,000    │     │   40,000    │     │   20,000    │           │           │
-│  └─────────────┘     └─────────────┘     └─────────────┘           │           │
-│         │                   │                   │                   │           │
-│         └───────────────────┴───────────────────┘                   │           │
-│                             │                                        │           │
-│                             ▼                                        │           │
-│                    ┌─────────────────┐                              │           │
-│                    │ UNION: 100,000  │                              │           │
-│                    │  conversations  │                              │           │
-│                    └─────────────────┘                              │           │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="./assets/14_sampling_flow.svg" alt="Stratified Sampling Flow" width="100%">
+</p>
+
+1. **Filter:** Complete conversations only (`minTurnIndex == 1` and `capturedTurnCount == maxTurnIndex`)
+2. **Assign Bucket:** Based on turn count (3-5, 6-10, 11-20)
+3. **Sample:** Take target count from each bucket
+4. **Union:** Combine all buckets → 100,000 conversations
 
 ---
 
@@ -310,7 +216,51 @@ STRATIFIED sampling (Target: ~100k for SFT):
 
 ---
 
-## 8. Related Documents
+## 8. Available Tools Telemetry
+
+### Where `availableTools` Comes From
+
+**Source:** `toolCallDetailsInternal` event (NOT `virtualTools.toolset`)
+
+| Event | Has messageId? | Use For |
+|-------|----------------|---------|
+| `toolCallDetailsInternal` | ✅ Yes | `availableTools`, `availableToolCount`, `toolCounts` |
+| `virtualTools.toolset` | ❌ No | Tool group definitions only (no join key) |
+
+### `availableTools` Behavior
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  availableTools WITHIN A CONVERSATION                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Turn 1: availableToolCount = 77                                            │
+│    └── LLM Call 1: 77 tools                                                 │
+│    └── LLM Call 2: 77 tools  ← CONSTANT within turn                        │
+│                                                                             │
+│  Turn 2: availableToolCount = 84  ← CAN CHANGE between turns               │
+│    └── LLM Call 1: 84 tools                                                 │
+│    └── LLM Call 2: 84 tools                                                 │
+│                                                                             │
+│  NOTE: User may enable MCP tools mid-conversation                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Points:**
+- `availableTools` is **CONSTANT within a turn** (across all llmCalls)
+- `availableTools` **CAN CHANGE between turns** (user enables/disables extensions)
+- Stored as JSON array: `["create_file","read_file","grep_search",...]`
+
+### Fields NOT Available in This Cluster
+
+| Field | Status | Alternative |
+|-------|--------|-------------|
+| `maxTokenWindow` | ❌ Not in Measurements | N/A - context limits not tracked |
+
+---
+
+## 9. Related Documents
 
 | Document | Description |
 |----------|-------------|

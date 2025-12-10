@@ -78,6 +78,8 @@ All diagrams are in the `assets/` folder:
 | `10_system_across_convos.svg` | System tokens variance |
 | `11_telemetry_events.svg` | Telemetry events overview |
 | `12_event_timing.svg` | Event timing within a turn |
+| `13_stratified_buckets.svg` | Stratified sampling bucket definitions |
+| `14_sampling_flow.svg` | Stratified sampling flow diagram |
 
 ---
 

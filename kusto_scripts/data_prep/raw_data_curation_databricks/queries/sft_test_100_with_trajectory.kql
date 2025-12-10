@@ -48,8 +48,11 @@ let dedupedByMessageId =
     | where isnotempty(messageText);
 
 let userMsgs = dedupedByMessageId 
-    | where source == "user" 
-    | project conversationId, messageId, userMessage = messageText, userName;
+    | where source == "user"
+    | order by conversationId asc, messageId asc
+    | serialize
+    | extend turnIndex = row_number(1, prev(conversationId) != conversationId)
+    | project conversationId, messageId, turnIndex, userMessage = messageText, userName;
 
 let modelMsgs = dedupedByMessageId 
     | where source == "model"
@@ -163,12 +166,11 @@ let toolData =
     | extend toolCounts = tostring(Properties["toolCounts"])
     | extend availableTools = tostring(Properties["availableTools"])  // JSON array of tool names
     | extend responseType = tostring(Properties["responseType"])
-    | extend turnIndex = toint(Measurements["turnIndex"])
     | extend numRequests = toint(Measurements["numRequests"])
     | extend turnDuration = toint(Measurements["turnDuration"])
     | extend availableToolCount = toint(Measurements["availableToolCount"])
     | where responseType == "success"
-    | project messageId, toolCounts, availableTools, turnIndex, numRequests, turnDuration, availableToolCount;
+    | project messageId, toolCounts, availableTools, numRequests, turnDuration, availableToolCount;
 
 // =============================================================================
 // STEP 5: Build turns
@@ -176,10 +178,19 @@ let toolData =
 let turns = 
     userMsgs
     | join kind=inner modelMsgs on conversationId, messageId
-    | join kind=inner tokenData on messageId
-    | join kind=inner toolData on messageId
-    | project-away conversationId1, messageId1, messageId2, messageId3
+    | join kind=leftouter tokenData on messageId
+    | join kind=leftouter toolData on messageId
+    | project-away conversationId1, messageId1, messageId2
+    // Coalesce null values from leftouter joins
+    | extend llmCalls = coalesce(llmCalls, dynamic([]))
+    | extend turnMaxPromptTokens = coalesce(turnMaxPromptTokens, 0)
+    | extend turnTotalCompletionTokens = coalesce(turnTotalCompletionTokens, 0)
+    | extend turnHasTrajectory = coalesce(turnHasTrajectory, false)
+    | extend toolCounts = coalesce(toolCounts, "{}")
     | extend availableTools = coalesce(availableTools, "[]")
+    | extend availableToolCount = coalesce(availableToolCount, 0)
+    | extend numRequests = coalesce(numRequests, 0)
+    | extend turnDuration = coalesce(turnDuration, 0)
     | project 
         conversationId,
         userName,
@@ -194,6 +205,9 @@ let turns =
             "llmCallCount", array_length(llmCalls),
             "hasTrajectory", turnHasTrajectory
         ),
+        // Also project raw values for aggregation in STEP 6
+        turnMaxPromptTokens,
+        turnTotalCompletionTokens,
         toolCounts,
         availableToolCount,
         availableTools,
@@ -211,6 +225,9 @@ let conversations =
         capturedTurnCount = count(),
         minTurnIndex = min(turnIndex),
         maxTurnIndex = max(turnIndex),
+        // Token totals for validation
+        totalPromptTokens = sum(turnMaxPromptTokens),
+        totalCompletionTokens = sum(turnTotalCompletionTokens),
         turnsArray = make_list(pack(
             "turnIndex", turnIndex,
             "messageId", messageId,
@@ -232,6 +249,9 @@ let conversations =
     // COMPLETENESS CHECK
     | where minTurnIndex == 1
     | where capturedTurnCount == maxTurnIndex
+    // Token data quality check
+    | where totalPromptTokens > 0
+    | where totalCompletionTokens > 0
     // Assign bucket
     | extend bucket = case(
         capturedTurnCount >= bucket_short_min and capturedTurnCount <= bucket_short_max, 
@@ -257,6 +277,8 @@ union shortConvos, mediumConvos, longConvos
     userName,
     bucket,
     turnCount = capturedTurnCount,
+    totalPromptTokens,
+    totalCompletionTokens,
     turnsArray
 | order by bucket asc, turnCount asc
 

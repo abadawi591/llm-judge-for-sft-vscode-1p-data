@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 680" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="650" height="680" fill="#0d1117"/>
+  
+  <!-- Title -->
+  <text x="325" y="35" font-size="18" font-weight="600" fill="#e6edf3" text-anchor="middle">Stratified Sampling for SFT</text>
+  <text x="325" y="55" font-size="11" fill="#9ca3af" text-anchor="middle">Target: ~100,000 conversations for SFT training</text>
+  
+  <!-- Outer container -->
+  <rect x="25" y="75" width="600" height="585" rx="10" fill="#111827" stroke="#22d3ee" stroke-width="2"/>
+  
+  <!-- Container header -->
+  <rect x="25" y="75" width="600" height="40" rx="10" fill="#164e63"/>
+  <rect x="25" y="95" width="600" height="20" fill="#164e63"/>
+  <text x="325" y="102" font-size="13" font-weight="600" fill="#22d3ee" text-anchor="middle" letter-spacing="2">STRATIFIED BUCKETS</text>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Bucket 1: short_3_to_5_turns -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 135)">
+    <rect x="0" y="0" width="560" height="155" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="560" height="36" rx="8" fill="#2563eb"/>
+    <rect x="0" y="18" width="560" height="18" fill="#2563eb"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">BUCKET: short_3_to_5_turns</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <text x="0" y="14" font-size="12" fill="#93c5fd">Turn Range:</text>
+      <text x="100" y="14" font-size="12" fill="#e5e7eb">3-5 turns</text>
+      
+      <text x="0" y="36" font-size="12" fill="#93c5fd">Sample Size:</text>
+      <text x="100" y="36" font-size="12" font-weight="600" fill="#4ade80">40,000 conversations</text>
+      
+      <text x="0" y="58" font-size="12" fill="#93c5fd">Use Case:</text>
+      <text x="100" y="58" font-size="12" fill="#e5e7eb">Quick interactions, simple questions</text>
+    </g>
+    
+    <!-- Example -->
+    <g transform="translate(15, 115)">
+      <rect x="0" y="0" width="530" height="28" rx="5" fill="#0f172a"/>
+      <text x="12" y="18" font-size="11" fill="#6b7280">Example:</text>
+      <text x="75" y="18" font-size="11" fill="#fbbf24">"Fix this bug"</text>
+      <text x="170" y="18" font-size="11" fill="#6b7280">→</text>
+      <text x="190" y="18" font-size="11" fill="#9ca3af">model reads file, edits, confirms</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Bucket 2: medium_6_to_10_turns -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 305)">
+    <rect x="0" y="0" width="560" height="155" rx="8" fill="#1a1a0f" stroke="#fbbf24" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="560" height="36" rx="8" fill="#b45309"/>
+    <rect x="0" y="18" width="560" height="18" fill="#b45309"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">BUCKET: medium_6_to_10_turns</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <text x="0" y="14" font-size="12" fill="#fcd34d">Turn Range:</text>
+      <text x="100" y="14" font-size="12" fill="#e5e7eb">6-10 turns</text>
+      
+      <text x="0" y="36" font-size="12" fill="#fcd34d">Sample Size:</text>
+      <text x="100" y="36" font-size="12" font-weight="600" fill="#4ade80">40,000 conversations</text>
+      
+      <text x="0" y="58" font-size="12" fill="#fcd34d">Use Case:</text>
+      <text x="100" y="58" font-size="12" fill="#e5e7eb">Typical agentic tasks with follow-ups</text>
+    </g>
+    
+    <!-- Example -->
+    <g transform="translate(15, 115)">
+      <rect x="0" y="0" width="530" height="28" rx="5" fill="#0f172a"/>
+      <text x="12" y="18" font-size="11" fill="#6b7280">Example:</text>
+      <text x="75" y="18" font-size="11" fill="#a78bfa">"Implement feature X"</text>
+      <text x="220" y="18" font-size="11" fill="#6b7280">→</text>
+      <text x="240" y="18" font-size="11" fill="#9ca3af">multiple iterations and refinements</text>
+    </g>
+  </g>
+  
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Bucket 3: long_11_to_20_turns -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <g transform="translate(45, 475)">
+    <rect x="0" y="0" width="560" height="170" rx="8" fill="#500724" stroke="#ec4899" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="0" y="0" width="560" height="36" rx="8" fill="#be185d"/>
+    <rect x="0" y="18" width="560" height="18" fill="#be185d"/>
+    <text x="15" y="24" font-size="12" font-weight="600" fill="#fff" font-family="'SF Mono', 'Fira Code', monospace">BUCKET: long_11_to_20_turns</text>
+    
+    <!-- Fields -->
+    <g transform="translate(15, 50)">
+      <text x="0" y="14" font-size="12" fill="#f9a8d4">Turn Range:</text>
+      <text x="100" y="14" font-size="12" fill="#e5e7eb">11-20 turns</text>
+      
+      <text x="0" y="36" font-size="12" fill="#f9a8d4">Sample Size:</text>
+      <text x="100" y="36" font-size="12" font-weight="600" fill="#4ade80">20,000 conversations</text>
+      
+      <text x="0" y="58" font-size="12" fill="#f9a8d4">Use Case:</text>
+      <text x="100" y="58" font-size="12" fill="#e5e7eb">Complex multi-step tasks, extended debugging sessions</text>
+    </g>
+    
+    <!-- Example -->
+    <g transform="translate(15, 115)">
+      <rect x="0" y="0" width="530" height="42" rx="5" fill="#0f172a"/>
+      <text x="12" y="18" font-size="11" fill="#6b7280">Example:</text>
+      <text x="75" y="18" font-size="11" fill="#22d3ee">"Build entire module from scratch"</text>
+      <text x="12" y="36" font-size="11" fill="#6b7280">→</text>
+      <text x="30" y="36" font-size="11" fill="#9ca3af">many files, iterations</text>
+    </g>
+  </g>
+</svg>

@@ -2,7 +2,9 @@
 
 This document explains how tokens are tracked and measured in GitHub Copilot (VS Code) agent mode telemetry.
 
-**Related Document:** [Data Schema](./01_DATA_SCHEMA.md) — Understanding conversation structure and data composition
+**Related Documents:**
+- [Data Schema](./01_DATA_SCHEMA.md) — Understanding conversation structure and data composition
+- [Tool Telemetry](./03_TOOL_TELEMETRY.md) — Tool definitions, invocations, and their token impact
 
 **Related Queries:**
 - `exploration/token_mechanics/49_single_turn_with_truncation.kql` — Full token breakdown with truncation detection
@@ -21,27 +23,7 @@ Copilot telemetry captures two distinct perspectives on token usage:
   <img src="./assets/01_token_data_flow.svg" alt="Token Data Flow" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         TOKEN DATA FLOW                                          │
-│                                                                                  │
-│  ┌─────────────────────────────┐              ┌─────────────────────────────┐   │
-│  │  COPILOT CLIENT (INPUT)     │              │  LLM API (OUTPUT)           │   │
-│  │  ═══════════════════════    │              │  ═══════════════════════    │   │
-│  │                             │   ───────▶   │                             │   │
-│  │  ESTIMATES:                 │   API Call   │  ACTUALS:                   │   │
-│  │  • systemTokens             │              │  • promptTokens             │   │
-│  │  • userTokens               │              │  • completionTokens         │   │
-│  │  • assistantTokens          │              │  • maxTokenWindow           │   │
-│  │  • toolResultTokens         │              │                             │   │
-│  │  • trajectoryTotal          │              │                             │   │
-│  │                             │              │                             │   │
-│  │  Fast client tokenizer      │              │  Model's actual tokenizer   │   │
-│  │  (for truncation decisions) │              │  (for billing/limits)       │   │
-│  └─────────────────────────────┘              └─────────────────────────────┘   │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 ### Token Fields Reference
 
@@ -68,24 +50,6 @@ A **trajectory** is the complete list of messages sent to the LLM at a given mom
   <img src="./assets/02_trajectory.svg" alt="Trajectory Concept" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  TRAJECTORY for LLM Call 3                                                       │
-│  ═══════════════════════════                                                     │
-│                                                                                  │
-│  [                                                                               │
-│    {"role": "system",    "content": "[system prompt + tool defs]"},  14K        │
-│    {"role": "user",      "content": "Please read my config..."},      4K        │
-│    {"role": "assistant", "content": "I'll read the file..."},        150        │
-│    {"role": "tool",      "content": "[config file contents]"},      5000        │
-│    {"role": "assistant", "content": "Running tests..."},             100        │
-│    {"role": "tool",      "content": "[terminal output]"},           8000        │
-│  ]                                                                               │
-│                                                                                  │
-│  trajectoryTotal = 14,000 + 4,000 + 150 + 5,000 + 100 + 8,000 = 31,250          │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
 
 ### The `hasTrajectory` Flag
 
@@ -115,22 +79,7 @@ Within a single turn (same `messageId`), some fields remain **constant** while o
 
 ### Real Data Example
 
-```
-┌──────────┬──────────────┬────────────┬─────────────────┬──────────────────┐
-│callIndex │ systemTokens │ userTokens │ assistantTokens │ toolResultTokens │
-├──────────┼──────────────┼────────────┼─────────────────┼──────────────────┤
-│    1     │    14,722    │   3,916    │        0        │        0         │
-│    2     │    14,722    │   3,916    │      144        │     1,312        │
-│    3     │    14,722    │   3,916    │      144        │    13,006        │
-│    4     │    14,722    │   3,916    │      343        │    36,505        │
-│    5     │    14,722    │   3,916    │      343        │    57,846        │
-│    6     │    14,722    │   3,916    │      343        │    91,772        │
-│    7     │    14,722    │   3,916    │      343        │   122,788        │
-│    8     │    14,722    │   3,916    │      447        │   148,197        │
-│    9     │    14,722    │   3,916    │      533        │   182,376        │
-└──────────┴──────────────┴────────────┴─────────────────┴──────────────────┘
-              CONSTANT       CONSTANT       GROWS            GROWS
-```
+
 
 **Query:** Run `49_single_turn_with_truncation.kql` to observe this pattern in your data.
 
@@ -149,35 +98,7 @@ Within a single turn (same `messageId`), some fields remain **constant** while o
 
 Even before ANY tool is invoked, the first LLM call already has ~15-25K tokens because **tool definitions are part of the system message**:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  FIRST LLM CALL — BEFORE ANY TOOLS ARE USED                                      │
-│                                                                                  │
-│  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  SYSTEM PROMPT                                             ~3,000 tokens │    │
-│  │  "You are a helpful coding assistant..."                                 │    │
-│  └─────────────────────────────────────────────────────────────────────────┘    │
-│                                                                                  │
-│  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  TOOL DEFINITIONS (JSON Schemas)                    ~8,000-12,000 tokens │    │
-│  │                                                                          │    │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │    │
-│  │  │  read_file   │ │  write_file  │ │ grep_search  │ │ run_terminal │   │    │
-│  │  │  ~400 tokens │ │  ~400 tokens │ │  ~350 tokens │ │  ~500 tokens │   │    │
-│  │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘   │    │
-│  │                                                                          │    │
-│  │  ← You pay for tool AVAILABILITY even if tools are never used →         │    │
-│  └─────────────────────────────────────────────────────────────────────────┘    │
-│                                                                                  │
-│  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  USER MESSAGE                                          ~100-5,000 tokens │    │
-│  │  "How do I fix this bug?"                                                │    │
-│  └─────────────────────────────────────────────────────────────────────────┘    │
-│                                                                                  │
-│  TOTAL BASELINE: ~12,000-20,000 tokens BEFORE any tool invocation               │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 | Component | Token Count |
 |-----------|-------------|
@@ -204,26 +125,7 @@ All LLM calls within a turn share the same `messageId` because they were trigger
   <img src="./assets/05_user_turn.svg" alt="User Turn Structure" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  USER SENDS ONE MESSAGE                                                          │
-│                                                                                  │
-│  "Please read my config file and run the tests"                                 │
-│                              │                                                   │
-│                              ▼                                                   │
-│  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │  TURN BEGINS (messageId: abc-123)                                        │   │
-│  │                                                                          │   │
-│  │  LLM Call 1: "I'll read the config file..." → calls read_file           │   │
-│  │  LLM Call 2: "I see the config. Running tests..." → calls run_terminal  │   │
-│  │  LLM Call 3: "Tests complete! Here are results..." → final response     │   │
-│  │                                                                          │   │
-│  └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                  │
-│  All 3 LLM calls share the SAME user message = SAME userTokens                  │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 The user sent one request; the model makes multiple calls to fulfill it. Each call includes the same user message.
 
@@ -241,37 +143,100 @@ Copilot uses a fast client-side tokenizer to estimate counts for truncation deci
 
 The same text tokenizes differently depending on the algorithm:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  SAME TEXT, DIFFERENT TOKENIZERS                                                 │
-│                                                                                  │
-│  Text: "Hello, how are you doing today?"                                        │
-│                                                                                  │
-│  ┌─────────────────────────┐    ┌─────────────────────────┐                     │
-│  │  Copilot's Tokenizer    │    │  Claude's Tokenizer     │                     │
-│  │  ───────────────────────│    │  ───────────────────────│                     │
-│  │  "Hello" → 1 token      │    │  "Hello," → 1 token     │                     │
-│  │  "," → 1 token          │    │  " how" → 1 token       │                     │
-│  │  " how" → 1 token       │    │  " are you" → 1 token   │                     │
-│  │  " are" → 1 token       │    │  " doing" → 1 token     │                     │
-│  │  " you" → 1 token       │    │  " today?" → 1 token    │                     │
-│  │  " doing" → 1 token     │    │                         │                     │
-│  │  " today" → 1 token     │    │  TOTAL: 5 tokens        │                     │
-│  │  "?" → 1 token          │    │                         │                     │
-│  │                         │    │                         │                     │
-│  │  TOTAL: 8 tokens        │    │                         │                     │
-│  └─────────────────────────┘    └─────────────────────────┘                     │
-│                                                                                  │
-│  tokenizerRatio = 5/8 = 0.625 (Claude counted 63% of Copilot's estimate)        │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 **Important:** A large difference between `trajectoryTotal` and `promptTokens` does NOT indicate truncation — it reflects tokenizer mismatch. Use `exceededWindow` to detect truncation.
 
 ---
 
-## 7. Context Truncation
+## 7. Why Completion Tokens << Prompt Tokens (This is Normal!)
+
+### The Question
+> "Completion tokens are only ~800 while prompt tokens are ~49,000. Is this data correct?"
+
+### The Answer: Yes! This is Typical Agent Mode Behavior
+
+In agent mode, the **prompt is HUGE** because it contains everything, but the **completion is SMALL** because the model just outputs the next action:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  PROMPT (read by model) = 49,062 tokens                                     │
+│  ═══════════════════════════════════════                                    │
+│                                                                             │
+│  ┌─────────────────────────────────────┐                                   │
+│  │ System prompt + 78 Tool Definitions │  ~13,500 tokens                   │
+│  │ (sent EVERY call, never changes)    │                                   │
+│  └─────────────────────────────────────┘                                   │
+│  ┌─────────────────────────────────────┐                                   │
+│  │ User message + workspace context    │  ~22,000 tokens                   │
+│  └─────────────────────────────────────┘                                   │
+│  ┌─────────────────────────────────────┐                                   │
+│  │ Previous assistant responses        │  ~1,000 tokens                    │
+│  └─────────────────────────────────────┘                                   │
+│  ┌─────────────────────────────────────┐                                   │
+│  │ Tool results (file contents, etc.)  │  ~38,000 tokens (and growing!)    │
+│  └─────────────────────────────────────┘                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  COMPLETION (generated by model) = 133 tokens                               │
+│  ═════════════════════════════════════════                                  │
+│                                                                             │
+│  "现在我理解了。需要在 percentileLineChart.tsx 中添加条件..."                   │
+│                                                                             │
+│  + maybe a tool call JSON like:                                             │
+│  {"tool": "read_file", "args": {"path": "src/config.ts"}}                  │
+│                                                                             │
+│  That's it! Just a brief explanation + next action.                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Typical Token Ratios by Mode
+
+| Mode | Prompt Tokens | Completion Tokens | Ratio | Why |
+|------|---------------|-------------------|-------|-----|
+| **Agent Mode** | 40,000-100,000 | 100-1,000 | **40:1 to 100:1** | Huge context, small actions |
+| Inline Completion | 1,000-5,000 | 10-100 | 50:1 | Moderate context, tiny output |
+| Chat (no tools) | 2,000-10,000 | 500-2,000 | 2:1 to 10:1 | Smaller context, longer responses |
+
+### Real Data Example
+
+From a 7-turn agent mode conversation:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  Turn 1: 5 LLM Calls                                                          │
+├──────────┬────────────────────────────────┬──────────────────┬───────────────┤
+│ Call     │ Prompt Tokens (actual)         │ Completion Tokens│ What Happened │
+├──────────┼────────────────────────────────┼──────────────────┼───────────────┤
+│ Call 1   │ 46,648                         │ 133              │ read_file     │
+│ Call 2   │ 48,052 (+1,404 from tool)      │ 133              │ read_file     │
+│ Call 3   │ 48,416 (+364 from tool)        │ 418              │ replace_file  │
+│ Call 4   │ 48,897 (+481 from tool)        │ 99               │ get_errors    │
+│ Call 5   │ 49,062 (+165 from tool)        │ 64               │ Final message │
+├──────────┼────────────────────────────────┼──────────────────┼───────────────┤
+│ TURN     │ max: 49,062                    │ sum: 847         │ RATIO = 58:1  │
+└──────────┴────────────────────────────────┴──────────────────┴───────────────┘
+
+Notice:
+• Prompt GROWS as tool results are added (+1,404, +364, etc.)
+• Completion is always SMALL (64-418 tokens per call)
+• This 58:1 ratio is COMPLETELY NORMAL for agent mode!
+```
+
+### Key Insight: Agent Mode Is "Read a Lot, Write a Little"
+
+The model:
+1. **READS** massive context (system + tools + history + tool results)
+2. **WRITES** small, targeted responses (tool calls or brief explanations)
+
+This asymmetry is by design — the model is navigating a codebase, not writing essays.
+
+---
+
+## 8. Context Truncation
 
 ### When Does Truncation Occur?
 
@@ -281,29 +246,7 @@ Truncation happens when `trajectoryTotal > maxTokenWindow`. Copilot drops older 
   <img src="./assets/07_truncation.svg" alt="Context Truncation" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  NO TRUNCATION (fits in window)                                                  │
-│  ──────────────────────────────                                                  │
-│  maxTokenWindow = 128,000                                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│                               │    │
-│  │ trajectoryTotal = 55,000               │       unused space            │    │
-│  └─────────────────────────────────────────────────────────────────────────┘    │
-│  exceededWindow = FALSE ✓                                                        │
-│                                                                                  │
-├──────────────────────────────────────────────────────────────────────────────────┤
-│  TRUNCATION (exceeds window)                                                     │
-│  ───────────────────────────                                                     │
-│  maxTokenWindow = 128,000                                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │████████████████████████████████████████████████████████████████████████│    │
-│  │ trajectoryTotal = 195,000 (67,000 tokens DROPPED!)                      │    │
-│  └─────────────────────────────────────────────────────────────────────────┘    │
-│  exceededWindow = TRUE ⚠️                                                        │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 ### Detecting Truncation Correctly
 
@@ -333,27 +276,7 @@ The 59K delta is tokenizer mismatch, not dropped content.
   <img src="./assets/08_truncation_priority.svg" alt="Truncation Priority" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  TRUNCATION PRIORITY                                                             │
-│                                                                                  │
-│  ┌────────────────────────────┐    ┌────────────────────────────────────────┐   │
-│  │ DROPPED FIRST:             │    │ KEPT (highest priority):               │   │
-│  │ ──────────────             │    │ ────────────────────────               │   │
-│  │                            │    │                                         │   │
-│  │ 1. Oldest turn tool        │    │ 1. System prompt (ALWAYS kept)         │   │
-│  │    results                 │    │                                         │   │
-│  │                            │    │ 2. Current user message                │   │
-│  │ 2. Oldest turn assistant   │    │                                         │   │
-│  │    responses               │    │ 3. Recent tool results                 │   │
-│  │                            │    │                                         │   │
-│  │ 3. Earlier content in      │    │ 4. Recent assistant responses          │   │
-│  │    current turn            │    │                                         │   │
-│  │                            │    │ (Most recent content preserved)        │   │
-│  └────────────────────────────┘    └────────────────────────────────────────┘   │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 Truncation removes content in order of age:
 1. **Oldest turns first** (previous conversation history)
@@ -362,7 +285,7 @@ Truncation removes content in order of age:
 
 ---
 
-## 8. System Tokens Behavior
+## 9. System Tokens Behavior
 
 ### Across Turns (Same Conversation)
 
@@ -397,31 +320,13 @@ Truncation removes content in order of age:
   <img src="./assets/10_system_across_convos.svg" alt="System Tokens Across Conversations" width="100%">
 </p>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  ACROSS DIFFERENT CONVERSATIONS (by model)                                       │
-│                                                                                  │
-│  model              │ conversations │ avgSystem │ minSystem │ maxSystem         │
-│  ═══════════════════╪═══════════════╪═══════════╪═══════════╪═══════════════════│
-│  claude-sonnet-4.5  │     541       │  15,486   │   5,793   │  157,952          │
-│  claude-opus-4.5    │     282       │  17,902   │       0   │  149,177          │
-│  gemini-3-pro       │      72       │  14,681   │       0   │   52,957          │
-│  claude-haiku-4.5   │      35       │  20,309   │   7,048   │  224,983          │
-│  gpt-4.1            │      18       │  14,496   │   8,143   │   31,214          │
-│                                                                                  │
-│  Reasons for variance:                                                           │
-│  • Different tool sets enabled                                                   │
-│  • A/B experiment flags                                                          │
-│  • Workspace-specific context                                                    │
-│  • Model-specific system prompts                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
 
 **Query:** `51_verify_system_across_conversations.kql`
 
 ---
 
-## 9. Telemetry Events Reference
+## 10. Telemetry Events Reference
 
 ### `engine.messages.length` (INPUT direction)
 - **When**: Before sending to LLM API
@@ -477,4 +382,5 @@ See `production/final/README.md` for usage guidance.
 | Document | Description |
 |----------|-------------|
 | [01_DATA_SCHEMA.md](./01_DATA_SCHEMA.md) | Conversation structure, event types, and stratified sampling |
+| [03_TOOL_TELEMETRY.md](./03_TOOL_TELEMETRY.md) | Tool definitions, invocations, turn end reasons, and token impact |
 
