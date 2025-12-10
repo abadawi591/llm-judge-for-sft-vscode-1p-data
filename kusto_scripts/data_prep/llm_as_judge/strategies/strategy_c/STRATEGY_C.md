@@ -1,45 +1,43 @@
-# Strategy C: Text + Conversation History (RECOMMENDED)
+# Strategy C: Text + Core Metrics + Tools
 
-> **Input:** User message + last N turns of conversation  
-> **Cost:** ~$0.005 per classification  
-> **Best For:** Multi-turn conversations, production labeling
+> **Input:** User message + core metrics (tokens, duration) + tool usage  
+> **Cost:** ~$0.003 per classification  
+> **Best For:** Full behavioral analysis with tool context
 
 ---
 
 ## Overview
 
-Strategy C is the **recommended approach** for labeling multi-turn Copilot Agent Mode conversations. It provides the LLM judge with conversation history to understand context-dependent complexity.
+Strategy C extends Strategy B by adding **tool usage information**. This provides the richest behavioral signal for classification.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    STRATEGY C: TEXT + CONVERSATION HISTORY                   │
+│                    STRATEGY C: TEXT + CORE METRICS + TOOLS                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  LLM Judge Input:                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  CONVERSATION HISTORY (last 3 turns):                                │    │
+│  │  User Message: "Fix the bug"                                         │    │
 │  │                                                                       │    │
-│  │  [Turn 5] User: "Add user authentication to the API"                 │    │
-│  │           Assistant: "I'll add JWT-based auth..." [truncated]        │    │
+│  │  Core Metrics:                                                        │    │
+│  │  ├── Prompt Tokens: 45,000                                           │    │
+│  │  ├── Completion Tokens: 2,500                                        │    │
+│  │  ├── LLM Calls: 5                                                    │    │
+│  │  └── Duration: 48 seconds                                            │    │
 │  │                                                                       │    │
-│  │  [Turn 6] User: "Now add refresh tokens"                             │    │
-│  │           Assistant: "I've implemented refresh..." [truncated]       │    │
-│  │                                                                       │    │
-│  │  [Turn 7] User: "Also handle token expiration gracefully"            │    │
-│  │           Assistant: "I've added automatic..." [truncated]           │    │
-│  │                                                                       │    │
-│  │  ─────────────────────────────────────────────────────────────────   │    │
-│  │                                                                       │    │
-│  │  CURRENT REQUEST (Turn 8):                                            │    │
-│  │  "Fix the bug in the token validation"                               │    │
+│  │  Tool Usage:                                                          │    │
+│  │  ├── Tools invoked: read_file, grep_search, edit_file, terminal     │    │
+│  │  ├── Unique tools: 4                                                 │    │
+│  │  ├── Total calls: 8                                                  │    │
+│  │  └── Available: 78 tools                                             │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
 │  LLM Judge Output:                                                           │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  Label: 0 (Reasoning Required)                                       │    │
-│  │  Confidence: 0.91                                                    │    │
-│  │  Rationale: Request builds on complex auth system established        │    │
-│  │             over 3 turns; debugging requires understanding context   │    │
+│  │  Confidence: 0.95                                                    │    │
+│  │  Rationale: Complex tool chain (read→analyze→edit→verify)            │    │
+│  │             indicates multi-step debugging process                    │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -47,62 +45,72 @@ Strategy C is the **recommended approach** for labeling multi-turn Copilot Agent
 
 ---
 
-## Why Strategy C is Recommended
+## What Strategy C Adds Over B
 
-### The Context Problem
-
-Without history, many requests are **ambiguous**:
-
-| Request | Without History | With History |
-|---------|-----------------|--------------|
-| "Fix the bug" | Unknown → 0.5 confidence | Turn 8 of complex auth → 0 with 0.95 confidence |
-| "Now add tests" | Simple → 1 | After modifying 12 files → 0 |
-| "Make it work" | Vague → 0.5 | Reference to specific prior discussion → clear |
-
-### What Changed with History
-
-```
-BEFORE (Strategy A):                    AFTER (Strategy C):
-                                       
-"Fix the bug"                          [Turn 5] User: Add authentication...
-   ↓                                   [Turn 6] User: Add refresh tokens...
-Label: ? (ambiguous)                   [Turn 7] User: Handle expiration...
-Confidence: 0.55                       [Turn 8] User: "Fix the bug"
-                                           ↓
-                                       Label: 0 (debugging complex auth)
-                                       Confidence: 0.91
-```
+| Metric | Strategy B | Strategy C | Signal Value |
+|--------|------------|------------|--------------|
+| Prompt tokens | ✅ | ✅ | Context complexity |
+| Completion tokens | ✅ | ✅ | Response length |
+| LLM call count | ✅ | ✅ | Iteration count |
+| Duration | ✅ | ✅ | Processing time |
+| **Tools invoked** | ❌ | ✅ | **What tools were used** |
+| **Unique tools** | ❌ | ✅ | **Task diversity** |
+| **Total tool calls** | ❌ | ✅ | **Iteration depth** |
+| **Available tools** | ❌ | ✅ | **Tool context** |
 
 ---
 
-## Context Window Strategy
+## Tool Usage Signals
 
-### How Many Turns to Include?
+### Strong Indicators of Reasoning (0)
 
-| Conversation Length | Turns to Include | Rationale |
-|--------------------|------------------|-----------|
-| 1-3 turns (short) | All previous turns | Small enough to include everything |
-| 4-10 turns (medium) | Last 5 turns | Recent context most relevant |
-| 11+ turns (long) | Turn 1 + last 4 turns | Initial context + recent history |
+| Pattern | Example | Interpretation |
+|---------|---------|----------------|
+| Multiple different tools | `read_file, grep, edit, terminal` | Multi-step workflow |
+| High tool call frequency | `read_file: 5, edit: 3` | Iterative refinement |
+| Complex chains | `read → analyze → edit → verify` | Systematic debugging |
 
-### Implementation
+### Strong Indicators of Non-Reasoning (1)
+
+| Pattern | Example | Interpretation |
+|---------|---------|----------------|
+| No tools | `none` | Simple answer |
+| Single read | `read_file: 1` | Quick lookup |
+| Only lookup tools | `grep_search: 1` | Finding information |
+
+---
+
+## Data Schema Compatibility
+
+Strategy C works with the new nested schema:
 
 ```python
-def get_context_window(turns: list, current_idx: int) -> list:
-    """Select which turns to include in context."""
-    
-    if current_idx <= 3:
-        # Short conversation: include all previous turns
-        return turns[:current_idx]
-    
-    elif current_idx <= 10:
-        # Medium: last 5 turns
-        start = max(0, current_idx - 5)
-        return turns[start:current_idx]
-    
-    else:
-        # Long: turn 1 + last 4 turns
-        return [turns[0]] + turns[current_idx - 4:current_idx]
+# New schema (recommended)
+record = {
+    "userMessage": "Fix the bug",
+    "turnSummary": {
+        "actual_API": {
+            "maxPromptTokens_(system+user+assistant+toolResults)": 45000,
+            "totalCompletionTokens": 2500
+        },
+        "llmCallCount": 5
+    },
+    "tools": {
+        "definitions": {"count": 78},
+        "invocations": {"withFrequency": '{"read_file": 3, "edit_file": 2}'}
+    },
+    "turnDurationMs": 48000
+}
+
+# Old flat schema (still supported)
+record = {
+    "userMessage": "Fix the bug",
+    "promptTokens": 45000,
+    "completionTokens": 2500,
+    "llmCallCount": 5,
+    "toolsUsed": ["read_file", "edit_file"],
+    "durationMs": 48000
+}
 ```
 
 ---
@@ -111,10 +119,9 @@ def get_context_window(turns: list, current_idx: int) -> list:
 
 | Use Case | Rationale |
 |----------|-----------|
-| ✅ **Multi-turn conversations** | Captures context-dependent complexity |
-| ✅ **Agent mode sessions** | Typical sessions have 5-15 turns |
-| ✅ **Production labeling** | Best accuracy for generating training data |
-| ✅ **Follow-up requests** | "Now do X" makes sense with history |
+| ✅ **Full behavioral analysis** | Most complete signal |
+| ✅ **Tool chain complexity matters** | Debugging, refactoring tasks |
+| ✅ **Historical data with tools** | Post-hoc labeling |
 
 ---
 
@@ -122,243 +129,70 @@ def get_context_window(turns: list, current_idx: int) -> list:
 
 | Scenario | Alternative |
 |----------|-------------|
-| ❌ Turn 1 (no history) | Use Strategy A |
-| ❌ Cost-sensitive bulk labeling | Use Strategy A, sample with C |
-| ❌ Real-time routing with 8k limit | Train on C labels, route with A |
-
----
-
-## Prompt Template
-
-```
-You are classifying whether the CURRENT user request requires a reasoning-capable LLM.
-Consider the conversation history to understand context.
-
-═══════════════════════════════════════════════════════════════════════════
-CONVERSATION METADATA
-═══════════════════════════════════════════════════════════════════════════
-- Total turns in conversation: {total_turns}
-- Current turn: {current_turn_index}
-
-═══════════════════════════════════════════════════════════════════════════
-CONVERSATION HISTORY (last {n_context} turns)
-═══════════════════════════════════════════════════════════════════════════
-{formatted_history}
-
-═══════════════════════════════════════════════════════════════════════════
-CURRENT REQUEST (Turn {current_turn_index})
-═══════════════════════════════════════════════════════════════════════════
-User: {current_user_message}
-
-CLASSIFICATION GUIDELINES:
-
-Consider these factors:
-1. Does this request BUILD on previous context in complex ways?
-2. Would a model WITHOUT this history misunderstand the request?
-3. Is there accumulated state (files modified, decisions made)?
-4. Is this a simple follow-up or a new complex direction?
-
-REASONING REQUIRED (0):
-- Builds on complex prior work
-- References previous decisions/changes
-- Debugging issues introduced earlier
-- Continuing multi-step implementation
-
-NON-REASONING SUFFICIENT (1):
-- Independent of prior context
-- Simple follow-up ("yes", "sounds good")
-- New topic unrelated to history
-- Basic clarifying questions
-
-OUTPUT FORMAT (exactly two lines):
-Line 1: Label (0 or 1)
-Line 2: Confidence (decimal between 0.0 and 1.0)
-```
+| ❌ Tool data unavailable | Use Strategy B |
+| ❌ Real-time routing | Use Strategy A |
+| ❌ Context history needed | Combine with Strategy D |
 
 ---
 
 ## Example Classifications
 
-### Example 1: Context-Dependent Debugging
+### Example 1: Complex Tool Chain → Reasoning (0)
 
-**Conversation History:**
 ```
-[Turn 5] User: "Add user authentication to the API"
-         Assistant: "I'll implement JWT-based auth..." (implemented 3 files)
+User: "Fix the bug"
 
-[Turn 6] User: "Now add refresh tokens"
-         Assistant: "I've added refresh token logic..." (modified 2 files)
+Core Metrics:
+- Prompt tokens: 45,000
+- Completion tokens: 2,500
+- LLM calls: 5
+- Duration: 48,000ms
 
-[Turn 7] User: "Handle token expiration gracefully"
-         Assistant: "I've implemented automatic..." (modified 4 files)
-```
+Tool Usage:
+- Tools: read_file (3x), grep_search (2x), edit_file (2x), terminal (1x)
+- Unique: 4
+- Total calls: 8
 
-**Current Request (Turn 8):**
-```
-User: "Fix the bug in the token validation"
-```
-
-**Output:**
-```json
-{
-  "label": 0,
-  "confidence": 0.91,
-  "reasoning": "Debugging builds on 3 turns of complex auth implementation. Understanding the token flow requires context from previous turns."
-}
+Output: 0 (Reasoning Required)
+Confidence: 0.94
 ```
 
-### Example 2: Independent Follow-up
+### Example 2: Simple Lookup → Non-Reasoning (1)
 
-**Conversation History:**
 ```
-[Turn 3] User: "Create a new React component for the sidebar"
-         Assistant: "I've created the Sidebar component..."
+User: "What does this function do?"
 
-[Turn 4] User: "Add some CSS styling to it"
-         Assistant: "I've added styling..."
-```
+Core Metrics:
+- Prompt tokens: 5,000
+- Completion tokens: 200
+- LLM calls: 1
+- Duration: 3,000ms
 
-**Current Request (Turn 5):**
-```
-User: "What's the syntax for CSS flexbox?"
-```
+Tool Usage:
+- Tools: read_file (1x)
+- Unique: 1
+- Total calls: 1
 
-**Output:**
-```json
-{
-  "label": 1,
-  "confidence": 0.88,
-  "reasoning": "Simple factual question that doesn't depend on the specific implementation context. Standard syntax inquiry."
-}
-```
-
-### Example 3: Escalating Complexity
-
-**Conversation History:**
-```
-[Turn 1] User: "Help me build a simple todo app"
-         Assistant: "I'll create a basic todo app..."
-
-[Turn 2] User: "Add the ability to set due dates"
-         Assistant: "I've added date picker..."
-
-[Turn 3] User: "Now add recurring todos that repeat weekly/monthly"
-         Assistant: "I've implemented recurring..."
-```
-
-**Current Request (Turn 4):**
-```
-User: "The recurring todos aren't syncing correctly across devices"
-```
-
-**Output:**
-```json
-{
-  "label": 0,
-  "confidence": 0.94,
-  "reasoning": "Debugging cross-device sync issue requires understanding the recurring todo implementation from Turn 3 and potential state management assumptions."
-}
+Output: 1 (Non-Reasoning Sufficient)
+Confidence: 0.88
 ```
 
 ---
 
-## Handling Long Responses
+## Related Strategies
 
-Assistant responses can be very long (thousands of tokens). Use truncation:
-
-```python
-def format_turn_for_context(turn: dict, max_response_len: int = 500) -> str:
-    """Format a turn for inclusion in context."""
-    
-    user_msg = turn["userMessage"]
-    assistant_msg = turn["modelMessage"]
-    
-    # Truncate long responses
-    if len(assistant_msg) > max_response_len:
-        assistant_msg = assistant_msg[:max_response_len] + "... [truncated]"
-    
-    return f"""[Turn {turn['turnIndex']}]
-User: {user_msg}
-Assistant: {assistant_msg}
-"""
-```
-
----
-
-## Token Budget Analysis
-
-For ModernBERT's 8k context (if using C for training):
-
-| Component | Tokens | Notes |
-|-----------|--------|-------|
-| System prompt | ~300 | Fixed |
-| Metadata | ~50 | Turn count, current index |
-| 5 turns × 300 avg | ~1500 | With truncation |
-| Current message | ~150 | Average |
-| **Total** | **~2000** | Fits comfortably |
-
-For labeling with Claude (200k context): no practical limit.
-
----
-
-## Comparison: Strategy A vs C
-
-| Metric | Strategy A | Strategy C |
-|--------|------------|------------|
-| **Accuracy** | Baseline | +15-25% on multi-turn |
-| **Cost** | $0.001 | $0.005 |
-| **Context** | None | Last 5 turns |
-| **Ambiguity handling** | Poor | Good |
-| **Turn 1 performance** | Same | Same |
-| **Follow-up detection** | Poor | Good |
-
----
-
-## Implementation Notes
-
-### First Turn Fallback
-
-```python
-def classify(self, record: dict) -> ClassificationResult:
-    turn_index = record.get("turnIndex", 0)
-    
-    if turn_index == 0:
-        # No history for first turn, use Strategy A
-        return self.strategy_a.classify(record["userMessage"])
-    
-    # Use Strategy C with history
-    return self._classify_with_history(record)
-```
-
-### Caching Turn Data
-
-For efficiency, preload conversation data:
-
-```python
-def load_conversation_cache(conversations: list) -> dict:
-    """Build a cache of conversations indexed by ID."""
-    return {c["conversationId"]: c["turnsArray"] for c in conversations}
-```
-
----
-
-## Cost Analysis
-
-| Component | Tokens | Cost |
-|-----------|--------|------|
-| System prompt | ~300 | — |
-| History (5 turns × 300) | ~1500 | — |
-| Current message | ~150 | — |
-| Output | ~5 | — |
-| **Total per call** | ~1955 | **~$0.005** |
-
-For 600k turns: **~$450-500 total**
+| Strategy | Input | When to Use |
+|----------|-------|-------------|
+| **A** | Text only | Baseline, real-time routing |
+| **B** | Text + Core Metrics | When tool data not available |
+| **C** | Text + Core + Tools | Full behavioral analysis |
+| **D** | Text + History | Multi-turn context matters |
 
 ---
 
 ## Related
 
 - [Strategy A](../strategy_a/STRATEGY_A.md) - Text only (baseline)
-- [Strategy B](../strategy_b/STRATEGY_B.md) - Text + behavioral metrics
+- [Strategy B](../strategy_b/STRATEGY_B.md) - Text + core metrics
+- [Strategy D](../strategy_d/STRATEGY_D.md) - Text + conversation history
 - [Voting Strategies](../../voting/VOTING_STRATEGIES.md) - Combining strategies
-

@@ -1,9 +1,7 @@
 """
-Strategy C: Text + Conversation History LLM Judge (RECOMMENDED)
+Strategy C: Text + Core Metrics + Tools LLM Judge
 
-Supports both sync and async API calls with tenacity retry logic.
-
-This is the RECOMMENDED approach for multi-turn conversations.
+Extends Strategy B with tool usage information.
 
 Labels:
     0 = Reasoning Required
@@ -13,16 +11,15 @@ Usage:
     # Synchronous
     from strategies.strategy_c.judge_strategy_c import StrategyCJudge
     judge = StrategyCJudge()
-    result = judge.classify_turn(turns=turns, turn_index=7)
+    result = judge.classify(user_message="Fix the bug", prompt_tokens=45000, 
+                           tools_invoked=["read_file", "edit_file"], ...)
     
     # Asynchronous
-    result = await judge.classify_turn_async(turns=turns, turn_index=7)
-    
-    # Batch async (parallel)
-    results = await judge.classify_conversation_async(conversation)
+    result = await judge.classify_async(...)
 """
 
 import asyncio
+import json
 import re
 import logging
 from dataclasses import dataclass
@@ -55,45 +52,57 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 STRATEGY_NAME = "C"
-STRATEGY_DESCRIPTION = "Text + Conversation History"
+STRATEGY_DESCRIPTION = "Text + Core Metrics + Tools"
 
 MAX_RETRIES = 5
 MIN_WAIT_SECONDS = 1
 MAX_WAIT_SECONDS = 60
 DEFAULT_BATCH_CONCURRENCY = 10
 
-SYSTEM_PROMPT = """You are classifying whether the CURRENT user request requires a reasoning-capable LLM.
-You have access to conversation history to understand context.
+SYSTEM_PROMPT = """You are an expert classifier determining whether a user request required a reasoning-capable LLM.
+You have access to the request, core performance metrics, AND tool usage information.
 
 CLASSIFICATION LABELS:
-- 0 = REASONING REQUIRED: Builds on complex prior work, references previous decisions, debugging prior changes, continuing multi-step implementation
-- 1 = NON-REASONING SUFFICIENT: Independent of context, simple follow-up, new unrelated topic, basic clarifying questions
+- 0 = REASONING REQUIRED
+- 1 = NON-REASONING SUFFICIENT
 
-KEY CONSIDERATIONS:
-1. Does this request BUILD on previous context in complex ways?
-2. Would a model WITHOUT this history misunderstand the request?
-3. Is there accumulated state (files modified, decisions made)?
-4. Is this a simple follow-up or a new complex direction?
+SIGNAL INTERPRETATION:
+
+STRONG INDICATORS OF REASONING (0):
+- High completion tokens (>1500) with multiple LLM calls (>2)
+- Complex tool chains (file reads → analysis → edits → terminal)
+- Long processing duration (>30 seconds)
+- High prompt tokens (>40k) indicating accumulated context
+- Multiple different tools used (>3 unique tools)
+
+STRONG INDICATORS OF NON-REASONING (1):
+- Low completion tokens (<500) with single LLM call
+- Simple or no tool usage
+- Quick response (<10 seconds)
+- Single read_file call only
+
+OVER-COMPLICATION CHECK:
+- If behavior seems EXCESSIVE for the request, lean toward 1
+- Simple question + complex tool chain = model over-thought it
 
 OUTPUT FORMAT (exactly two lines):
 Line 1: Label (0 or 1)
 Line 2: Confidence (decimal between 0.0 and 1.0)"""
 
-USER_PROMPT_TEMPLATE = """═══════════════════════════════════════════════════════════════════════════
-CONVERSATION METADATA
-═══════════════════════════════════════════════════════════════════════════
-- Total turns in conversation: {total_turns}
-- Current turn: {current_turn_index}
+USER_PROMPT_TEMPLATE = """USER REQUEST:
+{user_message}
 
-═══════════════════════════════════════════════════════════════════════════
-CONVERSATION HISTORY (last {n_context} turns)
-═══════════════════════════════════════════════════════════════════════════
-{formatted_history}
+CORE METRICS (what the LLM did):
+- Prompt tokens used: {prompt_tokens:,}
+- Completion tokens generated: {completion_tokens:,}
+- Number of LLM calls: {llm_call_count}
+- Processing duration: {duration_ms:,}ms ({duration_sec:.1f}s)
 
-═══════════════════════════════════════════════════════════════════════════
-CURRENT REQUEST (Turn {current_turn_index})
-═══════════════════════════════════════════════════════════════════════════
-User: {current_user_message}"""
+TOOL USAGE:
+- Tools invoked: {tool_list}
+- Unique tools used: {unique_tool_count}
+- Total tool calls: {total_tool_calls}
+- Tools available: {available_tool_count}"""
 
 
 # =============================================================================
@@ -130,35 +139,108 @@ class ClassificationResult:
     strategy: str = STRATEGY_NAME
     raw_response: Optional[str] = None
     error: Optional[str] = None
-    turn_index: Optional[int] = None
-    conversation_id: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "label": self.label,
             "confidence": self.confidence,
             "strategy": self.strategy,
-            "turn_index": self.turn_index,
-            "conversation_id": self.conversation_id,
             "raw_response": self.raw_response,
             "error": self.error
         }
 
 
 @dataclass
-class Turn:
-    """A single turn in a conversation."""
-    turn_index: int
-    user_message: str
-    model_message: str
+class FullMetrics:
+    """Core metrics + tool usage for Strategy C."""
+    # Core metrics (from Strategy B)
+    prompt_tokens: int
+    completion_tokens: int
+    llm_call_count: int
+    duration_ms: int
+    # Tool metrics (new in Strategy C)
+    tools_invoked: List[str]
+    total_tool_calls: int
+    available_tool_count: int
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Turn":
+    def from_record(cls, record: Dict[str, Any]) -> "FullMetrics":
+        """
+        Extract full metrics from a turn record.
+        
+        Supports both old flat schema and new nested schema.
+        """
+        # =====================================================================
+        # Core metrics (same as Strategy B)
+        # =====================================================================
+        turn_summary = record.get("turnSummary", {})
+        actual_api = turn_summary.get("actual_API", {})
+        
+        # Handle the long field name with composition info
+        prompt_tokens = 0
+        for key in actual_api:
+            if "promptTokens" in key.lower() or "maxprompt" in key.lower():
+                prompt_tokens = actual_api.get(key, 0) or 0
+                break
+        
+        if prompt_tokens == 0:
+            prompt_tokens = record.get("promptTokens", 0) or 0
+        
+        completion_tokens = actual_api.get("totalCompletionTokens", 0)
+        if completion_tokens == 0:
+            completion_tokens = record.get("completionTokens", 0) or 0
+        
+        llm_call_count = turn_summary.get("llmCallCount", 0)
+        if llm_call_count == 0:
+            llm_call_count = record.get("llmCallCount", 1) or 1
+        
+        duration_ms = record.get("turnDurationMs", 0)
+        if duration_ms == 0:
+            duration_ms = record.get("durationMs", 0) or 0
+        
+        # =====================================================================
+        # Tool metrics (new in Strategy C)
+        # =====================================================================
+        tools = record.get("tools", {})
+        invocations = tools.get("invocations", {})
+        definitions = tools.get("definitions", {})
+        
+        # Parse tool frequency - can be JSON string or dict
+        tool_freq = invocations.get("withFrequency", "{}")
+        if isinstance(tool_freq, str):
+            try:
+                tool_freq = json.loads(tool_freq) if tool_freq else {}
+            except json.JSONDecodeError:
+                tool_freq = {}
+        
+        tools_invoked = list(tool_freq.keys()) if isinstance(tool_freq, dict) else []
+        total_tool_calls = sum(tool_freq.values()) if isinstance(tool_freq, dict) else 0
+        
+        # Fallback for old schema
+        if not tools_invoked:
+            tools_used = record.get("toolsUsed", []) or []
+            if isinstance(tools_used, str):
+                tools_invoked = tools_used.split(", ") if tools_used else []
+            else:
+                tools_invoked = tools_used
+            total_tool_calls = record.get("totalToolCalls", len(tools_invoked))
+        
+        available_tool_count = definitions.get("count", 0)
+        if available_tool_count == 0:
+            available_tool_count = record.get("availableToolCount", 0) or 0
+        
         return cls(
-            turn_index=data.get("turnIndex", 0),
-            user_message=data.get("userMessage", ""),
-            model_message=data.get("modelMessage", "")
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            llm_call_count=llm_call_count,
+            duration_ms=duration_ms,
+            tools_invoked=tools_invoked,
+            total_tool_calls=total_tool_calls,
+            available_tool_count=available_tool_count
         )
+    
+    def is_valid(self) -> bool:
+        return self.prompt_tokens > 0 or self.completion_tokens > 0
 
 
 # =============================================================================
@@ -167,7 +249,7 @@ class Turn:
 
 class StrategyCJudge:
     """
-    LLM Judge using Strategy C: Text + Conversation History.
+    LLM Judge using Strategy C: Text + Core Metrics + Tools.
     Supports both synchronous and asynchronous API calls.
     """
     
@@ -176,16 +258,12 @@ class StrategyCJudge:
         use_keyvault: bool = True,
         max_tokens: int = 50,
         temperature: float = 0.0,
-        max_history_turns: int = 5,
-        max_response_length: int = 500,
         max_concurrency: int = DEFAULT_BATCH_CONCURRENCY
     ):
         self.use_keyvault = use_keyvault
         self.model = get_model_name()
         self.max_tokens = max_tokens
         self.temperature = temperature
-        self.max_history_turns = max_history_turns
-        self.max_response_length = max_response_length
         self.max_concurrency = max_concurrency
         
         self._sync_client = None
@@ -207,52 +285,24 @@ class StrategyCJudge:
             self._async_client = get_async_anthropic_client(use_keyvault=self.use_keyvault)
         return self._async_client
     
-    def _get_context_window(self, turns: List[Turn], current_idx: int) -> List[Turn]:
-        """Select which turns to include in context."""
-        if current_idx <= 3:
-            return turns[:current_idx]
-        elif current_idx <= 10:
-            start = max(0, current_idx - self.max_history_turns)
-            return turns[start:current_idx]
-        else:
-            first_turn = [turns[0]] if turns else []
-            recent = turns[current_idx - (self.max_history_turns - 1):current_idx]
-            return first_turn + recent
-    
-    def _format_turn(self, turn: Turn) -> str:
-        response = turn.model_message
-        if len(response) > self.max_response_length:
-            response = response[:self.max_response_length] + "... [truncated]"
-        
-        return f"""[Turn {turn.turn_index + 1}]
-User: {turn.user_message}
-Assistant: {response}
-"""
-    
-    def _format_history(self, context_turns: List[Turn]) -> str:
-        if not context_turns:
-            return "(No previous turns - this is the first message)"
-        return "\n".join(self._format_turn(t) for t in context_turns)
-    
-    def _build_prompt(
-        self,
-        current_message: str,
-        context_turns: List[Turn],
-        current_turn_index: int,
-        total_turns: int
-    ) -> str:
+    def _build_prompt(self, user_message: str, metrics: FullMetrics) -> str:
         max_len = config.labeling.max_message_length
-        if len(current_message) > max_len:
-            current_message = current_message[:max_len] + "... [truncated]"
+        if len(user_message) > max_len:
+            user_message = user_message[:max_len] + "... [truncated]"
         
-        formatted_history = self._format_history(context_turns)
+        tool_list = ", ".join(metrics.tools_invoked) if metrics.tools_invoked else "none"
         
         return USER_PROMPT_TEMPLATE.format(
-            total_turns=total_turns,
-            current_turn_index=current_turn_index + 1,
-            n_context=len(context_turns),
-            formatted_history=formatted_history,
-            current_user_message=current_message
+            user_message=user_message,
+            prompt_tokens=metrics.prompt_tokens,
+            completion_tokens=metrics.completion_tokens,
+            llm_call_count=metrics.llm_call_count,
+            duration_ms=metrics.duration_ms,
+            duration_sec=metrics.duration_ms / 1000,
+            tool_list=tool_list,
+            unique_tool_count=len(metrics.tools_invoked),
+            total_tool_calls=metrics.total_tool_calls,
+            available_tool_count=metrics.available_tool_count
         )
     
     def _parse_response(self, response_text: str) -> tuple[int, float]:
@@ -286,31 +336,31 @@ Assistant: {response}
         )
         return response.content[0].text
     
-    def classify_turn(
+    def classify(
         self,
-        turns: List[Dict[str, Any]],
-        turn_index: int,
-        conversation_id: Optional[str] = None,
+        user_message: str,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        llm_call_count: int = 1,
+        duration_ms: int = 0,
+        tools_invoked: Optional[List[str]] = None,
+        total_tool_calls: int = 0,
+        available_tool_count: int = 0,
         include_raw: bool = False
     ) -> ClassificationResult:
-        """Classify a specific turn within a conversation (sync)."""
+        """Classify a user message with core metrics and tools (sync)."""
         try:
-            turn_objects = [Turn.from_dict(t) for t in turns]
-            total_turns = len(turn_objects)
-            
-            if turn_index >= total_turns:
-                raise ValueError(f"Turn index {turn_index} out of range (total: {total_turns})")
-            
-            current_turn = turn_objects[turn_index]
-            context_turns = self._get_context_window(turn_objects, turn_index)
-            
-            user_prompt = self._build_prompt(
-                current_message=current_turn.user_message,
-                context_turns=context_turns,
-                current_turn_index=turn_index,
-                total_turns=total_turns
+            metrics = FullMetrics(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                llm_call_count=llm_call_count,
+                duration_ms=duration_ms,
+                tools_invoked=tools_invoked or [],
+                total_tool_calls=total_tool_calls or len(tools_invoked or []),
+                available_tool_count=available_tool_count
             )
             
+            user_prompt = self._build_prompt(user_message, metrics)
             response_text = self._call_api_sync(user_prompt)
             label, confidence = self._parse_response(response_text)
             
@@ -318,37 +368,33 @@ Assistant: {response}
                 label=label,
                 confidence=confidence,
                 strategy=STRATEGY_NAME,
-                turn_index=turn_index,
-                conversation_id=conversation_id,
                 raw_response=response_text if include_raw else None
             )
         except Exception as e:
             logger.error(f"Classification failed: {e}")
+            return ClassificationResult(label=-1, confidence=0.0, strategy=STRATEGY_NAME, error=str(e))
+    
+    def classify_from_record(self, record: Dict[str, Any], include_raw: bool = False) -> ClassificationResult:
+        """Classify from a data record (sync)."""
+        metrics = FullMetrics.from_record(record)
+        
+        if not metrics.is_valid():
             return ClassificationResult(
                 label=-1, confidence=0.0, strategy=STRATEGY_NAME,
-                turn_index=turn_index, conversation_id=conversation_id, error=str(e)
+                error="Invalid or missing metrics"
             )
-    
-    def classify_conversation(
-        self,
-        conversation: Dict[str, Any],
-        include_raw: bool = False
-    ) -> List[ClassificationResult]:
-        """Classify all turns in a conversation (sync)."""
-        conversation_id = conversation.get("conversationId")
-        turns = conversation.get("turnsArray", [])
         
-        results = []
-        for i in range(len(turns)):
-            result = self.classify_turn(
-                turns=turns,
-                turn_index=i,
-                conversation_id=conversation_id,
-                include_raw=include_raw
-            )
-            results.append(result)
-        
-        return results
+        return self.classify(
+            user_message=record.get("userMessage", ""),
+            prompt_tokens=metrics.prompt_tokens,
+            completion_tokens=metrics.completion_tokens,
+            llm_call_count=metrics.llm_call_count,
+            duration_ms=metrics.duration_ms,
+            tools_invoked=metrics.tools_invoked,
+            total_tool_calls=metrics.total_tool_calls,
+            available_tool_count=metrics.available_tool_count,
+            include_raw=include_raw
+        )
     
     # =========================================================================
     # Asynchronous Methods
@@ -364,31 +410,31 @@ Assistant: {response}
         )
         return response.content[0].text
     
-    async def classify_turn_async(
+    async def classify_async(
         self,
-        turns: List[Dict[str, Any]],
-        turn_index: int,
-        conversation_id: Optional[str] = None,
+        user_message: str,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        llm_call_count: int = 1,
+        duration_ms: int = 0,
+        tools_invoked: Optional[List[str]] = None,
+        total_tool_calls: int = 0,
+        available_tool_count: int = 0,
         include_raw: bool = False
     ) -> ClassificationResult:
-        """Classify a specific turn within a conversation (async)."""
+        """Classify a user message with core metrics and tools (async)."""
         try:
-            turn_objects = [Turn.from_dict(t) for t in turns]
-            total_turns = len(turn_objects)
-            
-            if turn_index >= total_turns:
-                raise ValueError(f"Turn index {turn_index} out of range")
-            
-            current_turn = turn_objects[turn_index]
-            context_turns = self._get_context_window(turn_objects, turn_index)
-            
-            user_prompt = self._build_prompt(
-                current_message=current_turn.user_message,
-                context_turns=context_turns,
-                current_turn_index=turn_index,
-                total_turns=total_turns
+            metrics = FullMetrics(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                llm_call_count=llm_call_count,
+                duration_ms=duration_ms,
+                tools_invoked=tools_invoked or [],
+                total_tool_calls=total_tool_calls or len(tools_invoked or []),
+                available_tool_count=available_tool_count
             )
             
+            user_prompt = self._build_prompt(user_message, metrics)
             response_text = await self._call_api_async(user_prompt)
             label, confidence = self._parse_response(response_text)
             
@@ -396,69 +442,75 @@ Assistant: {response}
                 label=label,
                 confidence=confidence,
                 strategy=STRATEGY_NAME,
-                turn_index=turn_index,
-                conversation_id=conversation_id,
                 raw_response=response_text if include_raw else None
             )
         except Exception as e:
             logger.error(f"Async classification failed: {e}")
+            return ClassificationResult(label=-1, confidence=0.0, strategy=STRATEGY_NAME, error=str(e))
+    
+    async def classify_from_record_async(self, record: Dict[str, Any], include_raw: bool = False) -> ClassificationResult:
+        """Classify from a data record (async)."""
+        metrics = FullMetrics.from_record(record)
+        
+        if not metrics.is_valid():
             return ClassificationResult(
                 label=-1, confidence=0.0, strategy=STRATEGY_NAME,
-                turn_index=turn_index, conversation_id=conversation_id, error=str(e)
+                error="Invalid or missing metrics"
             )
+        
+        return await self.classify_async(
+            user_message=record.get("userMessage", ""),
+            prompt_tokens=metrics.prompt_tokens,
+            completion_tokens=metrics.completion_tokens,
+            llm_call_count=metrics.llm_call_count,
+            duration_ms=metrics.duration_ms,
+            tools_invoked=metrics.tools_invoked,
+            total_tool_calls=metrics.total_tool_calls,
+            available_tool_count=metrics.available_tool_count,
+            include_raw=include_raw
+        )
     
-    async def classify_conversation_async(
+    async def classify_batch_async(
         self,
-        conversation: Dict[str, Any],
+        records: List[Dict[str, Any]],
         include_raw: bool = False
     ) -> List[ClassificationResult]:
-        """Classify all turns in a conversation (async, parallel)."""
-        conversation_id = conversation.get("conversationId")
-        turns = conversation.get("turnsArray", [])
-        
+        """Classify a batch of records (async, parallel)."""
         semaphore = asyncio.Semaphore(self.max_concurrency)
         
-        async def classify_with_semaphore(turn_idx: int) -> tuple[int, ClassificationResult]:
+        async def classify_with_semaphore(record: Dict, idx: int) -> tuple[int, ClassificationResult]:
             async with semaphore:
-                result = await self.classify_turn_async(
-                    turns=turns,
-                    turn_index=turn_idx,
-                    conversation_id=conversation_id,
-                    include_raw=include_raw
-                )
-                return turn_idx, result
+                result = await self.classify_from_record_async(record, include_raw=include_raw)
+                return idx, result
         
-        tasks = [classify_with_semaphore(i) for i in range(len(turns))]
+        tasks = [classify_with_semaphore(r, i) for i, r in enumerate(records)]
         results_with_idx = await asyncio.gather(*tasks)
         results_with_idx.sort(key=lambda x: x[0])
         return [r for _, r in results_with_idx]
-    
-    async def classify_batch_conversations_async(
-        self,
-        conversations: List[Dict[str, Any]],
-        include_raw: bool = False
-    ) -> Dict[str, List[ClassificationResult]]:
-        """Classify multiple conversations (async, parallel)."""
-        results = {}
-        
-        for conv in conversations:
-            conv_id = conv.get("conversationId", "unknown")
-            results[conv_id] = await self.classify_conversation_async(conv, include_raw)
-        
-        return results
 
 
 # =============================================================================
 # Convenience Functions
 # =============================================================================
 
-def classify_turn_with_history(turns: List[Dict[str, Any]], turn_index: int) -> Dict[str, Any]:
+def classify_with_tools(
+    user_message: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    llm_call_count: int = 1,
+    duration_ms: int = 0,
+    tools_invoked: Optional[List[str]] = None,
+    total_tool_calls: int = 0
+) -> Dict[str, Any]:
+    """Convenience function for Strategy C classification with tools."""
     judge = StrategyCJudge()
-    result = judge.classify_turn(turns, turn_index)
-    return result.to_dict()
-
-
-async def classify_turn_with_history_async(turns: List[Dict[str, Any]], turn_index: int) -> Dict[str, Any]:
-    judge = StrategyCJudge()
-    result = await judge.classify_turn_async(turns, turn_index)
+    result = judge.classify(
+        user_message=user_message,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        llm_call_count=llm_call_count,
+        duration_ms=duration_ms,
+        tools_invoked=tools_invoked,
+        total_tool_calls=total_tool_calls
+    )
     return result.to_dict()

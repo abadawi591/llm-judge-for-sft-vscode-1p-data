@@ -1,8 +1,8 @@
-# Strategy B: Text + Behavioral Metrics
+# Strategy B: Text + Core Metrics
 
-> **Input:** User message + telemetry signals (tokens, tools, duration)  
+> **Input:** User message + core telemetry (tokens, duration, LLM calls)  
 > **Cost:** ~$0.002 per classification  
-> **Best For:** Post-hoc labeling of historical data
+> **Best For:** Post-hoc labeling when tool data is not needed
 
 ---
 

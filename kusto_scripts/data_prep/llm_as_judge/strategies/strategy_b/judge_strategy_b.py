@@ -61,28 +61,27 @@ MAX_WAIT_SECONDS = 60
 DEFAULT_BATCH_CONCURRENCY = 10
 
 SYSTEM_PROMPT = """You are an expert classifier determining whether a user request required a reasoning-capable LLM.
-You have access to both the request AND what actually happened when it was processed.
+You have access to both the request AND core performance metrics from processing.
 
 CLASSIFICATION LABELS:
 - 0 = REASONING REQUIRED
 - 1 = NON-REASONING SUFFICIENT
 
-BEHAVIORAL SIGNAL INTERPRETATION:
+CORE METRIC INTERPRETATION:
 
 STRONG INDICATORS OF REASONING (0):
 - High completion tokens (>1500) with multiple LLM calls (>2)
-- Complex tool chains (file reads → analysis → edits → terminal)
 - Long processing duration (>30 seconds)
 - High prompt tokens (>40k) indicating accumulated context
 
 STRONG INDICATORS OF NON-REASONING (1):
 - Low completion tokens (<500) with single LLM call
-- Simple or no tool usage
 - Quick response (<10 seconds)
+- Low prompt tokens (<10k) on early turns
 
 OVER-COMPLICATION CHECK:
-- If behavior seems EXCESSIVE for the request, lean toward 1
-- Simple question + complex behavior = model over-thought it
+- If metrics seem EXCESSIVE for the request, lean toward 1
+- Simple question + high tokens/duration = model over-thought it
 
 OUTPUT FORMAT (exactly two lines):
 Line 1: Label (0 or 1)
@@ -91,12 +90,10 @@ Line 2: Confidence (decimal between 0.0 and 1.0)"""
 USER_PROMPT_TEMPLATE = """USER REQUEST:
 {user_message}
 
-OBSERVED BEHAVIOR (what the LLM actually did):
+CORE METRICS (what the LLM actually did):
 - Prompt tokens used: {prompt_tokens:,}
 - Completion tokens generated: {completion_tokens:,}
 - Number of LLM calls: {llm_call_count}
-- Tools invoked: {tool_list}
-- Total tool calls: {total_tool_calls}
 - Processing duration: {duration_ms:,}ms ({duration_sec:.1f}s)"""
 
 
@@ -146,28 +143,54 @@ class ClassificationResult:
 
 
 @dataclass
-class BehavioralMetrics:
-    """Behavioral telemetry metrics for a turn."""
+class CoreMetrics:
+    """Core telemetry metrics for a turn (Strategy B - no tools)."""
     prompt_tokens: int
     completion_tokens: int
     llm_call_count: int
-    tools_used: List[str]
-    total_tool_calls: int
     duration_ms: int
     
     @classmethod
-    def from_record(cls, record: Dict[str, Any]) -> "BehavioralMetrics":
-        tools_used = record.get("toolsUsed", []) or []
-        if isinstance(tools_used, str):
-            tools_used = tools_used.split(", ") if tools_used else []
+    def from_record(cls, record: Dict[str, Any]) -> "CoreMetrics":
+        """
+        Extract core metrics from a turn record.
+        
+        Supports both old flat schema and new nested schema:
+        - Old: record["promptTokens"], record["completionTokens"], etc.
+        - New: record["turnSummary"]["actual_API"]["maxPromptTokens_..."], etc.
+        """
+        # Try new nested schema first
+        turn_summary = record.get("turnSummary", {})
+        actual_api = turn_summary.get("actual_API", {})
+        
+        # Handle the long field name with composition info
+        prompt_tokens = 0
+        for key in actual_api:
+            if "promptTokens" in key.lower() or "maxprompt" in key.lower():
+                prompt_tokens = actual_api.get(key, 0) or 0
+                break
+        
+        # Fallback to old flat schema
+        if prompt_tokens == 0:
+            prompt_tokens = record.get("promptTokens", 0) or 0
+        
+        completion_tokens = actual_api.get("totalCompletionTokens", 0)
+        if completion_tokens == 0:
+            completion_tokens = record.get("completionTokens", 0) or 0
+        
+        llm_call_count = turn_summary.get("llmCallCount", 0)
+        if llm_call_count == 0:
+            llm_call_count = record.get("llmCallCount", 1) or 1
+        
+        duration_ms = record.get("turnDurationMs", 0)
+        if duration_ms == 0:
+            duration_ms = record.get("durationMs", 0) or 0
         
         return cls(
-            prompt_tokens=record.get("promptTokens", 0) or 0,
-            completion_tokens=record.get("completionTokens", 0) or 0,
-            llm_call_count=record.get("llmCallCount", 1) or 1,
-            tools_used=tools_used,
-            total_tool_calls=record.get("totalToolCalls", len(tools_used)),
-            duration_ms=record.get("durationMs", 0) or 0
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            llm_call_count=llm_call_count,
+            duration_ms=duration_ms
         )
     
     def is_valid(self) -> bool:
@@ -216,20 +239,16 @@ class StrategyBJudge:
             self._async_client = get_async_anthropic_client(use_keyvault=self.use_keyvault)
         return self._async_client
     
-    def _build_prompt(self, user_message: str, metrics: BehavioralMetrics) -> str:
+    def _build_prompt(self, user_message: str, metrics: CoreMetrics) -> str:
         max_len = config.labeling.max_message_length
         if len(user_message) > max_len:
             user_message = user_message[:max_len] + "... [truncated]"
-        
-        tool_list = ", ".join(metrics.tools_used) if metrics.tools_used else "none"
         
         return USER_PROMPT_TEMPLATE.format(
             user_message=user_message,
             prompt_tokens=metrics.prompt_tokens,
             completion_tokens=metrics.completion_tokens,
             llm_call_count=metrics.llm_call_count,
-            tool_list=tool_list,
-            total_tool_calls=metrics.total_tool_calls,
             duration_ms=metrics.duration_ms,
             duration_sec=metrics.duration_ms / 1000
         )
@@ -271,19 +290,15 @@ class StrategyBJudge:
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         llm_call_count: int = 1,
-        tools_used: Optional[List[str]] = None,
-        total_tool_calls: int = 0,
         duration_ms: int = 0,
         include_raw: bool = False
     ) -> ClassificationResult:
-        """Classify a user message with behavioral metrics (sync)."""
+        """Classify a user message with core metrics (sync)."""
         try:
-            metrics = BehavioralMetrics(
+            metrics = CoreMetrics(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 llm_call_count=llm_call_count,
-                tools_used=tools_used or [],
-                total_tool_calls=total_tool_calls or len(tools_used or []),
                 duration_ms=duration_ms
             )
             
@@ -303,12 +318,12 @@ class StrategyBJudge:
     
     def classify_from_record(self, record: Dict[str, Any], include_raw: bool = False) -> ClassificationResult:
         """Classify from a data record (sync)."""
-        metrics = BehavioralMetrics.from_record(record)
+        metrics = CoreMetrics.from_record(record)
         
         if not metrics.is_valid():
             return ClassificationResult(
                 label=-1, confidence=0.0, strategy=STRATEGY_NAME,
-                error="Invalid or missing behavioral metrics"
+                error="Invalid or missing core metrics"
             )
         
         return self.classify(
@@ -316,8 +331,6 @@ class StrategyBJudge:
             prompt_tokens=metrics.prompt_tokens,
             completion_tokens=metrics.completion_tokens,
             llm_call_count=metrics.llm_call_count,
-            tools_used=metrics.tools_used,
-            total_tool_calls=metrics.total_tool_calls,
             duration_ms=metrics.duration_ms,
             include_raw=include_raw
         )
@@ -342,19 +355,15 @@ class StrategyBJudge:
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         llm_call_count: int = 1,
-        tools_used: Optional[List[str]] = None,
-        total_tool_calls: int = 0,
         duration_ms: int = 0,
         include_raw: bool = False
     ) -> ClassificationResult:
-        """Classify a user message with behavioral metrics (async)."""
+        """Classify a user message with core metrics (async)."""
         try:
-            metrics = BehavioralMetrics(
+            metrics = CoreMetrics(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 llm_call_count=llm_call_count,
-                tools_used=tools_used or [],
-                total_tool_calls=total_tool_calls or len(tools_used or []),
                 duration_ms=duration_ms
             )
             
@@ -374,12 +383,12 @@ class StrategyBJudge:
     
     async def classify_from_record_async(self, record: Dict[str, Any], include_raw: bool = False) -> ClassificationResult:
         """Classify from a data record (async)."""
-        metrics = BehavioralMetrics.from_record(record)
+        metrics = CoreMetrics.from_record(record)
         
         if not metrics.is_valid():
             return ClassificationResult(
                 label=-1, confidence=0.0, strategy=STRATEGY_NAME,
-                error="Invalid or missing behavioral metrics"
+                error="Invalid or missing core metrics"
             )
         
         return await self.classify_async(
@@ -387,8 +396,6 @@ class StrategyBJudge:
             prompt_tokens=metrics.prompt_tokens,
             completion_tokens=metrics.completion_tokens,
             llm_call_count=metrics.llm_call_count,
-            tools_used=metrics.tools_used,
-            total_tool_calls=metrics.total_tool_calls,
             duration_ms=metrics.duration_ms,
             include_raw=include_raw
         )
@@ -416,21 +423,20 @@ class StrategyBJudge:
 # Convenience Functions
 # =============================================================================
 
-def classify_with_metrics(
+def classify_with_core_metrics(
     user_message: str,
     prompt_tokens: int,
     completion_tokens: int,
     llm_call_count: int = 1,
-    tools_used: Optional[List[str]] = None,
     duration_ms: int = 0
 ) -> Dict[str, Any]:
+    """Convenience function for Strategy B classification with core metrics."""
     judge = StrategyBJudge()
     result = judge.classify(
         user_message=user_message,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         llm_call_count=llm_call_count,
-        tools_used=tools_used,
         duration_ms=duration_ms
     )
     return result.to_dict()

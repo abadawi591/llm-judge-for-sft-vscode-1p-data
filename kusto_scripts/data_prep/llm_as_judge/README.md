@@ -6,7 +6,7 @@
 
 - ✅ **Async API calls** - Parallel processing for 5-10x speedup
 - ✅ **Tenacity retry logic** - Automatic retries with exponential backoff
-- ✅ **Multiple strategies** - A, B, C with different input contexts
+- ✅ **Multiple strategies** - A, B, C, D with different input contexts
 - ✅ **Ensemble voting** - Combine strategies for higher accuracy
 - ✅ **Cascade mode** - Cost-efficient escalation based on confidence
 
@@ -31,12 +31,15 @@ llm_as_judge/
 │   ├── strategy_a/              # Text-Only (Baseline)
 │   │   ├── STRATEGY_A.md        # Detailed documentation
 │   │   └── judge_strategy_a.py  # Implementation
-│   ├── strategy_b/              # Text + Behavioral Metrics
+│   ├── strategy_b/              # Text + Core Metrics
 │   │   ├── STRATEGY_B.md        # Detailed documentation
 │   │   └── judge_strategy_b.py  # Implementation
-│   └── strategy_c/              # Text + Conversation History
-│       ├── STRATEGY_C.md        # Detailed documentation
-│       └── judge_strategy_c.py  # Implementation
+│   ├── strategy_c/              # Text + Core Metrics + Tools
+│   │   ├── STRATEGY_C.md        # Detailed documentation
+│   │   └── judge_strategy_c.py  # Implementation
+│   └── strategy_d/              # Text + Conversation History
+│       ├── STRATEGY_D.md        # Detailed documentation
+│       └── judge_strategy_d.py  # Implementation
 ├── voting/
 │   ├── VOTING_STRATEGIES.md     # Multi-judge voting approaches
 │   └── ensemble.py              # Voting implementation
@@ -50,8 +53,9 @@ llm_as_judge/
 | Strategy | Input | Cost/Call | Accuracy | Deployment Ready |
 |----------|-------|-----------|----------|------------------|
 | **A: Text Only** | User message | ~$0.001 | Baseline | ✅ Yes |
-| **B: Text + Metrics** | User message + telemetry | ~$0.002 | Good | ❌ No (uses hindsight) |
-| **C: Text + History** | User message + last N turns | ~$0.005 | Best | ✅ Yes |
+| **B: Core Metrics** | User message + tokens, duration, LLM calls | ~$0.002 | Good | ❌ No (hindsight) |
+| **C: Core + Tools** | Strategy B + tool usage | ~$0.003 | Better | ❌ No (hindsight) |
+| **D: History** | User message + last N turns | ~$0.005 | Best | ✅ Yes |
 
 ---
 
@@ -164,8 +168,9 @@ Each labeled record includes:
 
 ## Related Documentation
 
-- [Strategy A Details](strategies/strategy_a/STRATEGY_A.md)
-- [Strategy B Details](strategies/strategy_b/STRATEGY_B.md)
-- [Strategy C Details](strategies/strategy_c/STRATEGY_C.md)
+- [Strategy A Details](strategies/strategy_a/STRATEGY_A.md) - Text Only (baseline)
+- [Strategy B Details](strategies/strategy_b/STRATEGY_B.md) - Text + Core Metrics
+- [Strategy C Details](strategies/strategy_c/STRATEGY_C.md) - Text + Core Metrics + Tools
+- [Strategy D Details](strategies/strategy_d/STRATEGY_D.md) - Text + Conversation History
 - [Voting Strategies](voting/VOTING_STRATEGIES.md)
 

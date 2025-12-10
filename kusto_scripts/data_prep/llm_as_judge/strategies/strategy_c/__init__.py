@@ -1,5 +1,4 @@
-"""Strategy C: Text + Conversation History (Recommended)"""
-from .judge_strategy_c import StrategyCJudge, ClassificationResult, classify_turn_with_history
+"""Strategy C: Text + Core Metrics + Tools"""
+from .judge_strategy_c import StrategyCJudge, classify_with_tools
 
-__all__ = ["StrategyCJudge", "ClassificationResult", "classify_turn_with_history"]
-
+__all__ = ["StrategyCJudge", "classify_with_tools"]
