@@ -27,6 +27,11 @@ llm_as_judge/
 ├── config/
 │   ├── azure_foundry.py         # Azure Foundry client setup
 │   └── settings.py              # Configuration settings
+├── labelers/                    # NEW: Modular labeling system
+│   ├── LABELERS.md              # Hard vs Soft labels documentation
+│   ├── base.py                  # BaseLabeler interface
+│   ├── hard_labeler.py          # Discrete 0/1 labels
+│   └── soft_labeler.py          # Probability distributions (SFT/KD)
 ├── strategies/
 │   ├── strategy_a/              # Text-Only (Baseline)
 │   │   ├── STRATEGY_A.md        # Detailed documentation
@@ -45,6 +50,29 @@ llm_as_judge/
 │   └── ensemble.py              # Voting implementation
 └── run_labeling.py              # Main entry point
 ```
+
+---
+
+## Labeler Types
+
+| Labeler | Output | Best For |
+|---------|--------|----------|
+| **HardLabeler** | Discrete: `0` or `1` | Classification, evaluation |
+| **SoftLabeler** | Distribution: `[0.85, 0.15]` | SFT training, Knowledge Distillation |
+
+```python
+from labelers import HardLabeler, SoftLabeler
+
+# Hard labels (classification)
+hard = HardLabeler(strategy="C")
+result = hard.label(record)  # result.hard_label = 0 or 1
+
+# Soft labels (SFT/KD)
+soft = SoftLabeler(strategy="C", method="ensemble")
+result = soft.label(record)  # result.soft_label = [0.85, 0.15]
+```
+
+See [Labelers Documentation](labelers/LABELERS.md) for details on soft labels and KD patterns.
 
 ---
 
@@ -168,9 +196,15 @@ Each labeled record includes:
 
 ## Related Documentation
 
+### Labelers
+- [Labelers Guide](labelers/LABELERS.md) - Hard vs Soft labels, KD patterns
+
+### Strategies
 - [Strategy A Details](strategies/strategy_a/STRATEGY_A.md) - Text Only (baseline)
 - [Strategy B Details](strategies/strategy_b/STRATEGY_B.md) - Text + Core Metrics
 - [Strategy C Details](strategies/strategy_c/STRATEGY_C.md) - Text + Core Metrics + Tools
 - [Strategy D Details](strategies/strategy_d/STRATEGY_D.md) - Text + Conversation History
-- [Voting Strategies](voting/VOTING_STRATEGIES.md)
+
+### Voting
+- [Voting Strategies](voting/VOTING_STRATEGIES.md) - Ensemble approaches
 
