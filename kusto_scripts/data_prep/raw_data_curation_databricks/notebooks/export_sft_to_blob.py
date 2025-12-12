@@ -114,8 +114,8 @@ ENABLE_CHUNKING = True
 CHUNKING_METHOD = "hash"  # "hash" (recommended) or "time"
 
 # Hash-based chunking (RECOMMENDED): Guarantees conversation completeness
-# 40 chunks to balance data size and query count
-NUM_HASH_CHUNKS = 40  # Number of hash buckets (40 chunks = ~2.5% data per chunk)
+# 60 chunks to balance data size and query count
+NUM_HASH_CHUNKS = 60  # Number of hash buckets (60 chunks = ~1.67% data per chunk)
 HASH_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 
 # Time-based chunking (legacy): May split conversations across chunks
@@ -125,8 +125,8 @@ TIME_CHUNK_DELAY_SECONDS = 3  # Delay between chunks
 # =============================================================================
 # TIMEOUT CONFIGURATION
 # =============================================================================
-SERVER_TIMEOUT_SECONDS = 500   # ~8 minutes - Kusto server-side timeout
-CLIENT_TIMEOUT_SECONDS = 500   # ~8 minutes - Client-side timeout (most chunks complete in 1-3 min)
+SERVER_TIMEOUT_SECONDS = 900   # ~15 minutes - Kusto server-side timeout
+CLIENT_TIMEOUT_SECONDS = 900   # ~15 minutes - Client-side timeout (most chunks complete in 1-3 min)
 
 # =============================================================================
 # CONFIGURATION
@@ -978,17 +978,17 @@ def validate_record_tokens(record: dict) -> tuple[bool, list[str]]:
         (is_valid, list_of_errors)
     
     Checks:
-        1. totalPromptTokens > 0 (at conversation level)
-        2. totalCompletionTokens > 0 (at conversation level)  
+        1. totalPromptTokens_actual > 0 (at conversation level)
+        2. totalCompletionTokens_actual > 0 (at conversation level)  
         3. Each turn has non-empty llmCalls list
-        4. Each llmCall has promptTokens > 0
+        4. Each llmCall has actual_API.promptTokens > 0
     """
     errors = []
     conversation_id = record.get("conversationId", "unknown")[:20]
     
-    # Check conversation-level token totals
-    total_prompt = record.get("totalPromptTokens", 0)
-    total_completion = record.get("totalCompletionTokens", 0)
+    # Check conversation-level token totals (new query structure uses _actual suffix)
+    total_prompt = record.get("totalPromptTokens_actual", record.get("totalPromptTokens", 0))
+    total_completion = record.get("totalCompletionTokens_actual", record.get("totalCompletionTokens", 0))
     
     if total_prompt == 0:
         errors.append(f"totalPromptTokens=0")
@@ -1009,9 +1009,17 @@ def validate_record_tokens(record: dict) -> tuple[bool, list[str]]:
             if not llm_calls or len(llm_calls) == 0:
                 turns_with_empty_llm_calls += 1
             else:
-                # Check each llmCall has tokens
+                # Check each llmCall has tokens (new structure: actual_API.promptTokens)
                 for j, call in enumerate(llm_calls):
-                    prompt_tokens = call.get("promptTokens", 0)
+                    # Support both old structure (promptTokens) and new structure (actual_API.promptTokens)
+                    actual_api = call.get("actual_API", {})
+                    if isinstance(actual_api, dict):
+                        prompt_tokens = actual_api.get("promptTokens_(system+user+assistant+toolResults)", 
+                                                       actual_api.get("promptTokens", 0))
+                    else:
+                        # Fallback to old structure
+                        prompt_tokens = call.get("promptTokens", 0)
+                    
                     if prompt_tokens == 0:
                         turns_with_zero_tokens += 1
                         break  # Only count once per turn

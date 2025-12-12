@@ -1,0 +1,123 @@
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': '28fd5267-5121-4040-b05a-63878f05c4df'
+    'Date': 'Thu, 11 Dec 2025 17:52:40 GMT'
+    'Content-Length': '88'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'Metadata': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': 'e2d25145-89c1-4c7c-8b09-b067918ba9af'
+    'Date': 'Thu, 11 Dec 2025 17:52:40 GMT'
+    'Content-Length': '68'
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Checking Azure authentication...
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train', 'val', 'test']
+
+Reading query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+Connecting to Blob Storage...
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Method: HASH-BASED CHUNKING (Recommended)
+  ✅ Guarantees: Each conversation fully in ONE chunk
+  ✅ Guarantees: Conversation completeness preserved
+Strategy: Gather ALL candidates via hash chunks, then stratified sample in Python
+
+Reading hash-chunked query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_hash_chunked.kql
+
+======================================================================
+🔀 HASH-BASED CHUNKING: hash(conversationId) % 60
+======================================================================
+   ✅ Guarantees: Each conversation fully in ONE chunk
+   ✅ Guarantees: Conversation completeness preserved
+   📊 Target: ~120k conversations across all chunks
+======================================================================
+
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 1/60 (0% complete)
+──────────────────────────────────────────────────────────────────────
+   🔍 Query: hash(conversationId) % 60 == 0
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed⏱️  Query running... 7m 20s elapsed⏱️  Query running... 7m 30s elapsed⏱️  Query running... 7m 40s elapsed⏱️  Query running... 7m 50s elapsed⏱️  Query running... 8m 0s elapsed⏱️  Query running... 8m 10s elapsed⏱️  Query running... 8m 20s elapsed⏱️  Query running... 8m 30s elapsed⏱️  Query running... 8m 40s elapsed⏱️  Query running... 8m 50s elapsed                                                  ✅ Query returned 1,552 records in 8m 55s
+
+======================================================================
+🚨 CRITICAL TOKEN VALIDATION FAILURE
+======================================================================
+CRITICAL: ALL 1552 records in chunk 1 have token validation errors!
+This indicates a query bug - token data is not being extracted correctly.
+Sample errors: ["0019cde6-cdcb-43a1-8...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "004be519-a11b-4f99-a...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "005b3951-5ba1-45c5-b...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '6/6 turns have zero promptTokens in llmCalls']"]
+
+Check that the query uses:
+  - message_direction == 'output' (lowercase)
+  - Properties['headerRequestId'] for messageId
+  - Properties['baseModel'] for model
+======================================================================
+
+======================================================================
+❌ CHUNK 1 FAILED
+======================================================================
+   Error: CRITICAL: ALL 1552 records in chunk 1 have token validation errors!
+This indicates a query bug - token data is not being extracted correctly.
+Sample errors: ["0019cde6-cdcb-43a1-8...: ['totalPromptTok
+   Progress: 0 records from 0 chunks
+   💾 Checkpoint saved! Restart to resume from chunk 1
+======================================================================
+ERROR: Export failed: CRITICAL: ALL 1552 records in chunk 1 have token validation errors!
+This indicates a query bug - token data is not being extracted correctly.
+Sample errors: ["0019cde6-cdcb-43a1-8...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "004be519-a11b-4f99-a...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "005b3951-5ba1-45c5-b...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '6/6 turns have zero promptTokens in llmCalls']"]
+
+Check that the query uses:
+  - message_direction == 'output' (lowercase)
+  - Properties['headerRequestId'] for messageId
+  - Properties['baseModel'] for model
+Traceback (most recent call last):
+  File "/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py", line 1894, in <module>
+    exit(main())
+         ~~~~^^
+  File "/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py", line 1886, in main
+    export_sft_data(is_test=args.test, target_split=args.split, dry_run=args.dry_run)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py", line 1650, in export_sft_data
+    all_candidates = run_hash_chunked_query(kusto_client, num_chunks=NUM_HASH_CHUNKS)
+  File "/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py", line 745, in run_hash_chunked_query
+    token_validation = validate_chunk_tokens(chunk_results, chunk_num)
+  File "/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py", line 1081, in validate_chunk_tokens
+    raise TokenValidationError(
+    ...<7 lines>...
+    )
+TokenValidationError: CRITICAL: ALL 1552 records in chunk 1 have token validation errors!
+This indicates a query bug - token data is not being extracted correctly.
+Sample errors: ["0019cde6-cdcb-43a1-8...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "004be519-a11b-4f99-a...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '9/9 turns have zero promptTokens in llmCalls']", "005b3951-5ba1-45c5-b...: ['totalPromptTokens=0', 'totalCompletionTokens=0', '6/6 turns have zero promptTokens in llmCalls']"]
+
+Check that the query uses:
+  - message_direction == 'output' (lowercase)
+  - Properties['headerRequestId'] for messageId
+  - Properties['baseModel'] for model

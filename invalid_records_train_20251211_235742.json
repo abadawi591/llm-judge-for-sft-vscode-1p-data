@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "total_invalid": 5,
+    "error_summary": {
+      "Turn index gap: expected 2, got 3": 1,
+      "Turn index gap: expected 4, got 5": 2,
+      "Turn index gap: expected 3, got 4": 1,
+      "Turn index gap: expected 10, got 11": 1
+    },
+    "generated_at": "2025-12-11T23:57:42.726567Z",
+    "split": "train"
+  },
+  "invalid_records": [
+    {
+      "conversationId": "50b636ff-a779-49eb-b51f-2f1ce853fc61",
+      "bucket": "short_3_to_5_turns",
+      "turnCount": 4,
+      "errors": [
+        "Turn index gap: expected 2, got 3"
+      ]
+    },
+    {
+      "conversationId": "256bc183-39ff-4dd6-b394-71f09a4091ec",
+      "bucket": "medium_6_to_10_turns",
+      "turnCount": 7,
+      "errors": [
+        "Turn index gap: expected 4, got 5"
+      ]
+    },
+    {
+      "conversationId": "accae0e6-d10e-43da-91c5-b18a46234f82",
+      "bucket": "medium_6_to_10_turns",
+      "turnCount": 7,
+      "errors": [
+        "Turn index gap: expected 3, got 4"
+      ]
+    },
+    {
+      "conversationId": "27f5d844-0919-4b69-a5eb-c5b0b35e0837",
+      "bucket": "long_11_to_20_turns",
+      "turnCount": 12,
+      "errors": [
+        "Turn index gap: expected 4, got 5"
+      ]
+    },
+    {
+      "conversationId": "80dc112b-74c0-4f19-8e3e-2ed59474423e",
+      "bucket": "long_11_to_20_turns",
+      "turnCount": 17,
+      "errors": [
+        "Turn index gap: expected 10, got 11"
+      ]
+    }
+  ]
+}

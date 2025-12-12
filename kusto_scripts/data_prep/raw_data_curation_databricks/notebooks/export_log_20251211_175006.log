@@ -1,0 +1,81 @@
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': '159d8bb5-fb4e-45c3-a574-3c21ef3600ff'
+    'Date': 'Thu, 11 Dec 2025 17:50:07 GMT'
+    'Content-Length': '88'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'Metadata': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': '69cbb556-5c0f-499a-a297-4f7256187e4a'
+    'Date': 'Thu, 11 Dec 2025 17:50:07 GMT'
+    'Content-Length': '68'
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Checking Azure authentication...
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train', 'val', 'test']
+
+Reading query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+Connecting to Blob Storage...
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Method: HASH-BASED CHUNKING (Recommended)
+  ✅ Guarantees: Each conversation fully in ONE chunk
+  ✅ Guarantees: Conversation completeness preserved
+Strategy: Gather ALL candidates via hash chunks, then stratified sample in Python
+
+Reading hash-chunked query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_hash_chunked.kql
+
+======================================================================
+📂 CHECKPOINT FOUND!
+======================================================================
+   Last completed chunk: 26
+   Records saved: 0
+   Saved at: 2025-12-10T22:51:21.408328Z
+   Resuming from chunk 27...
+======================================================================
+
+
+======================================================================
+🔀 HASH-BASED CHUNKING: hash(conversationId) % 60
+======================================================================
+   ✅ Guarantees: Each conversation fully in ONE chunk
+   ✅ Guarantees: Conversation completeness preserved
+   📊 Target: ~120k conversations across all chunks
+   🔄 RESUMING from chunk 27 (skipping 26 completed chunks)
+   📂 Loaded 0 records from checkpoint
+======================================================================
+
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 27/60 (43% complete)
+──────────────────────────────────────────────────────────────────────
+   🔍 Query: hash(conversationId) % 60 == 26
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed

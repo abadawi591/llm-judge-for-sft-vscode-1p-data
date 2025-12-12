@@ -1,0 +1,1320 @@
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': 'aec3ed92-35a3-4fcf-bf11-92836d2e203c'
+    'Date': 'Thu, 11 Dec 2025 18:30:08 GMT'
+    'Content-Length': '88'
+INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED'
+Request method: 'GET'
+Request headers:
+    'Metadata': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.13.5 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)'
+No body was attached to the request
+INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 400
+Response headers:
+    'Content-Type': 'application/json; charset=utf-8'
+    'Server': 'IMDS/150.870.65.1854'
+    'x-ms-request-id': 'bd6a00c7-8999-42b8-a4ad-b91d25fdb06c'
+    'Date': 'Thu, 11 Dec 2025 18:30:08 GMT'
+    'Content-Length': '68'
+INFO:azure.identity._credentials.chained:DefaultAzureCredential acquired a token from AzureCliCredential
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+INFO:azure.identity._credentials.environment:No environment configuration found.
+INFO:azure.identity._credentials.managed_identity:ManagedIdentityCredential will use IMDS
+Checking Azure authentication...
+Azure authentication OK
+======================================================================
+RUNNING PRODUCTION MODE (~120k records, 60 day window)
+======================================================================
+Splits to export: ['train', 'val', 'test']
+
+Reading query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_100k_production_with_splits.kql
+
+Connecting to Kusto...
+Connecting to Blob Storage...
+
+======================================================================
+CHUNKED AGGREGATION MODE
+======================================================================
+Method: HASH-BASED CHUNKING (Recommended)
+  ✅ Guarantees: Each conversation fully in ONE chunk
+  ✅ Guarantees: Conversation completeness preserved
+Strategy: Gather ALL candidates via hash chunks, then stratified sample in Python
+
+Reading hash-chunked query from: /home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/queries/sft_candidates_hash_chunked.kql
+
+======================================================================
+🔀 HASH-BASED CHUNKING: hash(conversationId) % 60
+======================================================================
+   ✅ Guarantees: Each conversation fully in ONE chunk
+   ✅ Guarantees: Conversation completeness preserved
+   📊 Target: ~120k conversations across all chunks
+======================================================================
+
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 1/60 (0% complete)
+──────────────────────────────────────────────────────────────────────
+   🔍 Query: hash(conversationId) % 60 == 0
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:210: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat() + "Z"
+                                                  ✅ Query returned 1,551 records in 3m 58s
+   ✅ Token validation passed (1,551 records)
+
+   📊 CHUNK 1 SUMMARY:
+      • Records this chunk: 1,551
+      • New unique records: 1,551
+      • Total accumulated:  1,551
+      • Chunk time: 239.1s
+   💾 Checkpoint saved: 1,551 records, chunk 1
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 2/60 (2% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 239s | ETA: 235m 4s
+   🔍 Query: hash(conversationId) % 60 == 1
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,615 records in 4m 0s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,614
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 0822e12a-fe51-447b-8...: ['1/6 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 2 SUMMARY:
+      • Records this chunk: 1,615
+      • New unique records: 1,615
+      • Total accumulated:  3,166
+      • Chunk time: 241.4s
+   💾 Checkpoint saved: 3,166 records, chunk 2
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 3/60 (3% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 240s | ETA: 232m 13s
+   🔍 Query: hash(conversationId) % 60 == 2
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed⏱️  Query running... 7m 20s elapsed⏱️  Query running... 7m 30s elapsed⏱️  Query running... 7m 40s elapsed⏱️  Query running... 7m 50s elapsed⏱️  Query running... 8m 0s elapsed                                                  ✅ Query returned 1,560 records in 8m 3s
+   ✅ Token validation passed (1,560 records)
+
+   📊 CHUNK 3 SUMMARY:
+      • Records this chunk: 1,560
+      • New unique records: 1,560
+      • Total accumulated:  4,726
+      • Chunk time: 483.9s
+   💾 Checkpoint saved: 4,726 records, chunk 3
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 4/60 (5% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 321s | ETA: 305m 22s
+   🔍 Query: hash(conversationId) % 60 == 3
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,591 records in 3m 58s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,590
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - a5affe10-bbfa-4334-8...: ['1/7 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 4 SUMMARY:
+      • Records this chunk: 1,591
+      • New unique records: 1,591
+      • Total accumulated:  6,317
+      • Chunk time: 239.6s
+   💾 Checkpoint saved: 6,317 records, chunk 4
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 5/60 (7% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 301s | ETA: 280m 55s
+   🔍 Query: hash(conversationId) % 60 == 4
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,622 records in 4m 5s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,621
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - e7319eef-5786-4d7a-9...: ['1/6 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 5 SUMMARY:
+      • Records this chunk: 1,622
+      • New unique records: 1,622
+      • Total accumulated:  7,939
+      • Chunk time: 246.2s
+
+   📈 RUNNING TOTALS (after 5 chunks):
+      Buckets: short=4,178 | medium=2,347 | long=1,414
+      Splits:  train=6,584 | val=717 | test=638
+   💾 Checkpoint saved: 7,939 records, chunk 5
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 6/60 (8% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 290s | ETA: 265m 52s
+   🔍 Query: hash(conversationId) % 60 == 5
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,591 records in 4m 8s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,590
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 132eef80-a805-4789-a...: ['1/3 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 6 SUMMARY:
+      • Records this chunk: 1,591
+      • New unique records: 1,591
+      • Total accumulated:  9,530
+      • Chunk time: 249.2s
+   💾 Checkpoint saved: 9,530 records, chunk 6
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 7/60 (10% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 283s | ETA: 254m 54s
+   🔍 Query: hash(conversationId) % 60 == 6
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,558 records in 4m 14s
+   ✅ Token validation passed (1,558 records)
+
+   📊 CHUNK 7 SUMMARY:
+      • Records this chunk: 1,558
+      • New unique records: 1,558
+      • Total accumulated:  11,088
+      • Chunk time: 255.5s
+   💾 Checkpoint saved: 11,088 records, chunk 7
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 8/60 (12% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 279s | ETA: 246m 41s
+   🔍 Query: hash(conversationId) % 60 == 7
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,631 records in 3m 54s
+   ✅ Token validation passed (1,631 records)
+
+   📊 CHUNK 8 SUMMARY:
+      • Records this chunk: 1,631
+      • New unique records: 1,631
+      • Total accumulated:  12,719
+      • Chunk time: 235.0s
+   💾 Checkpoint saved: 12,719 records, chunk 8
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 9/60 (13% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 237m 14s
+   🔍 Query: hash(conversationId) % 60 == 8
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,587 records in 4m 3s
+   ✅ Token validation passed (1,587 records)
+
+   📊 CHUNK 9 SUMMARY:
+      • Records this chunk: 1,587
+      • New unique records: 1,587
+      • Total accumulated:  14,306
+      • Chunk time: 244.5s
+   💾 Checkpoint saved: 14,306 records, chunk 9
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 10/60 (15% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 270s | ETA: 229m 54s
+   🔍 Query: hash(conversationId) % 60 == 9
+Executing Kusto query (19531 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,617 records in 4m 9s
+   ✅ Token validation passed (1,617 records)
+
+   📊 CHUNK 10 SUMMARY:
+      • Records this chunk: 1,617
+      • New unique records: 1,617
+      • Total accumulated:  15,923
+      • Chunk time: 250.0s
+
+   📈 RUNNING TOTALS (after 10 chunks):
+      Buckets: short=8,357 | medium=4,693 | long=2,873
+      Splits:  train=13,204 | val=1,426 | test=1,293
+   💾 Checkpoint saved: 15,923 records, chunk 10
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 11/60 (17% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 268s | ETA: 223m 41s
+   🔍 Query: hash(conversationId) % 60 == 10
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,605 records in 3m 59s
+   ✅ Token validation passed (1,605 records)
+
+   📊 CHUNK 11 SUMMARY:
+      • Records this chunk: 1,605
+      • New unique records: 1,605
+      • Total accumulated:  17,528
+      • Chunk time: 241.2s
+   💾 Checkpoint saved: 17,528 records, chunk 11
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 12/60 (18% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 266s | ETA: 217m 11s
+   🔍 Query: hash(conversationId) % 60 == 11
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,565 records in 4m 3s
+   ✅ Token validation passed (1,565 records)
+
+   📊 CHUNK 12 SUMMARY:
+      • Records this chunk: 1,565
+      • New unique records: 1,565
+      • Total accumulated:  19,093
+      • Chunk time: 243.7s
+   💾 Checkpoint saved: 19,093 records, chunk 12
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 13/60 (20% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 264s | ETA: 211m 16s
+   🔍 Query: hash(conversationId) % 60 == 12
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,538 records in 4m 12s
+   ✅ Token validation passed (1,538 records)
+
+   📊 CHUNK 13 SUMMARY:
+      • Records this chunk: 1,538
+      • New unique records: 1,538
+      • Total accumulated:  20,631
+      • Chunk time: 253.3s
+   💾 Checkpoint saved: 20,631 records, chunk 13
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 14/60 (22% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 263s | ETA: 206m 13s
+   🔍 Query: hash(conversationId) % 60 == 13
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,582 records in 4m 10s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,581
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 3b065bb0-41c2-4021-a...: ['1/6 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 14 SUMMARY:
+      • Records this chunk: 1,582
+      • New unique records: 1,582
+      • Total accumulated:  22,213
+      • Chunk time: 251.7s
+   💾 Checkpoint saved: 22,213 records, chunk 14
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 15/60 (23% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 262s | ETA: 201m 12s
+   🔍 Query: hash(conversationId) % 60 == 14
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,580 records in 3m 55s
+   ✅ Token validation passed (1,580 records)
+
+   📊 CHUNK 15 SUMMARY:
+      • Records this chunk: 1,580
+      • New unique records: 1,580
+      • Total accumulated:  23,793
+      • Chunk time: 236.0s
+
+   📈 RUNNING TOTALS (after 15 chunks):
+      Buckets: short=12,432 | medium=7,031 | long=4,330
+      Splits:  train=19,747 | val=2,122 | test=1,924
+   💾 Checkpoint saved: 23,793 records, chunk 15
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 16/60 (25% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 261s | ETA: 195m 30s
+   🔍 Query: hash(conversationId) % 60 == 15
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,586 records in 4m 2s
+   ✅ Token validation passed (1,586 records)
+
+   📊 CHUNK 16 SUMMARY:
+      • Records this chunk: 1,586
+      • New unique records: 1,586
+      • Total accumulated:  25,379
+      • Chunk time: 242.7s
+   💾 Checkpoint saved: 25,379 records, chunk 16
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 17/60 (27% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 260s | ETA: 190m 20s
+   🔍 Query: hash(conversationId) % 60 == 16
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,618 records in 4m 0s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,617
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 9b65a9be-3028-4df3-8...: ['1/11 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 17 SUMMARY:
+      • Records this chunk: 1,618
+      • New unique records: 1,618
+      • Total accumulated:  26,997
+      • Chunk time: 241.9s
+   💾 Checkpoint saved: 26,997 records, chunk 17
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 18/60 (28% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 259s | ETA: 185m 16s
+   🔍 Query: hash(conversationId) % 60 == 17
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,636 records in 4m 4s
+   ✅ Token validation passed (1,636 records)
+
+   📊 CHUNK 18 SUMMARY:
+      • Records this chunk: 1,636
+      • New unique records: 1,636
+      • Total accumulated:  28,633
+      • Chunk time: 244.9s
+   💾 Checkpoint saved: 28,633 records, chunk 18
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 19/60 (30% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 258s | ETA: 180m 26s
+   🔍 Query: hash(conversationId) % 60 == 18
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed                                                  ✅ Query returned 1,625 records in 7m 14s
+   ✅ Token validation passed (1,625 records)
+
+   📊 CHUNK 19 SUMMARY:
+      • Records this chunk: 1,625
+      • New unique records: 1,625
+      • Total accumulated:  30,258
+      • Chunk time: 434.7s
+   💾 Checkpoint saved: 30,258 records, chunk 19
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 20/60 (32% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 267s | ETA: 182m 30s
+   🔍 Query: hash(conversationId) % 60 == 19
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed                                                  ✅ Query returned 1,641 records in 5m 19s
+   ✅ Token validation passed (1,641 records)
+
+   📊 CHUNK 20 SUMMARY:
+      • Records this chunk: 1,641
+      • New unique records: 1,641
+      • Total accumulated:  31,899
+      • Chunk time: 319.8s
+
+   📈 RUNNING TOTALS (after 20 chunks):
+      Buckets: short=16,726 | medium=9,424 | long=5,749
+      Splits:  train=26,496 | val=2,848 | test=2,555
+   💾 Checkpoint saved: 31,899 records, chunk 20
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 21/60 (33% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 270s | ETA: 179m 48s
+   🔍 Query: hash(conversationId) % 60 == 20
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,643 records in 4m 13s
+   ✅ Token validation passed (1,643 records)
+
+   📊 CHUNK 21 SUMMARY:
+      • Records this chunk: 1,643
+      • New unique records: 1,643
+      • Total accumulated:  33,542
+      • Chunk time: 255.2s
+   💾 Checkpoint saved: 33,542 records, chunk 21
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 22/60 (35% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 269s | ETA: 174m 52s
+   🔍 Query: hash(conversationId) % 60 == 21
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,633 records in 4m 2s
+   ✅ Token validation passed (1,633 records)
+
+   📊 CHUNK 22 SUMMARY:
+      • Records this chunk: 1,633
+      • New unique records: 1,633
+      • Total accumulated:  35,175
+      • Chunk time: 243.4s
+   💾 Checkpoint saved: 35,175 records, chunk 22
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 23/60 (37% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 268s | ETA: 169m 38s
+   🔍 Query: hash(conversationId) % 60 == 22
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,611 records in 3m 56s
+   ✅ Token validation passed (1,611 records)
+
+   📊 CHUNK 23 SUMMARY:
+      • Records this chunk: 1,611
+      • New unique records: 1,611
+      • Total accumulated:  36,786
+      • Chunk time: 236.6s
+   💾 Checkpoint saved: 36,786 records, chunk 23
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 24/60 (38% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 267s | ETA: 164m 20s
+   🔍 Query: hash(conversationId) % 60 == 23
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,627 records in 4m 16s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,626
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 1bd8ff68-8ab0-4006-b...: ['1/4 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 24 SUMMARY:
+      • Records this chunk: 1,627
+      • New unique records: 1,627
+      • Total accumulated:  38,413
+      • Chunk time: 257.1s
+   💾 Checkpoint saved: 38,413 records, chunk 24
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 25/60 (40% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 266s | ETA: 159m 40s
+   🔍 Query: hash(conversationId) % 60 == 24
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,614 records in 4m 4s
+   ✅ Token validation passed (1,614 records)
+
+   📊 CHUNK 25 SUMMARY:
+      • Records this chunk: 1,614
+      • New unique records: 1,614
+      • Total accumulated:  40,027
+      • Chunk time: 244.8s
+
+   📈 RUNNING TOTALS (after 25 chunks):
+      Buckets: short=21,031 | medium=11,814 | long=7,182
+      Splits:  train=33,242 | val=3,574 | test=3,211
+   💾 Checkpoint saved: 40,027 records, chunk 25
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 26/60 (42% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 265s | ETA: 154m 44s
+   🔍 Query: hash(conversationId) % 60 == 25
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,561 records in 4m 8s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,560
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - ab1d81e0-1519-4ed5-8...: ['1/3 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 26 SUMMARY:
+      • Records this chunk: 1,561
+      • New unique records: 1,561
+      • Total accumulated:  41,588
+      • Chunk time: 251.2s
+   💾 Checkpoint saved: 41,588 records, chunk 26
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 27/60 (43% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 265s | ETA: 150m 0s
+   🔍 Query: hash(conversationId) % 60 == 26
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed⏱️  Query running... 7m 20s elapsed⏱️  Query running... 7m 30s elapsed⏱️  Query running... 7m 40s elapsed⏱️  Query running... 7m 50s elapsed⏱️  Query running... 8m 0s elapsed⏱️  Query running... 8m 10s elapsed                                                  ✅ Query returned 1,585 records in 8m 12s
+   ✅ Token validation passed (1,585 records)
+
+   📊 CHUNK 27 SUMMARY:
+      • Records this chunk: 1,585
+      • New unique records: 1,585
+      • Total accumulated:  43,173
+      • Chunk time: 492.7s
+   💾 Checkpoint saved: 43,173 records, chunk 27
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 28/60 (45% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 273s | ETA: 150m 14s
+   🔍 Query: hash(conversationId) % 60 == 27
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed                                                  ✅ Query returned 1,620 records in 5m 22s
+   ✅ Token validation passed (1,620 records)
+
+   📊 CHUNK 28 SUMMARY:
+      • Records this chunk: 1,620
+      • New unique records: 1,620
+      • Total accumulated:  44,793
+      • Chunk time: 323.1s
+   💾 Checkpoint saved: 44,793 records, chunk 28
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 29/60 (47% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 146m 38s
+   🔍 Query: hash(conversationId) % 60 == 28
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,608 records in 4m 4s
+   ✅ Token validation passed (1,608 records)
+
+   📊 CHUNK 29 SUMMARY:
+      • Records this chunk: 1,608
+      • New unique records: 1,608
+      • Total accumulated:  46,401
+      • Chunk time: 244.8s
+   💾 Checkpoint saved: 46,401 records, chunk 29
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 30/60 (48% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 141m 31s
+   🔍 Query: hash(conversationId) % 60 == 29
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,645 records in 4m 4s
+   ✅ Token validation passed (1,645 records)
+
+   📊 CHUNK 30 SUMMARY:
+      • Records this chunk: 1,645
+      • New unique records: 1,645
+      • Total accumulated:  48,046
+      • Chunk time: 244.7s
+
+   📈 RUNNING TOTALS (after 30 chunks):
+      Buckets: short=25,278 | medium=14,141 | long=8,627
+      Splits:  train=39,872 | val=4,278 | test=3,896
+   💾 Checkpoint saved: 48,046 records, chunk 30
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 31/60 (50% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 273s | ETA: 136m 27s
+   🔍 Query: hash(conversationId) % 60 == 30
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed                                                  ✅ Query returned 1,587 records in 5m 47s
+   ✅ Token validation passed (1,587 records)
+
+   📊 CHUNK 31 SUMMARY:
+      • Records this chunk: 1,587
+      • New unique records: 1,587
+      • Total accumulated:  49,633
+      • Chunk time: 348.0s
+   💾 Checkpoint saved: 49,633 records, chunk 31
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 32/60 (52% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 133m 5s
+   🔍 Query: hash(conversationId) % 60 == 31
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,554 records in 4m 17s
+   ✅ Token validation passed (1,554 records)
+
+   📊 CHUNK 32 SUMMARY:
+      • Records this chunk: 1,554
+      • New unique records: 1,554
+      • Total accumulated:  51,187
+      • Chunk time: 258.0s
+   💾 Checkpoint saved: 51,187 records, chunk 32
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 33/60 (53% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 128m 14s
+   🔍 Query: hash(conversationId) % 60 == 32
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,654 records in 4m 15s
+   ✅ Token validation passed (1,654 records)
+
+   📊 CHUNK 33 SUMMARY:
+      • Records this chunk: 1,654
+      • New unique records: 1,654
+      • Total accumulated:  52,841
+      • Chunk time: 258.7s
+   💾 Checkpoint saved: 52,841 records, chunk 33
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 34/60 (55% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 123m 26s
+   🔍 Query: hash(conversationId) % 60 == 33
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed                                                  ✅ Query returned 1,619 records in 5m 59s
+   ✅ Token validation passed (1,619 records)
+
+   📊 CHUNK 34 SUMMARY:
+      • Records this chunk: 1,619
+      • New unique records: 1,619
+      • Total accumulated:  54,460
+      • Chunk time: 359.9s
+   💾 Checkpoint saved: 54,460 records, chunk 34
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 35/60 (57% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 277s | ETA: 119m 57s
+   🔍 Query: hash(conversationId) % 60 == 34
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,613 records in 4m 12s
+   ✅ Token validation passed (1,613 records)
+
+   📊 CHUNK 35 SUMMARY:
+      • Records this chunk: 1,613
+      • New unique records: 1,613
+      • Total accumulated:  56,073
+      • Chunk time: 253.4s
+
+   📈 RUNNING TOTALS (after 35 chunks):
+      Buckets: short=29,487 | medium=16,491 | long=10,095
+      Splits:  train=46,559 | val=4,979 | test=4,535
+   💾 Checkpoint saved: 56,073 records, chunk 35
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 36/60 (58% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 276s | ETA: 115m 4s
+   🔍 Query: hash(conversationId) % 60 == 35
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,626 records in 4m 6s
+   ✅ Token validation passed (1,626 records)
+
+   📊 CHUNK 36 SUMMARY:
+      • Records this chunk: 1,626
+      • New unique records: 1,626
+      • Total accumulated:  57,699
+      • Chunk time: 247.1s
+   💾 Checkpoint saved: 57,699 records, chunk 36
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 37/60 (60% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 110m 8s
+   🔍 Query: hash(conversationId) % 60 == 36
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,608 records in 4m 2s
+   ✅ Token validation passed (1,608 records)
+
+   📊 CHUNK 37 SUMMARY:
+      • Records this chunk: 1,608
+      • New unique records: 1,608
+      • Total accumulated:  59,307
+      • Chunk time: 242.5s
+   💾 Checkpoint saved: 59,307 records, chunk 37
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 38/60 (62% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 105m 12s
+   🔍 Query: hash(conversationId) % 60 == 37
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,616 records in 4m 7s
+   ✅ Token validation passed (1,616 records)
+
+   📊 CHUNK 38 SUMMARY:
+      • Records this chunk: 1,616
+      • New unique records: 1,616
+      • Total accumulated:  60,923
+      • Chunk time: 247.6s
+   💾 Checkpoint saved: 60,923 records, chunk 38
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 39/60 (63% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 100m 22s
+   🔍 Query: hash(conversationId) % 60 == 38
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed                                                  ✅ Query returned 1,583 records in 4m 25s
+   ✅ Token validation passed (1,583 records)
+
+   📊 CHUNK 39 SUMMARY:
+      • Records this chunk: 1,583
+      • New unique records: 1,583
+      • Total accumulated:  62,506
+      • Chunk time: 265.7s
+   💾 Checkpoint saved: 62,506 records, chunk 39
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 40/60 (65% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 95m 44s
+   🔍 Query: hash(conversationId) % 60 == 39
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,602 records in 4m 2s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,601
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 8c8a8477-1934-4682-a...: ['1/16 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 40 SUMMARY:
+      • Records this chunk: 1,602
+      • New unique records: 1,602
+      • Total accumulated:  64,108
+      • Chunk time: 242.7s
+
+   📈 RUNNING TOTALS (after 40 chunks):
+      Buckets: short=33,671 | medium=18,872 | long=11,565
+      Splits:  train=53,242 | val=5,694 | test=5,172
+   💾 Checkpoint saved: 64,108 records, chunk 40
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 41/60 (67% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 273s | ETA: 90m 55s
+   🔍 Query: hash(conversationId) % 60 == 40
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,601 records in 4m 4s
+   ✅ Token validation passed (1,601 records)
+
+   📊 CHUNK 41 SUMMARY:
+      • Records this chunk: 1,601
+      • New unique records: 1,601
+      • Total accumulated:  65,709
+      • Chunk time: 248.5s
+   💾 Checkpoint saved: 65,709 records, chunk 41
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 42/60 (68% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 272s | ETA: 86m 11s
+   🔍 Query: hash(conversationId) % 60 == 41
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,609 records in 4m 19s
+   ✅ Token validation passed (1,609 records)
+
+   📊 CHUNK 42 SUMMARY:
+      • Records this chunk: 1,609
+      • New unique records: 1,609
+      • Total accumulated:  67,318
+      • Chunk time: 259.8s
+   💾 Checkpoint saved: 67,318 records, chunk 42
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 43/60 (70% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 272s | ETA: 81m 34s
+   🔍 Query: hash(conversationId) % 60 == 42
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,593 records in 4m 12s
+   ✅ Token validation passed (1,593 records)
+
+   📊 CHUNK 43 SUMMARY:
+      • Records this chunk: 1,593
+      • New unique records: 1,593
+      • Total accumulated:  68,911
+      • Chunk time: 252.7s
+   💾 Checkpoint saved: 68,911 records, chunk 43
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 44/60 (72% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 271s | ETA: 76m 54s
+   🔍 Query: hash(conversationId) % 60 == 43
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed⏱️  Query running... 7m 20s elapsed⏱️  Query running... 7m 30s elapsed⏱️  Query running... 7m 40s elapsed⏱️  Query running... 7m 50s elapsed⏱️  Query running... 8m 0s elapsed⏱️  Query running... 8m 10s elapsed⏱️  Query running... 8m 20s elapsed⏱️  Query running... 8m 30s elapsed⏱️  Query running... 8m 40s elapsed⏱️  Query running... 8m 50s elapsed⏱️  Query running... 9m 0s elapsed⏱️  Query running... 9m 10s elapsed⏱️  Query running... 9m 20s elapsed⏱️  Query running... 9m 30s elapsed⏱️  Query running... 9m 40s elapsed                                                  ✅ Query returned 1,631 records in 9m 40s
+   ✅ Token validation passed (1,631 records)
+
+   📊 CHUNK 44 SUMMARY:
+      • Records this chunk: 1,631
+      • New unique records: 1,631
+      • Total accumulated:  70,542
+      • Chunk time: 581.2s
+   💾 Checkpoint saved: 70,542 records, chunk 44
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 45/60 (73% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 278s | ETA: 74m 15s
+   🔍 Query: hash(conversationId) % 60 == 44
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,575 records in 4m 4s
+   ✅ Token validation passed (1,575 records)
+
+   📊 CHUNK 45 SUMMARY:
+      • Records this chunk: 1,575
+      • New unique records: 1,575
+      • Total accumulated:  72,117
+      • Chunk time: 244.7s
+
+   📈 RUNNING TOTALS (after 45 chunks):
+      Buckets: short=37,885 | medium=21,205 | long=13,027
+      Splits:  train=59,923 | val=6,374 | test=5,820
+   💾 Checkpoint saved: 72,117 records, chunk 45
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 46/60 (75% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 278s | ETA: 69m 26s
+   🔍 Query: hash(conversationId) % 60 == 45
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,624 records in 3m 55s
+   ✅ Token validation passed (1,624 records)
+
+   📊 CHUNK 46 SUMMARY:
+      • Records this chunk: 1,624
+      • New unique records: 1,624
+      • Total accumulated:  73,741
+      • Chunk time: 236.0s
+   💾 Checkpoint saved: 73,741 records, chunk 46
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 47/60 (77% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 277s | ETA: 64m 35s
+   🔍 Query: hash(conversationId) % 60 == 46
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,574 records in 3m 59s
+   ✅ Token validation passed (1,574 records)
+
+   📊 CHUNK 47 SUMMARY:
+      • Records this chunk: 1,574
+      • New unique records: 1,574
+      • Total accumulated:  75,315
+      • Chunk time: 239.8s
+   💾 Checkpoint saved: 75,315 records, chunk 47
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 48/60 (78% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 276s | ETA: 59m 48s
+   🔍 Query: hash(conversationId) % 60 == 47
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed⏱️  Query running... 4m 20s elapsed⏱️  Query running... 4m 30s elapsed⏱️  Query running... 4m 40s elapsed⏱️  Query running... 4m 50s elapsed⏱️  Query running... 5m 0s elapsed⏱️  Query running... 5m 10s elapsed⏱️  Query running... 5m 20s elapsed⏱️  Query running... 5m 30s elapsed⏱️  Query running... 5m 40s elapsed⏱️  Query running... 5m 50s elapsed⏱️  Query running... 6m 0s elapsed⏱️  Query running... 6m 10s elapsed⏱️  Query running... 6m 20s elapsed⏱️  Query running... 6m 30s elapsed⏱️  Query running... 6m 40s elapsed⏱️  Query running... 6m 50s elapsed⏱️  Query running... 7m 0s elapsed⏱️  Query running... 7m 10s elapsed⏱️  Query running... 7m 20s elapsed⏱️  Query running... 7m 30s elapsed⏱️  Query running... 7m 40s elapsed⏱️  Query running... 7m 50s elapsed⏱️  Query running... 8m 0s elapsed                                                  ✅ Query returned 1,563 records in 8m 8s
+   ✅ Token validation passed (1,563 records)
+
+   📊 CHUNK 48 SUMMARY:
+      • Records this chunk: 1,563
+      • New unique records: 1,563
+      • Total accumulated:  76,878
+      • Chunk time: 488.7s
+   💾 Checkpoint saved: 76,878 records, chunk 48
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 49/60 (80% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 280s | ETA: 56m 5s
+   🔍 Query: hash(conversationId) % 60 == 48
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,637 records in 3m 54s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,636
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 7000159b-ed59-4179-9...: ['1/8 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 49 SUMMARY:
+      • Records this chunk: 1,637
+      • New unique records: 1,637
+      • Total accumulated:  78,515
+      • Chunk time: 235.2s
+   💾 Checkpoint saved: 78,515 records, chunk 49
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 50/60 (82% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 280s | ETA: 51m 15s
+   🔍 Query: hash(conversationId) % 60 == 49
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed⏱️  Query running... 4m 10s elapsed                                                  ✅ Query returned 1,589 records in 4m 11s
+   ✅ Token validation passed (1,589 records)
+
+   📊 CHUNK 50 SUMMARY:
+      • Records this chunk: 1,589
+      • New unique records: 1,589
+      • Total accumulated:  80,104
+      • Chunk time: 252.3s
+
+   📈 RUNNING TOTALS (after 50 chunks):
+      Buckets: short=42,097 | medium=23,551 | long=14,456
+      Splits:  train=66,571 | val=7,076 | test=6,457
+   💾 Checkpoint saved: 80,104 records, chunk 50
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 51/60 (83% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 279s | ETA: 46m 30s
+   🔍 Query: hash(conversationId) % 60 == 50
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,575 records in 4m 4s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,573
+      • Invalid records: 2 (0.1%)
+      • Sample errors:
+        - 4baa9274-3ddd-4332-8...: ['1/8 turns have zero promptTokens in llmCalls']
+        - 86a85457-7251-4b13-8...: ['1/6 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 51 SUMMARY:
+      • Records this chunk: 1,575
+      • New unique records: 1,575
+      • Total accumulated:  81,679
+      • Chunk time: 249.1s
+   💾 Checkpoint saved: 81,679 records, chunk 51
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 52/60 (85% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 278s | ETA: 41m 45s
+   🔍 Query: hash(conversationId) % 60 == 51
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,651 records in 3m 55s
+   ✅ Token validation passed (1,651 records)
+
+   📊 CHUNK 52 SUMMARY:
+      • Records this chunk: 1,651
+      • New unique records: 1,651
+      • Total accumulated:  83,330
+      • Chunk time: 236.0s
+   💾 Checkpoint saved: 83,330 records, chunk 52
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 53/60 (87% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 278s | ETA: 37m 0s
+   🔍 Query: hash(conversationId) % 60 == 52
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,582 records in 4m 4s
+   ✅ Token validation passed (1,582 records)
+
+   📊 CHUNK 53 SUMMARY:
+      • Records this chunk: 1,582
+      • New unique records: 1,582
+      • Total accumulated:  84,912
+      • Chunk time: 245.2s
+   💾 Checkpoint saved: 84,912 records, chunk 53
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 54/60 (88% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 277s | ETA: 32m 18s
+   🔍 Query: hash(conversationId) % 60 == 53
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,566 records in 4m 9s
+   ✅ Token validation passed (1,566 records)
+
+   📊 CHUNK 54 SUMMARY:
+      • Records this chunk: 1,566
+      • New unique records: 1,566
+      • Total accumulated:  86,478
+      • Chunk time: 250.2s
+   💾 Checkpoint saved: 86,478 records, chunk 54
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 55/60 (90% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 277s | ETA: 27m 39s
+   🔍 Query: hash(conversationId) % 60 == 54
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,625 records in 4m 9s
+   ✅ Token validation passed (1,625 records)
+
+   📊 CHUNK 55 SUMMARY:
+      • Records this chunk: 1,625
+      • New unique records: 1,625
+      • Total accumulated:  88,103
+      • Chunk time: 250.0s
+
+   📈 RUNNING TOTALS (after 55 chunks):
+      Buckets: short=46,257 | medium=25,957 | long=15,889
+      Splits:  train=73,235 | val=7,759 | test=7,109
+   💾 Checkpoint saved: 88,103 records, chunk 55
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 56/60 (92% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 276s | ETA: 23m 0s
+   🔍 Query: hash(conversationId) % 60 == 55
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,632 records in 3m 56s
+   ✅ Token validation passed (1,632 records)
+
+   📊 CHUNK 56 SUMMARY:
+      • Records this chunk: 1,632
+      • New unique records: 1,632
+      • Total accumulated:  89,735
+      • Chunk time: 237.4s
+   💾 Checkpoint saved: 89,735 records, chunk 56
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 57/60 (93% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 18m 21s
+   🔍 Query: hash(conversationId) % 60 == 56
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,615 records in 4m 0s
+   ✅ Token validation passed (1,615 records)
+
+   📊 CHUNK 57 SUMMARY:
+      • Records this chunk: 1,615
+      • New unique records: 1,615
+      • Total accumulated:  91,350
+      • Chunk time: 240.7s
+   💾 Checkpoint saved: 91,350 records, chunk 57
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 58/60 (95% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 275s | ETA: 13m 44s
+   🔍 Query: hash(conversationId) % 60 == 57
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,584 records in 4m 1s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,583
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - a73c5af9-f8d5-4736-9...: ['1/9 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 58 SUMMARY:
+      • Records this chunk: 1,584
+      • New unique records: 1,584
+      • Total accumulated:  92,934
+      • Chunk time: 242.1s
+   💾 Checkpoint saved: 92,934 records, chunk 58
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 59/60 (97% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 9m 8s
+   🔍 Query: hash(conversationId) % 60 == 58
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed                                                  ✅ Query returned 1,567 records in 3m 56s
+
+   ⚠️  TOKEN VALIDATION WARNING:
+      • Valid records: 1,566
+      • Invalid records: 1 (0.1%)
+      • Sample errors:
+        - 77848b74-3b1c-44bd-a...: ['1/3 turns have zero promptTokens in llmCalls']
+
+   📊 CHUNK 59 SUMMARY:
+      • Records this chunk: 1,567
+      • New unique records: 1,567
+      • Total accumulated:  94,501
+      • Chunk time: 236.7s
+   💾 Checkpoint saved: 94,501 records, chunk 59
+
+──────────────────────────────────────────────────────────────────────
+📦 CHUNK 60/60 (98% complete)
+──────────────────────────────────────────────────────────────────────
+   ⏱️  Avg chunk time: 274s | ETA: 4m 33s
+   🔍 Query: hash(conversationId) % 60 == 59
+Executing Kusto query (19534 chars)...
+⏱️  Query running... 0s elapsed⏱️  Query running... 10s elapsed⏱️  Query running... 20s elapsed⏱️  Query running... 30s elapsed⏱️  Query running... 40s elapsed⏱️  Query running... 50s elapsed⏱️  Query running... 1m 0s elapsed⏱️  Query running... 1m 10s elapsed⏱️  Query running... 1m 20s elapsed⏱️  Query running... 1m 30s elapsed⏱️  Query running... 1m 40s elapsed⏱️  Query running... 1m 50s elapsed⏱️  Query running... 2m 0s elapsed⏱️  Query running... 2m 10s elapsed⏱️  Query running... 2m 20s elapsed⏱️  Query running... 2m 30s elapsed⏱️  Query running... 2m 40s elapsed⏱️  Query running... 2m 50s elapsed⏱️  Query running... 3m 0s elapsed⏱️  Query running... 3m 10s elapsed⏱️  Query running... 3m 20s elapsed⏱️  Query running... 3m 30s elapsed⏱️  Query running... 3m 40s elapsed⏱️  Query running... 3m 50s elapsed⏱️  Query running... 4m 0s elapsed                                                  ✅ Query returned 1,608 records in 4m 3s
+   ✅ Token validation passed (1,608 records)
+
+   📊 CHUNK 60 SUMMARY:
+      • Records this chunk: 1,608
+      • New unique records: 1,608
+      • Total accumulated:  96,109
+      • Chunk time: 243.5s
+
+   📈 RUNNING TOTALS (after 60 chunks):
+      Buckets: short=50,410 | medium=28,364 | long=17,335
+      Splits:  train=79,878 | val=8,456 | test=7,775
+   💾 Checkpoint saved: 96,109 records, chunk 60
+   🗑️  Checkpoint cleared
+
+======================================================================
+✅ ALL 60 CHUNKS COMPLETE!
+======================================================================
+   Total conversations: 96,109
+   Total time: 327m 26s
+   Avg per chunk: 327.4s
+
+📊 Distribution by bucket:
+   short_3_to_5_turns: 50,410
+   medium_6_to_10_turns: 28,364
+   long_11_to_20_turns: 17,335
+
+📊 Distribution by split (pre-sampling):
+   train: 79,878
+   val: 8,456
+   test: 7,775
+
+📊 Total candidates gathered: 96,109
+
+📊 Candidate counts BEFORE sampling:
+  train: {'short': 41918, 'medium': 23594, 'long': 14366}
+  val: {'short': 4413, 'medium': 2475, 'long': 1568}
+  test: {'short': 4079, 'medium': 2295, 'long': 1401}
+
+🎲 Stratified sampling...
+  train/short: 40,000 sampled from 41,918
+  ⚠️ train/medium: Only 23594 available (wanted 40000)
+  train/medium: 23,594 sampled from 23,594
+  ⚠️ train/long: Only 14366 available (wanted 20000)
+  train/long: 14,366 sampled from 14,366
+  val/short: 4,000 sampled from 4,413
+  ⚠️ val/medium: Only 2475 available (wanted 4000)
+  val/medium: 2,475 sampled from 2,475
+  ⚠️ val/long: Only 1568 available (wanted 2000)
+  val/long: 1,568 sampled from 1,568
+  test/short: 4,000 sampled from 4,079
+  ⚠️ test/medium: Only 2295 available (wanted 4000)
+  test/medium: 2,295 sampled from 2,295
+  ⚠️ test/long: Only 1401 available (wanted 2000)
+  test/long: 1,401 sampled from 1,401
+
+======================================================================
+DATA SUMMARY
+======================================================================
+
+TRAIN:
+  short_3_to_5_turns: 40,000 records
+  medium_6_to_10_turns: 23,594 records
+  long_11_to_20_turns: 14,366 records
+
+VAL:
+  short_3_to_5_turns: 4,000 records
+  medium_6_to_10_turns: 2,475 records
+  long_11_to_20_turns: 1,568 records
+
+TEST:
+  short_3_to_5_turns: 4,000 records
+  medium_6_to_10_turns: 2,295 records
+  long_11_to_20_turns: 1,401 records
+
+======================================================================
+VALIDATING DATA
+======================================================================
+
+📊 Validating TRAIN split (77,960 records)...
+Validating records:   0%|          | 0/77960 [00:00<?, ?it/s]Validating records:   3%|▎         | 2501/77960 [00:00<00:03, 25002.57it/s]Validating records:   6%|▋         | 5002/77960 [00:00<00:02, 24777.98it/s]Validating records:  10%|▉         | 7480/77960 [00:00<00:02, 23678.87it/s]Validating records:  13%|█▎        | 9853/77960 [00:00<00:03, 22478.91it/s]Validating records:  16%|█▌        | 12400/77960 [00:00<00:02, 23499.19it/s]Validating records:  19%|█▉        | 14978/77960 [00:00<00:02, 24244.88it/s]Validating records:  23%|██▎       | 17563/77960 [00:00<00:02, 24755.41it/s]Validating records:  26%|██▌       | 20161/77960 [00:00<00:02, 25136.93it/s]Validating records:  29%|██▉       | 22821/77960 [00:00<00:02, 25586.11it/s]Validating records:  33%|███▎      | 25593/77960 [00:01<00:01, 26238.39it/s]Validating records:  36%|███▌      | 28221/77960 [00:01<00:01, 26063.32it/s]Validating records:  40%|███▉      | 30917/77960 [00:01<00:01, 26332.29it/s]Validating records:  43%|████▎     | 33620/77960 [00:01<00:01, 26541.59it/s]Validating records:  47%|████▋     | 36336/77960 [00:01<00:01, 26724.84it/s]Validating records:  50%|█████     | 39010/77960 [00:01<00:01, 26485.25it/s]Validating records:  53%|█████▎    | 41660/77960 [00:01<00:01, 23040.84it/s]Validating records:  56%|█████▋    | 44044/77960 [00:01<00:01, 20711.19it/s]Validating records:  59%|█████▉    | 46204/77960 [00:01<00:01, 19545.50it/s]Validating records:  62%|██████▏   | 48223/77960 [00:02<00:01, 18810.58it/s]Validating records:  64%|██████▍   | 50146/77960 [00:02<00:01, 17964.86it/s]Validating records:  67%|██████▋   | 51971/77960 [00:02<00:01, 16939.35it/s]Validating records:  69%|██████▉   | 53686/77960 [00:02<00:01, 16685.97it/s]Validating records:  71%|███████   | 55367/77960 [00:02<00:01, 16456.43it/s]Validating records:  73%|███████▎  | 57160/77960 [00:02<00:01, 16855.71it/s]Validating records:  76%|███████▌  | 59229/77960 [00:02<00:01, 17927.64it/s]Validating records:  79%|███████▊  | 61369/77960 [00:02<00:00, 18918.43it/s]Validating records:  82%|████████▏ | 63622/77960 [00:02<00:00, 19961.47it/s]Validating records:  84%|████████▍ | 65633/77960 [00:03<00:00, 13947.12it/s]Validating records:  86%|████████▋ | 67283/77960 [00:03<00:00, 12475.03it/s]Validating records:  88%|████████▊ | 68725/77960 [00:03<00:00, 11683.92it/s]Validating records:  90%|████████▉ | 70027/77960 [00:03<00:00, 11126.61it/s]Validating records:  91%|█████████▏| 71228/77960 [00:03<00:00, 10844.63it/s]Validating records:  93%|█████████▎| 72370/77960 [00:03<00:00, 10579.32it/s]Validating records:  94%|█████████▍| 73465/77960 [00:03<00:00, 10406.36it/s]Validating records:  96%|█████████▌| 74529/77960 [00:04<00:00, 10463.26it/s]Validating records:  97%|█████████▋| 75627/77960 [00:04<00:00, 10600.15it/s]Validating records:  99%|█████████▊| 76905/77960 [00:04<00:00, 11200.36it/s]Validating records: 100%|██████████| 77960/77960 [00:04<00:00, 17861.71it/s]
+/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:1354: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:1364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "generated_at": datetime.utcnow().isoformat() + "Z",
+
+============================================================
+DATA VALIDATION REPORT
+============================================================
+Total records:         77,960
+Valid records:         77,955 (100.0%)
+Invalid records:       5
+Unique conversations:  77,960
+Duplicates found:      0
+
+⚠️  Error Summary:
+  • Turn index gap: expected 4, got 5: 2
+  • Turn index gap: expected 2, got 3: 1
+  • Turn index gap: expected 3, got 4: 1
+  • Turn index gap: expected 10, got 11: 1
+
+📋 Sample Invalid Records:
+  • 50b636ff-a779-49eb-b51f-2f1ce853fc61...: ['Turn index gap: expected 2, got 3']
+  • 256bc183-39ff-4dd6-b394-71f09a4091ec...: ['Turn index gap: expected 4, got 5']
+  • accae0e6-d10e-43da-91c5-b18a46234f82...: ['Turn index gap: expected 3, got 4']
+
+📁 Invalid records saved to: ./invalid_records_train_20251211_235742.json
+============================================================
+
+
+📊 Validating VAL split (8,043 records)...
+Validating records:   0%|          | 0/8043 [00:00<?, ?it/s]Validating records:  34%|███▍      | 2733/8043 [00:00<00:00, 27327.09it/s]Validating records:  68%|██████▊   | 5466/8043 [00:00<00:00, 20648.43it/s]Validating records:  95%|█████████▍| 7629/8043 [00:00<00:00, 16412.67it/s]Validating records: 100%|██████████| 8043/8043 [00:00<00:00, 17451.90it/s]
+
+============================================================
+DATA VALIDATION REPORT
+============================================================
+Total records:         8,043
+Valid records:         8,043 (100.0%)
+Invalid records:       0
+Unique conversations:  8,043
+Duplicates found:      0
+============================================================
+
+
+📊 Validating TEST split (7,696 records)...
+Validating records:   0%|          | 0/7696 [00:00<?, ?it/s]Validating records:  36%|███▌      | 2764/7696 [00:00<00:00, 27630.41it/s]Validating records:  72%|███████▏  | 5528/7696 [00:00<00:00, 22324.28it/s]Validating records: 100%|██████████| 7696/7696 [00:00<00:00, 18021.62it/s]
+/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:1474: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.utcnow()
+/home/abadawix/llm_judge/llm-judge-for-sft-vscode-1p-data/kusto_scripts/data_prep/raw_data_curation_databricks/notebooks/export_sft_to_blob.py:1771: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.utcnow()
+
+============================================================
+DATA VALIDATION REPORT
+============================================================
+Total records:         7,696
+Valid records:         7,696 (100.0%)
+Invalid records:       0
+Unique conversations:  7,696
+Duplicates found:      0
+============================================================
+
+
+============================================================
+CROSS-SPLIT EXCLUSIVITY CHECK
+============================================================
+
+Split sizes:
+  • train: 77,960 unique conversations
+  • val: 8,043 unique conversations
+  • test: 7,696 unique conversations
+
+✅ PASSED: No conversation appears in multiple splits
+============================================================
+
+
+======================================================================
+UPLOADING TO BLOB STORAGE
+======================================================================
+Container: github-copilot-sft-data-all-languages
+Path: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/
+
+Uploading 9 files...
+Uploading:   0%|          | 0/9 [00:00<?, ?it/s]Uploading:  11%|█         | 1/9 [01:59<15:52, 119.11s/it]Uploading:  22%|██▏       | 2/9 [04:08<14:37, 125.37s/it]Uploading:  33%|███▎      | 3/9 [06:41<13:45, 137.62s/it]Uploading:  44%|████▍     | 4/9 [06:53<07:20, 88.08s/it] Uploading:  56%|█████▌    | 5/9 [07:07<04:05, 61.45s/it]Uploading:  67%|██████▋   | 6/9 [07:23<02:18, 46.09s/it]Uploading:  78%|███████▊  | 7/9 [07:35<01:09, 34.96s/it]Uploading:  89%|████████▉ | 8/9 [07:48<00:28, 28.05s/it]Uploading: 100%|██████████| 9/9 [08:04<00:00, 23.99s/it]Uploading: 100%|██████████| 9/9 [08:04<00:00, 53.78s/it]
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/train/short_3_to_5_turns.json (1,148,615,670 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/train/medium_6_to_10_turns.json (1,312,494,738 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/train/long_11_to_20_turns.json (1,495,697,860 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/val/short_3_to_5_turns.json (115,756,844 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/val/medium_6_to_10_turns.json (136,179,847 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/val/long_11_to_20_turns.json (161,836,209 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/test/short_3_to_5_turns.json (113,502,245 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/test/medium_6_to_10_turns.json (127,019,575 bytes)
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/test/long_11_to_20_turns.json (146,752,162 bytes)
+
+Uploading metadata...
+  Uploaded: experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/metadata.json (2,995 bytes)
+
+======================================================================
+EXPORT COMPLETE
+======================================================================
+Total records: 93,699
+Location: https://githubtelemetry.blob.core.windows.net/github-copilot-sft-data-all-languages/experiments/testvscode_test/v4/vscodedata_120k_complete_stratified_deduped_60d_20251211_235743/
+
+Structure:
+  train/ (77,960 records)
+    └── short_3_to_5_turns.json (40,000)
+    └── medium_6_to_10_turns.json (23,594)
+    └── long_11_to_20_turns.json (14,366)
+  val/ (8,043 records)
+    └── short_3_to_5_turns.json (4,000)
+    └── medium_6_to_10_turns.json (2,475)
+    └── long_11_to_20_turns.json (1,568)
+  test/ (7,696 records)
+    └── short_3_to_5_turns.json (4,000)
+    └── medium_6_to_10_turns.json (2,295)
+    └── long_11_to_20_turns.json (1,401)
+  metadata.json

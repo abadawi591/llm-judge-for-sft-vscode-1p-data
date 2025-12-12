@@ -1,20 +1,25 @@
-# LLM-as-Judge Dependencies
+# GPT-5.2 Soft Label Teacher Dependencies
+# =========================================
 
-# Anthropic SDK for Claude models (includes async support)
-anthropic>=0.25.0
+# OpenAI SDK (includes async Azure client)
+openai>=1.30.0
 
-# Azure Authentication
+# Azure Authentication (for Key Vault access)
 azure-identity>=1.15.0
 azure-keyvault-secrets>=4.8.0
 
-# Retry logic
+# Azure Blob Storage (for reading input data)
+azure-storage-blob>=12.19.0
+
+# Tokenizer (for resolving token IDs for logit_bias)
+tiktoken>=0.7.0
+
+# Retry logic with exponential backoff
 tenacity>=8.2.0
 
-# Progress bars (sync and async)
+# Progress bars (async support via tqdm.asyncio)
 tqdm>=4.66.0
 
-# Async HTTP (for future extensions)
-aiohttp>=3.9.0
-
-# Data processing
-pandas>=2.0.0
+# Optional: for calibration plots
+# matplotlib>=3.7.0
+# numpy>=1.24.0
